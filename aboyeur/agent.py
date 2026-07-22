@@ -1,0 +1,146 @@
+"""The LLM loop: system prompt, native tool calling, tool dispatch.
+
+Allergy safety note: the allergy list is injected into search_recipes here,
+by the dispatcher, from the profile — never taken from the LLM's tool-call
+arguments (allergies isn't even in that tool's JSON schema, see
+tools/schemas.py). The model can't forget to pass it because it's never
+given the chance to pass it at all.
+"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+from typing import Iterator
+
+from aboyeur.config import Config
+from aboyeur.llm import StreamCollector, make_client, stream_chat
+from aboyeur.prompts import build_system_prompt
+from aboyeur.tools import (
+    estimate_nutrition,
+    get_profile,
+    get_recipe,
+    get_shopping_list,
+    manage_pantry,
+    plan_menu,
+    search_recipes,
+    swap_menu_item,
+    update_profile,
+)
+from aboyeur.tools.schemas import TOOL_SCHEMAS
+
+MAX_TOOL_ROUNDS = 8  # guard against a runaway tool-call loop
+
+
+def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -> dict:
+    if name == "search_recipes":
+        profile = get_profile(conn)
+        pantry = [r["item"] for r in conn.execute("SELECT item FROM pantry").fetchall()]
+        results = search_recipes(
+            conn, args["query"],
+            allergies=profile.get("allergies", []),
+            cuisine=args.get("cuisine"), book=args.get("book"),
+            include_ingredients=args.get("include_ingredients"),
+            exclude_ingredients=args.get("exclude_ingredients"),
+            pantry=pantry,
+            limit=args.get("limit", 25),
+        )
+        return {"results": results}
+
+    if name == "get_recipe":
+        return get_recipe(conn, args["id"], scale_to_servings=args.get("scale_to_servings"))
+
+    if name == "get_profile":
+        return get_profile(conn)
+
+    if name == "update_profile":
+        return update_profile(conn, args)
+
+    if name == "manage_pantry":
+        return {"pantry": manage_pantry(conn, args["action"], args.get("items"))}
+
+    if name == "estimate_nutrition":
+        return estimate_nutrition(conn, config, args["recipe_ids"])
+
+    if name == "plan_menu":
+        return plan_menu(
+            conn, config, args["candidate_ids"], args["days"],
+            meals_per_day=args.get("meals_per_day", 1),
+            constraints=args.get("constraints"),
+        )
+
+    if name == "swap_menu_item":
+        return swap_menu_item(
+            conn, config, args["day"], args["replacement_id"], menu_id=args.get("menu_id")
+        )
+
+    if name == "get_shopping_list":
+        return get_shopping_list(conn, args.get("menu_id"))
+
+    return {"error": f"unknown tool {name!r}"}
+
+
+class Agent:
+    def __init__(self, conn: sqlite3.Connection, config: Config):
+        self.conn = conn
+        self.config = config
+        self.client = make_client(config)
+        self.messages: list[dict] = [
+            {"role": "system", "content": build_system_prompt(get_profile(conn))}
+        ]
+
+    def _refresh_system_prompt(self) -> None:
+        self.messages[0] = {"role": "system", "content": build_system_prompt(get_profile(self.conn))}
+
+    def send(self, user_message: str, debug: bool = False) -> Iterator[tuple[str, object]]:
+        """One user turn. Yields ("text", str) chunks of the final answer as
+        they stream, and — only when debug=True — ("tool_call", dict) /
+        ("tool_result", dict) events for each tool the model invokes along
+        the way.
+        """
+        self.messages.append({"role": "user", "content": user_message})
+
+        for _ in range(MAX_TOOL_ROUNDS):
+            collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+            for text_chunk in collector:
+                yield ("text", text_chunk)
+
+            if not collector.tool_calls:
+                self.messages.append({"role": "assistant", "content": collector.content})
+                return
+
+            self.messages.append({
+                "role": "assistant",
+                "content": collector.content or None,
+                "tool_calls": [
+                    {
+                        "id": tc["id"], "type": "function",
+                        "function": {"name": tc["name"], "arguments": tc["arguments"]},
+                    }
+                    for tc in collector.tool_calls
+                ],
+            })
+
+            called_update_profile = False
+            for tc in collector.tool_calls:
+                try:
+                    args = json.loads(tc["arguments"] or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                if debug:
+                    yield ("tool_call", {"name": tc["name"], "args": args})
+                result = _dispatch(self.conn, self.config, tc["name"], args)
+                if debug:
+                    yield ("tool_result", {"name": tc["name"], "result": result})
+                if tc["name"] == "update_profile":
+                    called_update_profile = True
+                self.messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": json.dumps(result, default=str),
+                })
+
+            if called_update_profile:
+                self._refresh_system_prompt()
+
+        yield ("text", "\n\n(stopped after too many tool-call rounds without a final answer)")

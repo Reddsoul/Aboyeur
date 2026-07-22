@@ -1,0 +1,45 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./books:/app/books
+      - ./backend:/app/backend   # live backend code (no rebuild needed for edits)
+    env_file: .env
+    depends_on:
+      - chromadb
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"       # Chroma's internal port is 8000; exposed as 8001 on host.
+    volumes:
+      - ./data/chroma:/chroma/chroma
+    # No healthcheck: the chroma image ships no curl/wget/python to probe with.
+    # backend + watcher wait for chroma client-side (rag.wait_ready / lazy connect).
+    restart: unless-stopped
+
+  watcher:
+    build:
+      context: ./ingest
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data
+      - ./books:/app/books
+      - ./ingest:/app/ingest     # live ingest code (watcher, chunk_and_index, reindex)
+      - ./backend:/app/backend   # watcher imports the backend package (models, rag, utils, macro_engine)
+    env_file: .env
+    depends_on:
+      - chromadb
+    restart: unless-stopped
+
+# No frontend service. Odysseus (santo-domingo:7860) is the UI.
+# Backend MCP endpoint: http://santo-domingo:8000/mcp/sse — register in Odysseus.
+
+volumes: {}

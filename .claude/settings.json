@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 poc.py --help)",
+      "Bash(echo \"---exit:$?\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Volumes/General/Aboyeur/poc.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Volumes/General/Aboyeur/poc.py'\\).read\\(\\)\\); print\\('syntax OK'\\)\")"
+    ]
+  }
+}
