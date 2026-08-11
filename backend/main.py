@@ -6,9 +6,11 @@ Imports use the `backend.` package (PYTHONPATH=/app in Docker).
 import json
 import logging
 import shutil
+import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -51,7 +53,12 @@ def _startup():
     if not log.exists():
         log.parent.mkdir(parents=True, exist_ok=True)
         log.touch()
-    logger.info("Aboyeur up. Recipes in Chroma: %s", rag.count())
+    try:
+        logger.info("Aboyeur up. Recipes in Chroma: %s", rag.count())
+    except Exception as e:
+        # Chroma isn't running bare-metal (chat now runs on aboyeur.agent's
+        # FTS5 DB instead) — don't let an unreachable vector store block boot.
+        logger.warning("Chroma unreachable at boot (non-fatal): %s", e)
 
 
 # ===========================================================================
@@ -540,166 +547,152 @@ class ChatBody(BaseModel):
     session_id: str = "default"
 
 
-TOOLS = [
-    {"type": "function", "function": {
-        "name": "plan_menu",
-        "description": "Generate a meal plan optimized for ingredient overlap and household nutrition targets.",
-        "parameters": {"type": "object", "properties": {
-            "days": {"type": "integer"}, "constraints": {"type": "string"}},
-        }}},
-    {"type": "function", "function": {
-        "name": "search_recipes",
-        "description": "Search the cookbook library by semantic query.",
-        "parameters": {"type": "object", "properties": {
-            "query": {"type": "string"}, "n": {"type": "integer"}},
-            "required": ["query"]}}},
-    {"type": "function", "function": {
-        "name": "scale_recipe",
-        "description": "Scale a recipe to per-person calorie targets.",
-        "parameters": {"type": "object", "properties": {
-            "recipe_id": {"type": "string"}}, "required": ["recipe_id"]}}},
-    {"type": "function", "function": {
-        "name": "update_preferences",
-        "description": "Log feedback and update household food preferences.",
-        "parameters": {"type": "object", "properties": {
-            "feedback": {"type": "string"}}, "required": ["feedback"]}}},
-    {"type": "function", "function": {
-        "name": "get_shopping_list",
-        "description": "Get the pantry-aware, section-grouped shopping list for the current menu.",
-        "parameters": {"type": "object", "properties": {}}}},
-]
+import threading
+
+from aboyeur.agent import Agent as _AboyeurAgent
+from aboyeur.config import Config as _AboyeurConfig
+from aboyeur.db import connect as _aboyeur_connect
+
+# The real Aboyeur brain: 59k-recipe FTS5 DB, native tool calling, profile +
+# nutrition tools. backend/'s own SQLAlchemy Book/Recipe schema below has no
+# ingest pipeline wired up (never populated) — chat delegates here instead.
+_aboyeur_config = _AboyeurConfig.load()
+_aboyeur_conn = _aboyeur_connect(_aboyeur_config.db_path)
+
+# Multiple testers can now be in flight at once. Conversation state is kept
+# per-caller (see below); the one thing genuinely shared is _aboyeur_conn, a
+# single sqlite3.Connection — those aren't safe for concurrent use from
+# multiple threads even with check_same_thread=False, so _aboyeur_lock still
+# serializes actual turn *execution* process-wide. Testers queue behind each
+# other rather than running in parallel, but never see each other's messages.
+_aboyeur_lock = threading.Lock()
+
+# /chat only ever gets the new delta message per call (see ChatBody), so it
+# needs a persistent Agent per session_id to hold history between calls.
+_aboyeur_session_agents: dict[str, _AboyeurAgent] = {}
+_aboyeur_sessions_lock = threading.Lock()  # guards dict get-or-create, not turn execution
 
 
-def dispatch_tool(name: str, args: dict, db: Session) -> dict:
-    """Python executes all math/state. The LLM only routes + formats."""
-    profile = preference_engine.load_profile()
-    if name == "plan_menu":
-        days = args.get("days") or profile.get("plan_days", 7)
-        body = MenuGenerate(query=args.get("constraints") or "weeknight dinners",
-                            days=days, constraints=args.get("constraints", ""))
-        return menu_generate(body, db)
-    if name == "search_recipes":
-        return search(args["query"], n=args.get("n", 10), db=db)
-    if name == "scale_recipe":
-        r = db.get(Recipe, args["recipe_id"])
-        if not r:
-            return {"error": "recipe not found"}
-        targets = macro_engine.household_targets(profile)
-        base = {"calories": r.calories, "protein_g": r.protein_g,
-                "carb_g": r.carb_g, "fat_g": r.fat_g}
-        return {"recipe_id": r.id, "title": r.title,
-                "portions": {mid: macro_engine.scale_recipe(base, t["per_meal"]["kcal"])
-                             for mid, t in targets.items()}}
-    if name == "update_preferences":
-        preference_engine.log_interaction({"shown": [], "chosen": [], "skipped": [],
-                                           "feedback_raw": args["feedback"]})
-        diff = preference_engine.infer_preferences(last_n=5)
-        return {"updated": preference_engine.update_profile(diff)["preferences"]}
-    if name == "get_shopping_list":
-        return shopping_list(db)
-    return {"error": f"unknown tool {name}"}
+def _get_session_agent(session_id: str) -> _AboyeurAgent:
+    with _aboyeur_sessions_lock:
+        agent = _aboyeur_session_agents.get(session_id)
+        if agent is None:
+            agent = _AboyeurAgent(_aboyeur_conn, _aboyeur_config)
+            _aboyeur_session_agents[session_id] = agent
+        return agent
+
+
+def _reset_session_agent(session_id: str) -> _AboyeurAgent:
+    with _aboyeur_sessions_lock:
+        agent = _AboyeurAgent(_aboyeur_conn, _aboyeur_config)
+        _aboyeur_session_agents[session_id] = agent
+        return agent
 
 
 def _sse(data: str) -> str:
     return f"data: {data}\n\n"
 
 
-def _json_route(message: str) -> tuple:
-    """Portable tool router via JSON output (no native function-calling needed).
-
-    Returns (tool_name|None, args_dict). Used when the LLM endpoint lacks
-    vLLM's --enable-auto-tool-choice.
+def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
+    """Streams a reply from the given Agent. Yields raw content strings,
+    unwrapped. Shared by the native /chat SSE endpoint and the
+    /v1/chat/completions OpenAI-compat shim.
     """
-    try:
-        out = llm.chat_json([
-            {"role": "system", "content":
-                "You route a user's cooking request to ONE tool. Tools:\n"
-                "- plan_menu(days:int, constraints:str): weekly meal plan / dinners\n"
-                "- search_recipes(query:str, n:int): find recipes in the library\n"
-                "- scale_recipe(recipe_id:str): scale a recipe to household targets\n"
-                "- update_preferences(feedback:str): record likes/dislikes feedback\n"
-                "- get_shopping_list(): shopping list for the current menu\n"
-                'Output ONLY JSON: {"tool":"<name|none>","args":{...}}. '
-                'Use "none" if the user is just chatting or asking general questions.'},
-            {"role": "user", "content": message},
-        ])
-        tool = out.get("tool")
-        if tool and tool != "none" and any(t["function"]["name"] == tool for t in TOOLS):
-            return tool, out.get("args", {}) or {}
-    except Exception as e:
-        logger.warning("json router failed: %s", e)
-    return None, {}
+    with _aboyeur_lock:
+        for kind, payload in agent.send(message):
+            if kind == "text":
+                yield payload
 
 
-def _agent_stream(message: str, session_id: str):
-    db = SessionLocal()
-    injection = preference_engine.get_prompt_injection()
-    system = f"{BASE_SYSTEM}\n\nUser context: {injection}"
-    base_msgs = [{"role": "system", "content": system},
-                 {"role": "user", "content": message}]
-
-    tool_used, tool_args, tool_result = None, None, None
-    try:
-        call = llm.tool_call(base_msgs, TOOLS)
-        tool_used, tool_args = call["name"], call["arguments"]
-    except llm.ToolCallError:
-        pass
-    except Exception as e:
-        # Native function-calling unsupported on this vLLM (no --enable-auto-tool-choice).
-        # Fall back to a portable JSON router that works on any OpenAI-compatible endpoint.
-        logger.info("native tool-calling unavailable (%s); using JSON router", str(e)[:80])
-        tool_used, tool_args = _json_route(message)
-
-    if tool_used:
-        try:
-            tool_result = dispatch_tool(tool_used, tool_args or {}, db)
-        except Exception as e:
-            logger.warning("tool %s failed: %s", tool_used, e)
-            tool_result = {"error": str(e)}
-
-    # Single system message — LiteLLM/Qwen rejects multiple/late system messages.
-    sys_content = system
-    if tool_result is not None:
-        sys_content += (f"\n\nTool `{tool_used}` returned this data — base your answer "
-                        f"ONLY on it, keep all numbers exact, and label recipes:\n"
-                        f"{json.dumps(tool_result)[:6000]}")
-    final_msgs = [{"role": "system", "content": sys_content},
-                  {"role": "user", "content": message}]
-
-    collected = []
-    try:
-        for tok in llm.stream_chat(final_msgs):
-            collected.append(tok)
-            yield _sse(tok)
-    except Exception as e:
-        yield _sse(f"[error: {e}]")
+def _agent_stream(agent: _AboyeurAgent, message: str):
+    for tok in _agent_tokens(agent, message):
+        yield _sse(tok)
     yield _sse("[DONE]")
-
-    try:
-        preference_engine.log_interaction({
-            "session_id": session_id, "message": message, "tool_used": tool_used,
-            "shown": _ids_from_result(tool_result), "chosen": [], "skipped": [],
-            "response_preview": "".join(collected)[:300],
-        })
-    finally:
-        db.close()
-
-
-def _ids_from_result(result) -> list:
-    if not isinstance(result, dict):
-        return []
-    ids = []
-    for c in result.get("curated_recipes", []):
-        ids.append(c.get("recipe_id"))
-    for r in result.get("results", []):
-        ids.append(r.get("id"))
-    return [i for i in ids if i]
 
 
 @app.post("/chat")
 def chat(body: ChatBody):
-    return StreamingResponse(_agent_stream(body.message, body.session_id),
+    agent = _get_session_agent(body.session_id)
+    return StreamingResponse(_agent_stream(agent, body.message),
                              media_type="text/event-stream")
+
+
+# ===========================================================================
+# OpenAI-compatible shim (Phase 7) — lets OpenWebUI drive the Aboyeur agent
+# as a regular chat model, instead of duplicating its tool-routing/orchestration.
+# ===========================================================================
+
+class OAMessage(BaseModel):
+    role: str
+    content: str
+
+
+class OAChatRequest(BaseModel):
+    model: str = "aboyeur"
+    messages: list[OAMessage]
+    stream: bool = False
+
+
+@app.get("/v1/models")
+def oa_models():
+    return {"object": "list", "data": [{"id": "aboyeur", "object": "model", "owned_by": "aboyeur"}]}
+
+
+def _oa_chunk(request_id: str, created: int, content: Optional[str] = None,
+              finish_reason: Optional[str] = None) -> str:
+    delta = {"content": content} if content is not None else {}
+    payload = {
+        "id": request_id, "object": "chat.completion.chunk", "created": created,
+        "model": "aboyeur",
+        "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
+    }
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+def _oa_stream(agent: _AboyeurAgent, message: str):
+    request_id = f"chatcmpl-{uuid.uuid4().hex}"
+    created = int(time.time())
+    for tok in _agent_tokens(agent, message):
+        yield _oa_chunk(request_id, created, content=tok)
+    yield _oa_chunk(request_id, created, finish_reason="stop")
+    yield "data: [DONE]\n\n"
+
+
+@app.post("/v1/chat/completions")
+def oa_chat_completions(body: OAChatRequest):
+    """OpenAI-compatible endpoint so OpenWebUI can register Aboyeur as a model.
+
+    Stateless per request: any OpenAI-style client (OpenWebUI included)
+    resends the full conversation on every call, so a fresh Agent is
+    rebuilt from body.messages each time instead of relying on server-side
+    memory. That's what makes concurrent testers safe — two callers never
+    share an Agent or a messages list, only the underlying sqlite connection
+    (serialized by _aboyeur_lock in _agent_tokens).
+    """
+    user_msgs = [m for m in body.messages if m.role == "user"]
+    if not user_msgs:
+        raise HTTPException(400, "no user message")
+    message = user_msgs[-1].content
+    history = [
+        {"role": m.role, "content": m.content}
+        for m in body.messages[:-1] if m.role in ("user", "assistant")
+    ]
+    agent = _AboyeurAgent(_aboyeur_conn, _aboyeur_config, history=history)
+
+    if body.stream:
+        return StreamingResponse(_oa_stream(agent, message),
+                                 media_type="text/event-stream")
+
+    content = "".join(_agent_tokens(agent, message))
+    return {
+        "id": f"chatcmpl-{uuid.uuid4().hex}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": "aboyeur",
+        "choices": [{"index": 0, "message": {"role": "assistant", "content": content},
+                     "finish_reason": "stop"}],
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+    }
 
 
 def _monday_of_week() -> str:

@@ -24,7 +24,7 @@ def get_recipe(conn: sqlite3.Connection, recipe_id: int, scale_to_servings: int 
     except OSError as e:
         return {"error": f"could not read recipe file (mount issue?): {e}"}
 
-    result = {"id": recipe_id, "title": row["title"], "servings": row["servings"], "markdown": text}
+    result = {"id": recipe_id, "title": row["title"], "path": row["path"], "servings": row["servings"], "markdown": text}
     if scale_to_servings and row["servings"]:
         result["scale_multiplier"] = round(scale_to_servings / row["servings"], 2)
         result["scale_note"] = "multiplier only — ingredient quantities are not auto-rewritten (Phase 4)"

@@ -14,7 +14,7 @@ Base = declarative_base()
 
 # Database path — env override (DB_PATH) wins, else local data/aboyeur.db.
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-DB_PATH = os.getenv("DB_PATH", str(DATA_DIR / "aboyeur.db"))
+DB_PATH = os.path.expanduser(os.getenv("DB_PATH", str(DATA_DIR / "aboyeur.db")))
 
 
 class Book(Base):

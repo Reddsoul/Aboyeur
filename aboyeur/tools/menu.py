@@ -29,14 +29,14 @@ def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: li
     macros_by_id = estimate_nutrition(conn, config, candidate_ids)
     placeholders = ",".join("?" * len(candidate_ids))
     rows = conn.execute(
-        f"SELECT id, title, book, ingredients_json FROM recipes WHERE id IN ({placeholders})",
+        f"SELECT id, title, book, path, ingredients_json FROM recipes WHERE id IN ({placeholders})",
         candidate_ids,
     ).fetchall()
     out = []
     for row in rows:
         m = macros_by_id.get(row["id"], {})
         out.append({
-            "id": row["id"], "title": row["title"], "book": row["book"],
+            "id": row["id"], "title": row["title"], "book": row["book"], "path": row["path"],
             "ingredients": json.loads(row["ingredients_json"]),
             "macros": {"calories": m.get("kcal", 0)},
         })
@@ -96,7 +96,7 @@ def plan_menu(
 
     days_out = [
         {
-            "day": i, "recipe_id": p.recipe_id, "title": p.title, "book": p.book,
+            "day": i, "recipe_id": p.recipe_id, "title": p.title, "book": p.book, "path": p.path,
             "shared_ingredients": p.shared_ingredients, "macro_fit": p.macro_fit,
             "pick_reason": p.pick_reason,
         }
@@ -142,7 +142,7 @@ def swap_menu_item(
 
     placeholders = ",".join("?" * len(ids))
     rows = conn.execute(
-        f"SELECT id, title, book, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
+        f"SELECT id, title, book, path, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
     ).fetchall()
     by_id = {r["id"]: r for r in rows}
     if replacement_id not in by_id:
@@ -167,12 +167,13 @@ def swap_menu_item(
         fit = round(optimizer.macro_fit({"calories": kcal}, avg_kcal), 2)
         new_days.append({
             "day": i + 1, "recipe_id": rid, "title": row["title"], "book": row["book"],
+            "path": row["path"],
             "shared_ingredients": shared, "macro_fit": fit,
             "pick_reason": "manual swap" if rid == replacement_id else days[i].get("pick_reason", ""),
         })
 
     picks_for_score = [
-        optimizer.MenuPick(d["recipe_id"], d["title"], d["book"], ing_by_id[d["recipe_id"]],
+        optimizer.MenuPick(d["recipe_id"], d["title"], d["book"], d["path"], ing_by_id[d["recipe_id"]],
                             d["shared_ingredients"], d["macro_fit"], d["pick_reason"])
         for d in new_days
     ]

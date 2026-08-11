@@ -11,7 +11,7 @@ from pathlib import Path
 
 from backend import llm
 
-DATA_DIR = Path(os.getenv("DB_PATH", "data/aboyeur.db")).resolve().parent
+DATA_DIR = Path(os.getenv("DB_PATH", "data/aboyeur.db")).expanduser().resolve().parent
 PROFILE_PATH = DATA_DIR / "user_profile.json"
 LOG_PATH = DATA_DIR / "interaction_log.jsonl"
 USER_RECIPES_PATH = DATA_DIR / "user_recipes.jsonl"

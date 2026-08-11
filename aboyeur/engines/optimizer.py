@@ -69,6 +69,7 @@ class MenuPick:
     recipe_id: int
     title: str
     book: str
+    path: str
     ingredients: list[str]
     shared_ingredients: list[str]
     macro_fit: float
@@ -187,7 +188,7 @@ def select_menu(
         shared = sorted(m_ings & selected_meaningful)
         reason = "best pantry/macro fit" if not picks else f"shares {len(shared)} ingredients"
         picks.append(MenuPick(
-            recipe_id=best["id"], title=best["title"], book=best["book"],
+            recipe_id=best["id"], title=best["title"], book=best["book"], path=best.get("path"),
             ingredients=best["ingredients"], shared_ingredients=shared,
             macro_fit=round(macro_fit(best.get("macros", {}), target_kcal), 2),
             pick_reason=reason,

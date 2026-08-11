@@ -29,7 +29,34 @@ from aboyeur.tools import (
 )
 from aboyeur.tools.schemas import TOOL_SCHEMAS
 
-MAX_TOOL_ROUNDS = 8  # guard against a runaway tool-call loop
+MAX_TOOL_ROUNDS = 20  # guard against a runaway tool-call loop — raised from 8 so a
+# 7-day plan can clear search_recipes + plan_menu + one get_recipe per day + the
+# shopping list even if the model can't batch tool calls into a single round
+
+
+def _tool_result_text(name: str, result: dict) -> str:
+    """Serialize a tool result for the model's context.
+
+    get_recipe's markdown is meant to be echoed back verbatim (see system
+    prompt), but this is a mid-size local model, not a JSON-aware runtime —
+    it reproduces tool content character-for-character rather than decoding
+    escapes. json.dumps would hand it back "\\n" and "\\u00be" as literal
+    text, which it then parrots straight into the user-facing answer. Plain
+    text with real newlines/unicode sidesteps that; every other tool's
+    result is small and structured enough that JSON is the better fit.
+    """
+    if name == "get_recipe" and "markdown" in result:
+        header_lines = [f"# {result.get('title', '')} (id {result.get('id')})"]
+        if result.get("path"):
+            header_lines.append(f"path: {result['path']}")
+        if result.get("servings"):
+            header_lines.append(f"servings: {result['servings']}")
+        if result.get("scale_multiplier"):
+            header_lines.append(
+                f"scale_multiplier: {result['scale_multiplier']} — {result.get('scale_note', '')}"
+            )
+        return "\n".join(header_lines) + "\n\n" + result["markdown"]
+    return json.dumps(result, default=str)
 
 
 def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -> dict:
@@ -81,13 +108,24 @@ def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -
 
 
 class Agent:
-    def __init__(self, conn: sqlite3.Connection, config: Config):
+    def __init__(
+        self, conn: sqlite3.Connection, config: Config, history: list[dict] | None = None
+    ):
+        """history: prior user/assistant turns to seed the conversation with
+        (e.g. reconstructing an Agent per-request from an OpenAI-compat
+        client that resends its own full history — see backend/main.py's
+        oa_chat_completions). Only role/content pairs are needed; a turn's
+        internal tool-call round trips aren't preserved across turns, only
+        within the one currently being answered.
+        """
         self.conn = conn
         self.config = config
         self.client = make_client(config)
         self.messages: list[dict] = [
             {"role": "system", "content": build_system_prompt(get_profile(conn))}
         ]
+        if history:
+            self.messages.extend(history)
 
     def _refresh_system_prompt(self) -> None:
         self.messages[0] = {"role": "system", "content": build_system_prompt(get_profile(self.conn))}
@@ -137,7 +175,7 @@ class Agent:
                 self.messages.append({
                     "role": "tool",
                     "tool_call_id": tc["id"],
-                    "content": json.dumps(result, default=str),
+                    "content": _tool_result_text(tc["name"], result),
                 })
 
             if called_update_profile:
