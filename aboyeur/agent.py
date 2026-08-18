@@ -9,6 +9,7 @@ given the chance to pass it at all.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import sqlite3
@@ -28,6 +29,7 @@ from aboyeur.tools import (
     swap_menu_item,
     update_profile,
 )
+from aboyeur.tools import profile as profile_tools
 from aboyeur.tools.schemas import TOOL_SCHEMAS
 
 logger = logging.getLogger("aboyeur")
@@ -117,7 +119,11 @@ def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -
 
 class Agent:
     def __init__(
-        self, conn: sqlite3.Connection, config: Config, history: list[dict] | None = None
+        self,
+        conn: sqlite3.Connection,
+        config: Config,
+        history: list[dict] | None = None,
+        guest_profile: dict | None = None,
     ):
         """history: prior user/assistant turns to seed the conversation with
         (e.g. reconstructing an Agent per-request from an OpenAI-compat
@@ -125,25 +131,57 @@ class Agent:
         oa_chat_completions). Only role/content pairs are needed; a turn's
         internal tool-call round trips aren't preserved across turns, only
         within the one currently being answered.
+
+        guest_profile: when set, this in-memory dict replaces the stored
+        household profile for every tool in this agent's turns (targets,
+        allergen filter, system prompt), and update_profile writes into it
+        instead of the DB — nothing a guest says is persisted. See
+        tools/profile.set_guest_profile.
         """
         self.conn = conn
         self.config = config
+        self.guest_profile = guest_profile
         self.client = make_client(config)
-        self.messages: list[dict] = [
-            {"role": "system", "content": build_system_prompt(get_profile(conn))}
-        ]
+        with self._guest_scope():
+            system = build_system_prompt(get_profile(conn), guest=guest_profile is not None)
+        self.messages: list[dict] = [{"role": "system", "content": system}]
         if history:
             self.messages.extend(history)
 
+    @contextlib.contextmanager
+    def _guest_scope(self):
+        if self.guest_profile is None:
+            yield
+            return
+        profile_tools.set_guest_profile(self.guest_profile)
+        try:
+            yield
+        finally:
+            profile_tools.set_guest_profile(None)
+
     def _refresh_system_prompt(self) -> None:
-        self.messages[0] = {"role": "system", "content": build_system_prompt(get_profile(self.conn))}
+        self.messages[0] = {
+            "role": "system",
+            "content": build_system_prompt(
+                get_profile(self.conn), guest=self.guest_profile is not None
+            ),
+        }
 
     def send(self, user_message: str, debug: bool = False) -> Iterator[tuple[str, object]]:
         """One user turn. Yields ("text", str) chunks of the final answer as
         they stream, and — only when debug=True — ("tool_call", dict) /
         ("tool_result", dict) events for each tool the model invokes along
         the way.
+
+        In guest mode the whole turn runs with the guest profile active —
+        safe because callers consume a turn to completion under one lock
+        (backend) or single-threaded (CLI), so the module-level override
+        never leaks into another session's turn.
         """
+        with self._guest_scope():
+            yield from self._send_turn(user_message, debug)
+
+    def _send_turn(self, user_message: str, debug: bool) -> Iterator[tuple[str, object]]:
         self.messages.append({"role": "user", "content": user_message})
 
         for _ in range(MAX_TOOL_ROUNDS):

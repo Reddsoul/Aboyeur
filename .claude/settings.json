@@ -10,7 +10,15 @@
       "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -c \"import ast; ast.parse\\(open\\('/Volumes/General/Coding/Python/Aboyeur/backend/main.py'\\).read\\(\\)\\); ast.parse\\(open\\('/Volumes/General/Coding/Python/Aboyeur/backend/profile_ui.py'\\).read\\(\\)\\); print\\('syntax ok'\\)\")",
       "Bash(curl -s -m 5 http://localhost:8000/profile/data)",
       "Bash(curl -s -m 5 -o /dev/null -w \"profile/ui: %{http_code}\\\\n\" http://localhost:8000/profile/ui)",
-      "Bash(curl -s -m 10 http://localhost:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\":[{\"role\":\"user\",\"content\":\"/profile\"}]}')"
+      "Bash(curl -s -m 10 http://localhost:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\":[{\"role\":\"user\",\"content\":\"/profile\"}]}')",
+      "Bash(curl -s -m 8 http://localhost:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\":[{\"role\":\"user\",\"content\":\"/profile\"}]}')",
+      "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -c \"import json,sys; print\\(json.load\\(sys.stdin\\)['choices'][0]['message']['content'][-350:]\\)\")",
+      "Bash(curl -s -m 120 http://localhost:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\":[{\"role\":\"user\",\"content\":\"/guest im a 5 foot woman, 120 lbs, allergic to shellfish. what are my daily calories?\"}]}')",
+      "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -c \"import json,sys; print\\(json.load\\(sys.stdin\\)['choices'][0]['message']['content'][:600]\\)\")",
+      "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('stored allergies:', d['allergies']\\); print\\('stored members:', [m['id'] for m in d['household']]\\)\")",
+      "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -m json.tool)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"now: %{http_code}\\\\n\" http://localhost:8000/profile/ui)",
+      "Bash(awk 'NR>=1685 && NR<=1690' logs/uvicorn.log)"
     ]
   }
 }

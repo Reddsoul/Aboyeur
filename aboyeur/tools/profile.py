@@ -21,10 +21,37 @@ DEFAULT_PROFILE = {
     "cuisine_affinity": [],
     "diet_modes": [],
     "meals_per_day": 3,
+    "units": "metric",
 }
+
+# Guest mode: a /guest session swaps in a temporary in-memory profile here.
+# Every profile consumer (system prompt, search's allergen filter, menu
+# targets) reads through _load_raw, so one override point covers them all;
+# _save_raw writes back to the dict instead of the DB, so nothing a guest
+# says is ever persisted. A plain module global (not a contextvar) because
+# the backend streams responses across threadpool threads — turn execution
+# is already serialized process-wide by the backend's lock, and the Agent
+# sets/clears this around each turn.
+_guest_profile: dict | None = None
+
+
+def set_guest_profile(profile: dict | None) -> None:
+    global _guest_profile
+    _guest_profile = profile
+
+
+def guest_active() -> bool:
+    return _guest_profile is not None
+
+
+def make_guest_profile() -> dict:
+    """Fresh, empty guest profile — no household, no allergies, metric units."""
+    return json.loads(json.dumps(DEFAULT_PROFILE))
 
 
 def _load_raw(conn: sqlite3.Connection) -> dict:
+    if _guest_profile is not None:
+        return _guest_profile
     row = conn.execute("SELECT data_json FROM profile WHERE id = 1").fetchone()
     if row is None:
         return dict(DEFAULT_PROFILE)
@@ -32,6 +59,13 @@ def _load_raw(conn: sqlite3.Connection) -> dict:
 
 
 def _save_raw(conn: sqlite3.Connection, profile: dict) -> None:
+    if _guest_profile is not None:
+        # In-memory only: keep the guest dict identity so the Agent's
+        # reference stays live across tool calls within the session.
+        if profile is not _guest_profile:
+            _guest_profile.clear()
+            _guest_profile.update(profile)
+        return
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     conn.execute(
         "INSERT INTO profile (id, data_json, updated_at) VALUES (1, ?, ?) "
@@ -90,6 +124,10 @@ def update_profile(conn: sqlite3.Connection, patch: dict) -> dict:
         profile["cuisine_affinity"] = list(patch["set_cuisine_affinity"])
     if "set_meals_per_day" in patch:
         profile["meals_per_day"] = int(patch["set_meals_per_day"])
+    if "set_units" in patch:
+        units = str(patch["set_units"]).lower().strip()
+        if units in ("metric", "imperial"):
+            profile["units"] = units
     if "add_member" in patch:
         # The model occasionally sends a list of members here despite the
         # schema saying object — upsert each rather than crashing mid-stream.

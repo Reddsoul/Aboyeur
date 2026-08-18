@@ -69,3 +69,43 @@ def test_wrong_arg_type_becomes_error_tool_result(
 
     tool_msg = next(m for m in agent.messages if m["role"] == "tool")
     assert "invalid arguments" in tool_msg["content"]
+
+
+def test_guest_profile_overrides_and_never_persists(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    """A guest session's update_profile writes stay in the guest dict; the
+    stored household profile is untouched, and the override is cleared once
+    the turn ends."""
+    from aboyeur.tools import profile as profile_tools
+    from aboyeur.tools.profile import get_profile, update_profile
+
+    update_profile(db_conn, {"add_allergies": ["peanut"]})  # the household's real profile
+
+    guest = profile_tools.make_guest_profile()
+    agent = _scripted_agent(db_conn, config, monkeypatch, [
+        ("", [{
+            "id": "t1", "name": "update_profile",
+            "arguments": '{"add_allergies": ["shellfish"], "add_member": '
+                         '{"id": "guest", "sex": "f", "height_cm": 152.4, "weight_kg": 54.4}}',
+        }]),
+        ("noted", []),
+    ])
+    agent.guest_profile = guest
+    agent.messages[0] = {"role": "system", "content": "guest test"}
+
+    list(agent.send("im a 5 foot woman, 120 lbs, allergic to shellfish"))
+
+    assert guest["allergies"] == ["shellfish"]
+    assert [m["id"] for m in guest["household"]] == ["guest"]
+    stored = get_profile(db_conn)
+    assert stored["allergies"] == ["peanut"]  # untouched
+    assert stored["household"] == []
+    assert not profile_tools.guest_active()  # override cleared after the turn
+
+
+def test_guest_system_prompt_flags_guest_mode(db_conn: sqlite3.Connection, config: Config, monkeypatch):
+    from aboyeur.tools.profile import make_guest_profile
+    monkeypatch.setattr(agent_mod, "make_client", lambda config: None)
+    agent = Agent(db_conn, config, guest_profile=make_guest_profile())
+    assert "GUEST MODE ACTIVE" in agent.messages[0]["content"]

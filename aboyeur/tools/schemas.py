@@ -85,12 +85,14 @@ TOOL_SCHEMAS: list[dict] = [
             "name": "update_profile",
             "description": (
                 "Update the household profile. Use add_allergies whenever the user mentions "
-                "an allergy — do this immediately, don't wait to be asked. Add/remove fields "
-                "take lists and merge (they don't replace the existing list); set_* fields "
-                "replace outright. set_meals_per_day is the household-wide default — if only "
-                "ONE person is changing their eating pattern (e.g. going OMAD), do NOT use "
-                "set_meals_per_day, use add_member with that person's id and meals_per_day "
-                "instead so the rest of the household isn't affected."
+                "an allergy — do this immediately, don't wait to be asked; same for any stated "
+                "personal fact (height, weight, age, sex, diet) via add_member. Store metric: "
+                "convert feet/inches to height_cm and pounds to weight_kg before saving. "
+                "Add/remove fields take lists and merge (they don't replace the existing "
+                "list); set_* fields replace outright. set_meals_per_day is the household-wide "
+                "default — if only ONE person is changing their eating pattern (e.g. going "
+                "OMAD), do NOT use set_meals_per_day, use add_member with that person's id and "
+                "meals_per_day instead so the rest of the household isn't affected."
             ),
             "parameters": {
                 "type": "object",
@@ -127,6 +129,10 @@ TOOL_SCHEMAS: list[dict] = [
                         ),
                     },
                     "remove_member": {"type": "string", "description": "Member id to remove."},
+                    "set_units": {
+                        "type": "string", "enum": ["metric", "imperial"],
+                        "description": "Display unit preference. Storage is always metric.",
+                    },
                 },
             },
         },

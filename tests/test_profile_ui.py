@@ -71,3 +71,21 @@ def test_profile_markdown_snapshot(db_conn: sqlite3.Connection):
     assert "http://box:8000/profile/ui" in md
     assert "peanut, shellfish" in md
     assert "Jose" in md
+
+
+def test_save_profile_persists_units(db_conn: sqlite3.Connection):
+    saved = profile_ui.save_profile(db_conn, {**FULL_STATE, "units": "imperial"})
+    assert saved["units"] == "imperial"
+    saved = profile_ui.save_profile(db_conn, {**FULL_STATE, "units": "metric"})
+    assert saved["units"] == "metric"
+    # junk never sticks
+    saved = profile_ui.save_profile(db_conn, {**FULL_STATE, "units": "stone"})
+    assert saved["units"] == "metric"
+
+
+def test_profile_markdown_imperial_display(db_conn: sqlite3.Connection):
+    profile_ui.save_profile(db_conn, {**FULL_STATE, "units": "imperial"})
+    md = profile_ui.profile_markdown(get_profile(db_conn), "http://x/profile/ui")
+    assert "5'10\"" in md    # 178 cm
+    assert "176lb" in md     # 80 kg
+    assert "/guest" in md    # guest hint present

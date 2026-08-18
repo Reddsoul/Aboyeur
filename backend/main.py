@@ -552,7 +552,10 @@ import threading
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
 from aboyeur.db import connect as _aboyeur_connect
-from aboyeur.tools.profile import get_profile as _aboyeur_get_profile
+from aboyeur.tools.profile import (
+    get_profile as _aboyeur_get_profile,
+    make_guest_profile as _make_guest_profile,
+)
 from backend import profile_ui
 
 # The real Aboyeur brain: 59k-recipe FTS5 DB, native tool calling, profile +
@@ -584,9 +587,12 @@ def _get_session_agent(session_id: str) -> _AboyeurAgent:
         return agent
 
 
-def _reset_session_agent(session_id: str) -> _AboyeurAgent:
+def _reset_session_agent(session_id: str, guest: bool = False) -> _AboyeurAgent:
     with _aboyeur_sessions_lock:
-        agent = _AboyeurAgent(_aboyeur_conn, _aboyeur_config)
+        agent = _AboyeurAgent(
+            _aboyeur_conn, _aboyeur_config,
+            guest_profile=_make_guest_profile() if guest else None,
+        )
         _aboyeur_session_agents[session_id] = agent
         return agent
 
@@ -655,12 +661,43 @@ def _profile_command_reply(message: str, request: Request) -> Optional[str]:
     return profile_ui.profile_markdown(profile, edit_url)
 
 
+_GUEST_OFF_WORDS = ("off", "end", "stop", "exit")
+_GUEST_DEFAULT_PROMPT = (
+    "A guest is joining for meals. Greet them briefly and ask for the basics you "
+    "need to plan for them (height, weight, age, sex, and any allergies)."
+)
+
+
+def _guest_command(message: str) -> Optional[str]:
+    """'/guest <intro>' -> the intro text to hand the guest agent ('' meaning
+    none given); '/guest off|end|stop|exit' -> 'OFF'; anything else -> None."""
+    stripped = message.strip()
+    if not stripped.lower().startswith("/guest"):
+        return None
+    rest = stripped[len("/guest"):].strip()
+    if rest.lower() in _GUEST_OFF_WORDS:
+        return "OFF"
+    return rest
+
+
 @app.post("/chat")
 def chat(body: ChatBody, request: Request):
     reply = _profile_command_reply(body.message, request)
     if reply is not None:
         return StreamingResponse(iter([_sse(reply), _sse("[DONE]")]),
                                  media_type="text/event-stream")
+
+    guest = _guest_command(body.message)
+    if guest == "OFF":
+        _reset_session_agent(body.session_id)
+        return StreamingResponse(
+            iter([_sse("Guest session ended — back to the household profile."), _sse("[DONE]")]),
+            media_type="text/event-stream")
+    if guest is not None:
+        agent = _reset_session_agent(body.session_id, guest=True)
+        return StreamingResponse(_agent_stream(agent, guest or _GUEST_DEFAULT_PROMPT),
+                                 media_type="text/event-stream")
+
     agent = _get_session_agent(body.session_id)
     return StreamingResponse(_agent_stream(agent, body.message),
                              media_type="text/event-stream")
@@ -756,11 +793,35 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
             "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
         }
 
+    # Stateless guest detection: the /guest command lives in the resent
+    # history, so scan user turns in order — the last /guest directive wins
+    # ("/guest off" ends it). The guest profile itself is rebuilt empty each
+    # request; the guest's stats are re-derived from their messages in the
+    # history, and nothing is ever written to the stored profile.
+    guest_active = False
+    for m in body.messages:
+        if m.role != "user":
+            continue
+        g = _guest_command(m.content)
+        if g == "OFF":
+            guest_active = False
+        elif g is not None:
+            guest_active = True
+
+    current_guest = _guest_command(message)
+    if current_guest == "OFF":
+        message = "The guest session just ended. Confirm you're back to planning for the household."
+    elif current_guest is not None:
+        message = current_guest or _GUEST_DEFAULT_PROMPT
+
     history = [
         {"role": m.role, "content": m.content}
         for m in body.messages[:-1] if m.role in ("user", "assistant")
     ]
-    agent = _AboyeurAgent(_aboyeur_conn, _aboyeur_config, history=history)
+    agent = _AboyeurAgent(
+        _aboyeur_conn, _aboyeur_config, history=history,
+        guest_profile=_make_guest_profile() if guest_active else None,
+    )
 
     if body.stream:
         return StreamingResponse(_oa_stream(agent, message),

@@ -79,6 +79,8 @@ def save_profile(conn: sqlite3.Connection, desired: dict) -> dict:
         str(c).strip() for c in (desired.get("cuisine_affinity") or []) if str(c).strip()
     ]
     patch["set_meals_per_day"] = max(1, int(desired.get("meals_per_day") or 3))
+    if desired.get("units") in ("metric", "imperial"):
+        patch["set_units"] = desired["units"]
     update_profile(conn, patch)
 
     members = [m for m in (_clean_member(r) for r in desired.get("household") or []) if m]
@@ -92,8 +94,22 @@ def save_profile(conn: sqlite3.Connection, desired: dict) -> dict:
     return get_profile(conn)
 
 
+def _fmt_height(cm: float, imperial: bool) -> str:
+    if not imperial:
+        return f"{cm}cm"
+    total_in = cm / 2.54
+    ft = int(total_in // 12)
+    return f"{ft}'{round(total_in - ft * 12)}\""
+
+
+def _fmt_weight(kg: float, imperial: bool) -> str:
+    return f"{round(kg / 0.45359237)}lb" if imperial else f"{kg}kg"
+
+
 def profile_markdown(profile: dict, edit_url: str) -> str:
-    """Chat-facing snapshot for the /profile command."""
+    """Chat-facing snapshot for the /profile command, in the profile's
+    preferred units (storage is always metric)."""
+    imperial = profile.get("units") == "imperial"
     lines = ["## Household profile", ""]
     household = profile.get("household", [])
     targets = profile.get("targets", {})
@@ -101,9 +117,14 @@ def profile_markdown(profile: dict, edit_url: str) -> str:
         for m in household:
             t = targets.get(m["id"], {})
             bits = [f"**{m.get('label', m['id'])}**"]
-            for key, unit in (("sex", ""), ("age", "y"), ("height_cm", "cm"), ("weight_kg", "kg")):
-                if m.get(key) is not None:
-                    bits.append(f"{m[key]}{unit}")
+            if m.get("sex") is not None:
+                bits.append(str(m["sex"]))
+            if m.get("age") is not None:
+                bits.append(f"{m['age']}y")
+            if m.get("height_cm") is not None:
+                bits.append(_fmt_height(m["height_cm"], imperial))
+            if m.get("weight_kg") is not None:
+                bits.append(_fmt_weight(m["weight_kg"], imperial))
             if m.get("activity"):
                 bits.append(m["activity"])
             if t:
@@ -121,7 +142,12 @@ def profile_markdown(profile: dict, edit_url: str) -> str:
         vals = profile.get(key) or []
         lines.append(f"- **{label}:** {', '.join(vals) if vals else '—'}")
     lines.append(f"- **Household meals/day:** {profile.get('meals_per_day', 3)}")
+    lines.append(f"- **Units:** {profile.get('units', 'metric')}")
     lines.append("")
+    lines.append("Hosting someone? Start a message with `/guest` plus their details "
+                 "(e.g. `/guest 5ft woman, 120 lbs, allergic to shellfish`) — planning uses "
+                 "their info instead of this profile and nothing they say is saved. "
+                 "`/guest off` ends it.")
     lines.append(f"Edit everything here: {edit_url}")
     lines.append("Changes apply to the next message — menus, calorie targets, and the hard allergen filter all read this profile.")
     return "\n".join(lines)
@@ -147,17 +173,24 @@ PROFILE_PAGE_HTML = """<!doctype html>
   * { box-sizing: border-box; }
   body { margin: 0; padding: 2rem 1rem 4rem; background: var(--bg); color: var(--ink);
          font: 16px/1.5 -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 860px; margin: 0 auto; }
-  h1 { font-size: 1.6rem; margin: 0 0 1.25rem; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
+  .topbar { display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .units { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .units button { border: 0; border-radius: 0; padding: .4rem .9rem; background: var(--card);
+                  color: var(--muted); cursor: pointer; font: inherit; }
+  .units button.active { background: var(--accent); color: #fff; }
   section { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
             padding: 1rem 1.25rem; margin-bottom: 1rem; }
   h2 { font-size: 1.05rem; margin: 0 0 .75rem; }
   label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .15rem; }
   input, select { width: 100%; padding: .45rem .55rem; border: 1px solid var(--line);
                   border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; }
-  .member { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  .member { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
             gap: .6rem; align-items: end; padding: .75rem 0; border-bottom: 1px dashed var(--line); }
   .member:last-of-type { border-bottom: 0; }
+  .ftin { display: flex; gap: .3rem; }
   .hint { font-size: .8rem; color: var(--muted); margin: .35rem 0 0; }
   .allergy-note { color: var(--danger); font-size: .85rem; margin: .35rem 0 0; }
   button { padding: .5rem .9rem; border: 1px solid var(--line); border-radius: 7px;
@@ -173,15 +206,21 @@ PROFILE_PAGE_HTML = """<!doctype html>
 </head>
 <body>
 <main>
-  <h1>Aboyeur &mdash; Household Profile</h1>
+  <div class="topbar">
+    <h1>Aboyeur &mdash; Household Profile</h1>
+    <div class="units" role="group" aria-label="Units">
+      <button type="button" id="u-metric" onclick="setUnits('metric')">Metric</button>
+      <button type="button" id="u-imperial" onclick="setUnits('imperial')">Imperial</button>
+    </div>
+  </div>
 
   <section>
     <h2>Household members</h2>
     <div id="members"></div>
     <div class="toolbar"><button type="button" onclick="addMember()">+ Add member</button></div>
     <p class="hint">Height/weight/age/activity drive BMR-based calorie targets. Leave a
-    field blank to unset it; without full measurements, daily kcal (if set) or a generic
-    default is used. Per-person meals/day overrides the household default (e.g. 1 = OMAD).</p>
+    field blank to unset it. Per-person meals/day overrides the household default
+    (e.g. 1 = OMAD). Values are stored metric regardless of the display units.</p>
   </section>
 
   <section>
@@ -206,14 +245,18 @@ PROFILE_PAGE_HTML = """<!doctype html>
   </section>
 
   <div class="toolbar">
-    <button type="button" class="primary" onclick="save()">Save profile</button>
-    <span id="status"></span>
+    <button type="button" class="primary" onclick="save(true)">Save profile</button>
+    <span id="status">Changes auto-save.</span>
   </div>
 </main>
 
 <script>
 const ACTIVITIES = ["", "sedentary", "light", "moderate", "active", "very_active"];
+const CM_PER_IN = 2.54, KG_PER_LB = 0.45359237;
 let targets = {};
+let units = "metric";
+let loaded = false;
+let saveTimer = null;
 
 function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
@@ -226,29 +269,59 @@ function field(labelText, input) {
   return el("div", {}, el("label", {}, labelText), input);
 }
 
+function cmToFtIn(cm) {
+  if (cm === "" || cm == null) return ["", ""];
+  const totalIn = Number(cm) / CM_PER_IN;
+  let ft = Math.floor(totalIn / 12), inch = Math.round((totalIn - ft * 12) * 10) / 10;
+  if (inch >= 12) { ft += 1; inch = 0; }
+  return [ft, inch];
+}
+function ftInToCm(ft, inch) {
+  if (ft === "" && inch === "") return "";
+  const t = (Number(ft) || 0) * 12 + (Number(inch) || 0);
+  return t ? Math.round(t * CM_PER_IN * 10) / 10 : "";
+}
+function kgToLb(kg) { return kg === "" || kg == null ? "" : Math.round(Number(kg) / KG_PER_LB * 10) / 10; }
+function lbToKg(lb) { return lb === "" || lb == null ? "" : Math.round(Number(lb) * KG_PER_LB * 100) / 100; }
+
+// memberRow renders from a METRIC member object; collectMembers converts the
+// displayed values back to metric. Storage never sees imperial numbers.
 function memberRow(m = {}) {
   const row = el("div", { class: "member" });
   row.dataset.id = m.id || "";
-  const mk = (name, type, val, extra = {}) =>
-    Object.assign(el("input", { type }), { value: val ?? "" }, extra, { name });
-  const label = mk("label", "text", m.label);
+  const mk = (name, type, val, ph = "") =>
+    Object.assign(el("input", { type, placeholder: ph }), { value: val ?? "" }, { name });
   const sex = el("select", { name: "sex" });
   ["", "m", "f", "u"].forEach(v => sex.append(el("option", { value: v }, v || "—")));
   sex.value = m.sex || "";
   const activity = el("select", { name: "activity" });
   ACTIVITIES.forEach(v => activity.append(el("option", { value: v }, v || "—")));
   activity.value = m.activity || "";
+
+  let heightCell;
+  if (units === "imperial") {
+    const [ft, inch] = cmToFtIn(m.height_cm ?? "");
+    heightCell = field("Height", el("div", { class: "ftin" },
+      mk("height_ft", "number", ft, "ft"), mk("height_in", "number", inch, "in")));
+  } else {
+    heightCell = field("Height cm", mk("height_cm", "number", m.height_cm));
+  }
+  const weightCell = units === "imperial"
+    ? field("Weight lb", mk("weight_lb", "number", kgToLb(m.weight_kg ?? "")))
+    : field("Weight kg", mk("weight_kg", "number", m.weight_kg));
+
   row.append(
-    field("Name", label),
+    field("Name", mk("label", "text", m.label)),
     field("Sex", sex),
     field("Age", mk("age", "number", m.age)),
-    field("Height cm", mk("height_cm", "number", m.height_cm)),
-    field("Weight kg", mk("weight_kg", "number", m.weight_kg)),
+    heightCell,
+    weightCell,
     field("Activity", activity),
     field("Daily kcal", mk("daily_kcal", "number", m.daily_kcal)),
     field("Meals/day", mk("meals_per_day", "number", m.meals_per_day)),
     el("div", { class: "row-actions" },
-       el("button", { type: "button", class: "ghost-danger", onclick: () => row.remove() }, "Remove")),
+       el("button", { type: "button", class: "ghost-danger",
+                      onclick: () => { row.remove(); queueSave(); } }, "Remove")),
   );
   const t = targets[m.id];
   if (t) row.append(el("div", { class: "target" },
@@ -259,12 +332,44 @@ function memberRow(m = {}) {
 
 function addMember(m) { document.getElementById("members").append(memberRow(m)); }
 
+function collectMembers() {
+  return [...document.querySelectorAll(".member")].map(row => {
+    const v = {};
+    row.querySelectorAll("input, select").forEach(i => { if (i.name) v[i.name] = i.value; });
+    const out = { id: row.dataset.id, label: v.label, sex: v.sex, age: v.age,
+                  activity: v.activity, daily_kcal: v.daily_kcal, meals_per_day: v.meals_per_day };
+    if (units === "imperial") {
+      out.height_cm = ftInToCm(v.height_ft, v.height_in);
+      out.weight_kg = lbToKg(v.weight_lb);
+    } else {
+      out.height_cm = v.height_cm;
+      out.weight_kg = v.weight_kg;
+    }
+    return out;
+  });
+}
+
+function setUnits(u, skipSave) {
+  if (u === units) return;
+  const members = collectMembers();  // read current display in old units
+  units = u;
+  document.getElementById("u-metric").classList.toggle("active", u === "metric");
+  document.getElementById("u-imperial").classList.toggle("active", u === "imperial");
+  const box = document.getElementById("members");
+  box.replaceChildren();
+  members.forEach(addMember);
+  if (!skipSave) queueSave();
+}
+
 function splitList(id) {
   return document.getElementById(id).value.split(",").map(s => s.trim()).filter(Boolean);
 }
 
 function render(p) {
   targets = p.targets || {};
+  units = p.units === "imperial" ? "imperial" : "metric";
+  document.getElementById("u-metric").classList.toggle("active", units === "metric");
+  document.getElementById("u-imperial").classList.toggle("active", units === "imperial");
   const box = document.getElementById("members");
   box.replaceChildren();
   (p.household || []).forEach(addMember);
@@ -279,23 +384,26 @@ function render(p) {
 async function load() {
   const r = await fetch("/profile/data");
   render(await r.json());
+  loaded = true;
 }
 
-async function save() {
+function queueSave() {
+  if (!loaded) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => save(false), 900);
+}
+
+async function save(rerender) {
   const status = document.getElementById("status");
-  const household = [...document.querySelectorAll(".member")].map(row => {
-    const out = { id: row.dataset.id };
-    row.querySelectorAll("input, select").forEach(i => { if (i.name) out[i.name] = i.value; });
-    return out;
-  });
   const body = {
-    household,
+    household: collectMembers(),
     allergies: splitList("allergies"),
     dislikes: splitList("dislikes"),
     likes: splitList("likes"),
     cuisine_affinity: splitList("cuisines"),
     diet_modes: splitList("diets"),
     meals_per_day: Number(document.getElementById("mpd").value) || 3,
+    units,
   };
   try {
     const r = await fetch("/profile/save", {
@@ -303,8 +411,11 @@ async function save() {
       body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error(await r.text());
-    render(await r.json());
-    status.textContent = "Saved — targets recomputed.";
+    const saved = await r.json();
+    // Auto-saves skip the re-render so typing focus is never stolen; the
+    // explicit Save button refreshes computed targets.
+    if (rerender) render(saved); else targets = saved.targets || {};
+    status.textContent = "Saved " + new Date().toLocaleTimeString();
     status.className = "ok";
   } catch (e) {
     status.textContent = "Save failed: " + e.message;
@@ -312,6 +423,7 @@ async function save() {
   }
 }
 
+document.querySelector("main").addEventListener("input", queueSave);
 load();
 </script>
 </body>

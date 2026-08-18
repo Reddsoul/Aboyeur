@@ -1470,3 +1470,323 @@ WARNING:  Invalid HTTP request received.
 INFO:     100.71.143.90:57855 - "GET /profile/ui HTTP/1.1" 200 OK
 INFO:     100.71.143.90:57855 - "GET /profile/data HTTP/1.1" 200 OK
 INFO:     100.71.143.90:57865 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57934 - "GET /v1/models HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     100.71.143.90:57988 - "GET /profile/ui HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57988 - "GET /profile/data HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/profile.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [66192]
+Python(71805) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [71805]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/profile.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [71805]
+Python(71845) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [71845]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [71845]
+Python(71918) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [71918]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [71918]
+Python(71963) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [71963]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [71963]
+Python(71994) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [71994]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [71994]
+Python(72139) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72139]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72139]
+Python(72230) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72230]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72230]
+Python(72281) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72281]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72281]
+Python(72327) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72327]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72327]
+Python(72426) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72426]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72426]
+Python(72461) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72461]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72461]
+Python(72531) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72531]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72531]
+Python(72586) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72586]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/schemas.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72586]
+Python(72632) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72632]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/schemas.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72632]
+Python(72659) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72659]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72659]
+Python(72765) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72765]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72765]
+Python(72822) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72822]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72822]
+Python(72859) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72859]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72859]
+Python(72924) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72924]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:58179 - "GET /profile/ui HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 2689, in app
+    await route.handle(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 1272, in handle
+    await super().handle(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 156, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 142, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 698, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 352, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 638, in profile_page
+    return HTMLResponse(profile_ui.PROFILE_PAGE_HTML)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'backend.profile_ui' has no attribute 'PROFILE_PAGE_HTML'
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72924]
+Python(73187) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73187]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:58200 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58204 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:58209 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58239 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58241 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58245 - "GET /profile/ui HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     100.71.143.90:58261 - "GET /profile/ui HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58261 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58261 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58261 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58261 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58261 - "POST /profile/save HTTP/1.1" 200 OK

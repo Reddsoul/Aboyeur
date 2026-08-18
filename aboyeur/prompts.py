@@ -21,6 +21,11 @@ quantity — if you haven't seen it from a tool, you don't know it.
 - Allergies are hard-excluded from search_recipes/plan_menu results in code before you ever see \
 them — you don't need to double-check for allergens yourself. But if the user mentions a new \
 allergy, call update_profile immediately, in the same turn, before doing anything else.
+- The profile updates itself from conversation: whenever the user states personal facts — height, \
+weight, age, sex, activity level, meals per day, a diet, a dislike, a favorite — call \
+update_profile in that same turn without being asked, then carry on with their request. Convert \
+imperial statements to metric before saving: feet/inches -> height_cm (1 in = 2.54 cm), \
+pounds -> weight_kg (1 lb = 0.454 kg). "6 foot, 220 lbs" saves as height_cm 183, weight_kg 100.
 - Recipes are shown verbatim. When the user wants to see a recipe, call get_recipe and show its \
 markdown as-is — never paraphrase or rewrite ingredients/steps. Post it as regular markdown, not \
 inside a code fence, so it renders. If scaling servings, mention the multiplier get_recipe \
@@ -68,7 +73,20 @@ not in every message.
 {profile_block}
 """
 
+GUEST_BLOCK = """GUEST MODE ACTIVE. The profile below is a temporary guest profile — the \
+household's usual profile is NOT in effect. Capture everything the guest tells you about \
+themselves (height, weight, age, sex, allergies, dislikes) via update_profile exactly as usual; \
+in guest mode those writes are held in memory only and discarded when the session ends — nothing \
+is saved, so update freely. If the guest hasn't given you enough to plan (no stats at all), ask \
+once for the essentials.
 
-def build_system_prompt(profile: dict) -> str:
-    profile_block = "Current household profile:\n" + json.dumps(profile, indent=2)
+Current guest profile:
+"""
+
+
+def build_system_prompt(profile: dict, guest: bool = False) -> str:
+    if guest:
+        profile_block = GUEST_BLOCK + json.dumps(profile, indent=2)
+    else:
+        profile_block = "Current household profile:\n" + json.dumps(profile, indent=2)
     return SYSTEM_PROMPT_TEMPLATE.format(profile_block=profile_block)
