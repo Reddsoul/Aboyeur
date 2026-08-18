@@ -12,8 +12,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -552,6 +552,8 @@ import threading
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
 from aboyeur.db import connect as _aboyeur_connect
+from aboyeur.tools.profile import get_profile as _aboyeur_get_profile
+from backend import profile_ui
 
 # The real Aboyeur brain: 59k-recipe FTS5 DB, native tool calling, profile +
 # nutrition tools. backend/'s own SQLAlchemy Book/Recipe schema below has no
@@ -605,13 +607,60 @@ def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
 
 
 def _agent_stream(agent: _AboyeurAgent, message: str):
-    for tok in _agent_tokens(agent, message):
-        yield _sse(tok)
+    try:
+        for tok in _agent_tokens(agent, message):
+            yield _sse(tok)
+    except Exception:
+        # Anything raised mid-generator here previously killed the chunked
+        # HTTP response outright — the client sees a bare transfer-encoding
+        # error with zero context. Log the real cause server-side and end
+        # the stream cleanly instead, so the client at least gets a
+        # well-formed (if apologetic) response rather than a truncated one.
+        logger.exception("agent stream failed mid-response")
+        yield _sse("\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]")
     yield _sse("[DONE]")
 
 
+# ===========================================================================
+# Profile editor — /profile chat command + browser form (backend/profile_ui.py).
+# Writes the same `profile` table the agent's tools read, so the system
+# prompt, allergen filter, and menu targets pick edits up on the next turn.
+# ===========================================================================
+
+@app.get("/profile/ui", response_class=HTMLResponse)
+def profile_page():
+    return HTMLResponse(profile_ui.PROFILE_PAGE_HTML)
+
+
+@app.get("/profile/data")
+def profile_data():
+    with _aboyeur_lock:
+        return _aboyeur_get_profile(_aboyeur_conn)
+
+
+@app.post("/profile/save")
+def profile_save(desired: dict):
+    with _aboyeur_lock:
+        return profile_ui.save_profile(_aboyeur_conn, desired)
+
+
+def _profile_command_reply(message: str, request: Request) -> Optional[str]:
+    """Deterministic /profile handler — the command never touches the LLM."""
+    if not message.strip().lower().startswith("/profile"):
+        return None
+    host = request.headers.get("host", "localhost:8000")
+    edit_url = f"http://{host}/profile/ui"
+    with _aboyeur_lock:
+        profile = _aboyeur_get_profile(_aboyeur_conn)
+    return profile_ui.profile_markdown(profile, edit_url)
+
+
 @app.post("/chat")
-def chat(body: ChatBody):
+def chat(body: ChatBody, request: Request):
+    reply = _profile_command_reply(body.message, request)
+    if reply is not None:
+        return StreamingResponse(iter([_sse(reply), _sse("[DONE]")]),
+                                 media_type="text/event-stream")
     agent = _get_session_agent(body.session_id)
     return StreamingResponse(_agent_stream(agent, body.message),
                              media_type="text/event-stream")
@@ -652,14 +701,32 @@ def _oa_chunk(request_id: str, created: int, content: Optional[str] = None,
 def _oa_stream(agent: _AboyeurAgent, message: str):
     request_id = f"chatcmpl-{uuid.uuid4().hex}"
     created = int(time.time())
-    for tok in _agent_tokens(agent, message):
-        yield _oa_chunk(request_id, created, content=tok)
+    try:
+        for tok in _agent_tokens(agent, message):
+            yield _oa_chunk(request_id, created, content=tok)
+    except Exception:
+        # See _agent_stream's matching comment: don't let an internal error
+        # abort the chunked response — OpenWebUI reports that as an opaque
+        # TransferEncodingError with no indication anything actually broke.
+        logger.exception("agent stream failed mid-response")
+        yield _oa_chunk(
+            request_id, created,
+            content="\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]",
+        )
+    yield _oa_chunk(request_id, created, finish_reason="stop")
+    yield "data: [DONE]\n\n"
+
+
+def _oa_static_stream(content: str):
+    request_id = f"chatcmpl-{uuid.uuid4().hex}"
+    created = int(time.time())
+    yield _oa_chunk(request_id, created, content=content)
     yield _oa_chunk(request_id, created, finish_reason="stop")
     yield "data: [DONE]\n\n"
 
 
 @app.post("/v1/chat/completions")
-def oa_chat_completions(body: OAChatRequest):
+def oa_chat_completions(body: OAChatRequest, request: Request):
     """OpenAI-compatible endpoint so OpenWebUI can register Aboyeur as a model.
 
     Stateless per request: any OpenAI-style client (OpenWebUI included)
@@ -673,6 +740,22 @@ def oa_chat_completions(body: OAChatRequest):
     if not user_msgs:
         raise HTTPException(400, "no user message")
     message = user_msgs[-1].content
+
+    reply = _profile_command_reply(message, request)
+    if reply is not None:
+        if body.stream:
+            return StreamingResponse(_oa_static_stream(reply),
+                                     media_type="text/event-stream")
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": "aboyeur",
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": reply},
+                         "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        }
+
     history = [
         {"role": m.role, "content": m.content}
         for m in body.messages[:-1] if m.role in ("user", "assistant")

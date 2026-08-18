@@ -53,8 +53,11 @@ def update_profile(conn: sqlite3.Connection, patch: dict) -> dict:
     add_allergies, remove_allergies, add_dislikes, remove_dislikes,
     add_likes, remove_likes (all list[str]) — add/remove semantics, not replace.
     set_diet_modes, set_cuisine_affinity (list[str]) — replace.
-    set_meals_per_day (int) — replace.
-    add_member (dict with "id") — upsert by id.
+    set_meals_per_day (int) — replace, household-wide default.
+    add_member (dict with "id") — upsert by id, merged onto any existing
+    member with that id (fields you omit are kept, not wiped) — so a
+    single-field patch like {"id": "sam", "meals_per_day": 1} to put just
+    one person on OMAD doesn't blow away their anthropometrics.
     remove_member (str id).
     """
     profile = _load_raw(conn)
@@ -88,10 +91,22 @@ def update_profile(conn: sqlite3.Connection, patch: dict) -> dict:
     if "set_meals_per_day" in patch:
         profile["meals_per_day"] = int(patch["set_meals_per_day"])
     if "add_member" in patch:
-        member = patch["add_member"]
-        members = [m for m in profile.get("household", []) if m["id"] != member["id"]]
-        members.append(member)
-        profile["household"] = members
+        # The model occasionally sends a list of members here despite the
+        # schema saying object — upsert each rather than crashing mid-stream.
+        raw = patch["add_member"]
+        patch_members = raw if isinstance(raw, list) else [raw]
+        for patch_member in patch_members:
+            if not isinstance(patch_member, dict) or "id" not in patch_member:
+                raise ValueError(
+                    f"add_member entries must be objects with an 'id' field, got {patch_member!r}"
+                )
+            existing = next(
+                (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+            )
+            member = {**existing, **patch_member} if existing else patch_member
+            members = [m for m in profile.get("household", []) if m["id"] != member["id"]]
+            members.append(member)
+            profile["household"] = members
     if "remove_member" in patch:
         profile["household"] = [
             m for m in profile.get("household", []) if m["id"] != patch["remove_member"]

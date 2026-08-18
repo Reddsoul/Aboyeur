@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 
 from aboyeur.config import Config
 from aboyeur.engines import nutrition as nutrition_engine
+
+logger = logging.getLogger("aboyeur")
 
 
 def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: list[int]) -> dict[int, dict]:
@@ -29,7 +32,7 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
             continue
 
         rrow = conn.execute(
-            "SELECT ingredients_json, servings FROM recipes WHERE id = ?", (rid,)
+            "SELECT ingredients_json, servings, path FROM recipes WHERE id = ?", (rid,)
         ).fetchone()
         if rrow is None:
             out[rid] = {"error": "recipe not found"}
@@ -57,6 +60,13 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
                  confidence, now),
             )
             conn.commit()
+            # Persist into the recipe .md too, so the estimate survives DB
+            # rebuilds — the indexer reads the nutrition block back into the
+            # table. Best-effort: an unmounted NAS never fails the tool call.
+            if not nutrition_engine.write_nutrition_frontmatter(
+                rrow["path"], macros, confidence, now
+            ):
+                logger.warning("couldn't write nutrition frontmatter to %s", rrow["path"])
         out[rid] = {
             "kcal": macros["calories"], "protein_g": macros["protein_g"],
             "carb_g": macros["carb_g"], "fat_g": macros["fat_g"], "confidence": confidence,

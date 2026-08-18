@@ -10,6 +10,7 @@ given the chance to pass it at all.
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from typing import Iterator
 
@@ -29,9 +30,15 @@ from aboyeur.tools import (
 )
 from aboyeur.tools.schemas import TOOL_SCHEMAS
 
-MAX_TOOL_ROUNDS = 20  # guard against a runaway tool-call loop — raised from 8 so a
-# 7-day plan can clear search_recipes + plan_menu + one get_recipe per day + the
-# shopping list even if the model can't batch tool calls into a single round
+logger = logging.getLogger("aboyeur")
+
+MAX_TOOL_ROUNDS = 60  # guard against a runaway tool-call loop. plan_menu now handles
+# meals_per_day internally in one call (see tools/menu.py) instead of needing one
+# LLM round trip per meal — that per-meal-round-trip design previously burned all
+# 60 rounds on an 18-meal request with zero output. 60 is now a generous ceiling
+# covering the realistic worst case (multiple search_recipes rounds, one plan_menu
+# call, one get_recipe per day+meal slot) even if the model
+# can't batch tool calls into a single round
 
 
 def _tool_result_text(name: str, result: dict) -> str:
@@ -98,7 +105,8 @@ def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -
 
     if name == "swap_menu_item":
         return swap_menu_item(
-            conn, config, args["day"], args["replacement_id"], menu_id=args.get("menu_id")
+            conn, config, args["day"], args["replacement_id"],
+            menu_id=args.get("menu_id"), meal=args.get("meal", 1),
         )
 
     if name == "get_shopping_list":
@@ -167,7 +175,25 @@ class Agent:
                     args = {}
                 if debug:
                     yield ("tool_call", {"name": tc["name"], "args": args})
-                result = _dispatch(self.conn, self.config, tc["name"], args)
+                # The local model sometimes emits tool calls that violate the
+                # JSON schema (missing required args, wrong types). Feed the
+                # failure back as a tool result so the model can correct and
+                # retry, instead of letting the exception kill the whole
+                # streaming response.
+                try:
+                    result = _dispatch(self.conn, self.config, tc["name"], args)
+                except (KeyError, TypeError, ValueError) as e:
+                    logger.warning(
+                        "tool %s failed on args %r: %s: %s",
+                        tc["name"], args, type(e).__name__, e,
+                    )
+                    result = {
+                        "error": (
+                            f"invalid arguments for {tc['name']}: {type(e).__name__}: {e}. "
+                            "Re-check the tool's parameter schema and call it again "
+                            "with all required arguments."
+                        )
+                    }
                 if debug:
                     yield ("tool_result", {"name": tc["name"], "result": result})
                 if tc["name"] == "update_profile":

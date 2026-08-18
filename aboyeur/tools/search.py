@@ -8,9 +8,27 @@ see task.md §3 "Allergy filtering happens in code."
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 
 from aboyeur.engines import allergens
+
+# FTS5 MATCH treats -, ", (, ), :, * etc. as query-syntax operators. A
+# free-text query built from natural language (e.g. "Indian / Mexican" or
+# any hyphenated word) can trip fts5's parser and raise sqlite3.OperationalError
+# mid-request — which, inside a streaming chat response, aborts the connection
+# outright rather than surfacing a clean error. Reduce to plain alnum/apostrophe
+# tokens and quote each as a literal phrase so nothing can be parsed as an
+# operator; FTS5's implicit AND between phrases keeps the same match behavior
+# a plain keyword search wants.
+_FTS_TOKEN_RE = re.compile(r"[A-Za-z0-9']+")
+
+
+def _safe_fts_query(query: str) -> str | None:
+    tokens = _FTS_TOKEN_RE.findall(query or "")
+    if not tokens:
+        return None
+    return " ".join(f'"{t}"' for t in tokens)
 
 
 def search_recipes(
@@ -38,10 +56,14 @@ def search_recipes(
     include_ingredients = [i.lower().strip() for i in (include_ingredients or []) if i.strip()]
     pantry = [p.lower().strip() for p in (pantry or []) if p.strip()]
 
+    safe_query = _safe_fts_query(query)
+    if safe_query is None:
+        return []
+
     sql = """SELECT r.id, r.title, r.book, r.cuisine, r.ingredients_json
               FROM recipes_fts JOIN recipes r ON r.id = recipes_fts.rowid
               WHERE recipes_fts MATCH ?"""
-    params: list = [query]
+    params: list = [safe_query]
     if cuisine:
         sql += " AND r.cuisine = ?"
         params.append(cuisine)

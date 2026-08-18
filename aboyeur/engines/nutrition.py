@@ -8,8 +8,10 @@ SQLite table so it lives in the one DB file instead of a second artifact.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
+from pathlib import Path
 
 import httpx
 
@@ -60,15 +62,28 @@ def per_meal_target(daily_kcal: float, meals_per_day: int) -> dict:
     }
 
 
+# Generic daily kcal fallback when neither full anthropometrics (for BMR) nor
+# an explicit daily_kcal exist — midpoint of a plain-language recommended
+# range (women ~1600-2000, men ~2100-2500), keyed by sex. "u" (unknown/unspecified
+# sex) has no such range to split, so it takes the overall midpoint of both.
+_DEFAULT_KCAL_BY_SEX = {"f": 1800.0, "m": 2300.0}
+_DEFAULT_KCAL_UNKNOWN = 2000.0
+
+
 def daily_kcal_for_member(member: dict) -> float:
     """Resolve a household member's daily kcal target.
 
-    Full anthropometric data -> BMR x activity (TDEE). Else the supplied daily_kcal.
+    Full anthropometric data -> BMR x activity (TDEE). Else the supplied
+    daily_kcal. Else a sex-aware generic default — never a guessed age or
+    other invented anthropometric to force the BMR path.
     """
     if all(member.get(k) is not None for k in ("sex", "age", "height_cm", "weight_kg")):
         b = bmr_mifflin(member["sex"], member["age"], member["height_cm"], member["weight_kg"])
         return tdee(b, member.get("activity", "moderate"))
-    return float(member.get("daily_kcal") or 2000)
+    if member.get("daily_kcal") is not None:
+        return float(member["daily_kcal"])
+    sex = (member.get("sex") or "").strip().lower()[:1]
+    return _DEFAULT_KCAL_BY_SEX.get(sex, _DEFAULT_KCAL_UNKNOWN)
 
 
 def household_targets(profile: dict) -> dict:
@@ -76,11 +91,12 @@ def household_targets(profile: dict) -> dict:
 
     Returns {member_id: {label, daily_kcal, source, per_meal:{...}}}.
     """
-    meals = profile.get("meals_per_day", 3)
+    household_meals = profile.get("meals_per_day", 3)
     out = {}
     for m in profile.get("household", []):
         daily = daily_kcal_for_member(m)
         has_anthro = all(m.get(k) is not None for k in ("sex", "age", "height_cm", "weight_kg"))
+        meals = m.get("meals_per_day", household_meals)
         out[m["id"]] = {
             "label": m.get("label", m["id"]),
             "daily_kcal": round(daily),
@@ -93,6 +109,145 @@ def household_targets(profile: dict) -> dict:
 # ---------------------------------------------------------------------------
 # USDA lookup (cached in SQLite, best-effort)
 # ---------------------------------------------------------------------------
+
+# Corpus ingredient lines are recipe prose, not food names — "stiffly beaten
+# whites of the eggs", "one-half cupful of syrup", "salt and ground pepper to
+# taste". USDA's search matches poorly against those, which is the main reason
+# nutrition estimates come back empty. Strip quantities, measures, prep
+# descriptors, and filler down to the food noun before querying.
+_MEASURE_WORDS = {
+    "cup", "cups", "cupful", "cupfuls", "tablespoon", "tablespoons", "teaspoon",
+    "teaspoons", "spoonful", "spoonfuls", "pound", "pounds", "lb", "lbs", "ounce",
+    "ounces", "oz", "gram", "grams", "g", "kg", "quart", "quarts", "pint", "pints",
+    "gallon", "gallons", "liter", "liters", "slice", "slices", "piece", "pieces",
+    "package", "packages", "packaged", "can", "cans", "dozen", "bunch", "sprig",
+    "sprigs", "clove", "cloves", "stick", "sticks", "strip", "strips", "dash", "pinch",
+}
+_DESCRIPTOR_WORDS = {
+    "chopped", "diced", "minced", "sliced", "grated", "shredded", "beaten",
+    "stiffly", "melted", "softened", "cold", "hot", "warm", "boiling", "cooked",
+    "uncooked", "raw", "washed", "seeded", "stoned", "pitted", "peeled", "cut",
+    "finely", "coarsely", "thinly", "roughly", "lightly", "well", "large", "small",
+    "medium", "nice", "fat", "lean", "stiff", "risen", "increased", "removed",
+    "greased", "necessary", "optional", "taste", "ground",
+}
+_FILLER_WORDS = {
+    "a", "an", "the", "of", "and", "to", "with", "for", "into", "in", "about",
+    "if", "any", "kind", "some", "few", "little", "one", "two", "three", "four",
+    "five", "six", "seven", "eight", "nine", "ten", "twelve", "half", "third",
+    "fourth", "fourths", "quarter", "quarters", "whole", "more", "or", "so",
+    "one-half", "one-third", "one-fourth", "two-thirds", "three-fourths",
+}
+_STOP_WORDS = _MEASURE_WORDS | _DESCRIPTOR_WORDS | _FILLER_WORDS
+_WORD_RE = re.compile(r"[a-z']+")
+
+
+def clean_ingredient_name(name: str) -> str:
+    """Reduce an ingredient line to the food noun USDA can actually match.
+
+    "stiffly beaten whites of the eggs" -> "whites eggs";
+    "one-half cupful of syrup" -> "syrup". Returns "" when nothing survives
+    (e.g. "kitchen twine" reduces fine but pure-measure lines don't).
+    """
+    s = (name or "").lower()
+    s = re.sub(r"\([^)]*\)", " ", s)  # drop parentheticals
+    s = s.split(" or ")[0]  # "chicken broth or water" -> first alternative
+    tokens = [t for t in _WORD_RE.findall(s) if t not in _STOP_WORDS]
+    return " ".join(tokens)
+
+
+# ---------------------------------------------------------------------------
+# LLM ingredient parsing: raw line -> (canonical food, estimated grams)
+# ---------------------------------------------------------------------------
+
+_PARSE_SYSTEM_PROMPT = (
+    "You parse recipe ingredient lines. For each input line return the canonical "
+    "food name — the food itself, no quantities, measures, or prep words, but KEEP "
+    "meaningful distinctions ('egg yolk' is not 'egg', 'heavy cream' is not 'milk') — "
+    "and the total grams that line represents, estimated from its quantity "
+    "('6 eggs' ≈ 300, '2 tablespoons butter' ≈ 28, 'salt to taste' ≈ 5). "
+    "Reply with ONLY a JSON array, same length and order as the input: "
+    '[{"food": "eggs", "grams": 300}, ...]. No prose, no code fences.'
+)
+_MAX_GRAMS = 2000.0
+
+
+def _llm_parse_lines(config: Config, lines: list[str]) -> list[dict] | None:
+    """One batched LLM call parsing every line. None on any failure — the
+    caller falls back to the regex cleaner + default grams."""
+    from openai import OpenAI  # local import: keep engine importable without config
+
+    try:
+        client = OpenAI(base_url=config.llm_base_url, api_key="unused",
+                        timeout=60, max_retries=1)
+        resp = client.chat.completions.create(
+            model=config.llm_model,
+            messages=[
+                {"role": "system", "content": _PARSE_SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps(lines)},
+            ],
+            temperature=0,
+        )
+        content = (resp.choices[0].message.content or "").strip()
+        content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content)
+        parsed = json.loads(content)
+        if not isinstance(parsed, list) or len(parsed) != len(lines):
+            return None
+        out = []
+        for item in parsed:
+            food = str(item.get("food", "")).strip().lower()
+            grams = float(item.get("grams", 0))
+            if not food or grams <= 0:
+                return None
+            out.append({"food": food, "grams": min(grams, _MAX_GRAMS)})
+        return out
+    except Exception:
+        return None
+
+
+def parse_ingredients(
+    conn: sqlite3.Connection, config: Config, lines: list[str]
+) -> list[dict]:
+    """[{food, grams, source}] per raw ingredient line.
+
+    Cache-first (ingredient_parse table), then one batched LLM call for the
+    misses, then a regex-cleaner fallback (source="heuristic", default grams)
+    for anything the LLM couldn't handle. Heuristic results are never cached,
+    so the LLM gets retried next time.
+    """
+    keys = [(line or "").strip().lower() for line in lines]
+    out: list[dict | None] = [None] * len(lines)
+
+    for i, key in enumerate(keys):
+        if not key:
+            out[i] = {"food": "", "grams": 0.0, "source": "empty"}
+            continue
+        row = conn.execute(
+            "SELECT food, grams FROM ingredient_parse WHERE raw = ?", (key,)
+        ).fetchone()
+        if row is not None:
+            out[i] = {"food": row["food"], "grams": row["grams"], "source": "cache"}
+
+    miss_idx = [i for i, v in enumerate(out) if v is None]
+    if miss_idx:
+        llm_results = _llm_parse_lines(config, [lines[i] for i in miss_idx])
+        if llm_results is not None:
+            now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            for i, parsed in zip(miss_idx, llm_results):
+                out[i] = {**parsed, "source": "llm"}
+                conn.execute(
+                    "INSERT INTO ingredient_parse (raw, food, grams, parsed_at) VALUES (?, ?, ?, ?) "
+                    "ON CONFLICT(raw) DO UPDATE SET food=excluded.food, grams=excluded.grams, "
+                    "parsed_at=excluded.parsed_at",
+                    (keys[i], parsed["food"], parsed["grams"], now),
+                )
+            conn.commit()
+        else:
+            for i in miss_idx:
+                food = clean_ingredient_name(lines[i]) or keys[i]
+                out[i] = {"food": food, "grams": _DEFAULT_GRAMS_PER_INGREDIENT,
+                          "source": "heuristic"}
+    return out
 
 def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str) -> dict:
     """Per-100g macros for one ingredient via USDA. Cached in the usda_cache table.
@@ -112,26 +267,32 @@ def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str
         result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "skipped"}
     else:
         result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "failed"}
-        try:
-            resp = httpx.get(
-                USDA_URL,
-                params={"query": key, "pageSize": 1, "api_key": config.usda_api_key},
-                timeout=15,
-            )
-            resp.raise_for_status()
-            foods = resp.json().get("foods") or []
-            if foods:
-                nutrients = {n.get("nutrientId"): n.get("value", 0)
-                             for n in foods[0].get("foodNutrients", [])}
-                result = {
-                    "kcal": float(nutrients.get(_N_KCAL, 0) or 0),
-                    "protein_g": float(nutrients.get(_N_PROTEIN, 0) or 0),
-                    "carb_g": float(nutrients.get(_N_CARB, 0) or 0),
-                    "fat_g": float(nutrients.get(_N_FAT, 0) or 0),
-                    "status": "success",
-                }
-        except (httpx.HTTPError, ValueError, KeyError):
-            result["status"] = "failed"
+        # Query the cleaned food noun first ("syrup", not "one-half cupful of
+        # syrup"), falling back to the raw line if the cleaned one misses.
+        # The cache key stays the raw name.
+        queries = [q for q in dict.fromkeys([clean_ingredient_name(key), key]) if q]
+        for q in queries:
+            try:
+                resp = httpx.get(
+                    USDA_URL,
+                    params={"query": q, "pageSize": 1, "api_key": config.usda_api_key},
+                    timeout=15,
+                )
+                resp.raise_for_status()
+                foods = resp.json().get("foods") or []
+                if foods:
+                    nutrients = {n.get("nutrientId"): n.get("value", 0)
+                                 for n in foods[0].get("foodNutrients", [])}
+                    result = {
+                        "kcal": float(nutrients.get(_N_KCAL, 0) or 0),
+                        "protein_g": float(nutrients.get(_N_PROTEIN, 0) or 0),
+                        "carb_g": float(nutrients.get(_N_CARB, 0) or 0),
+                        "fat_g": float(nutrients.get(_N_FAT, 0) or 0),
+                        "status": "success",
+                    }
+                    break
+            except (httpx.HTTPError, ValueError, KeyError):
+                result["status"] = "failed"
 
     # Only cache real hits. "skipped" (no key) and "failed" (no key yet, rate
     # limit, transient network error, or a query USDA just doesn't match)
@@ -164,21 +325,51 @@ def estimate_recipe_macros(
     nothing resolves (usda_status failed/skipped) so callers can flag confidence.
     """
     servings = max(1, int(servings or 1))
+    # LLM parse gives each line a real food name and quantity-aware grams
+    # ("6 eggs" -> eggs/300g, "12 eggs" -> eggs/600g). Skipped without a USDA
+    # key — nothing downstream would use the parse. USDA cache is keyed by the
+    # parsed food, so every "N eggs" variant shares one cache entry.
+    if config.usda_api_key and ingredients:
+        parsed = parse_ingredients(conn, config, ingredients)
+    else:
+        parsed = [
+            {"food": ing, "grams": grams_per_ingredient, "source": "heuristic"}
+            for ing in ingredients or []
+        ]
+
     totals = {"kcal": 0.0, "protein_g": 0.0, "carb_g": 0.0, "fat_g": 0.0}
     statuses = []
-    for ing in ingredients or []:
-        per100 = lookup_ingredient_macros(conn, config, ing)
+    matched_grams = total_grams = 0.0
+    for p in parsed:
+        if not p["food"]:
+            continue
+        per100 = lookup_ingredient_macros(conn, config, p["food"])
         statuses.append(per100["status"])
-        factor = grams_per_ingredient / 100.0
+        total_grams += p["grams"]
+        if per100["status"] == "success":
+            matched_grams += p["grams"]
+        factor = p["grams"] / 100.0
         totals["kcal"] += per100["kcal"] * factor
         totals["protein_g"] += per100["protein_g"] * factor
         totals["carb_g"] += per100["carb_g"] * factor
         totals["fat_g"] += per100["fat_g"] * factor
 
+    matched = statuses.count("success")
+    total = len(statuses)
     if not statuses:
         status = "skipped"
-    elif "success" in statuses:
+    elif matched and matched / total >= 0.5:
+        # Enough of the recipe resolved to trust the estimate. Unresolved
+        # ingredients contributed 0 kcal — extrapolate the matched grams over
+        # them so a 10-ingredient dish with 6 hits isn't reported at 60% of
+        # its real calories (that systematic undercount is what made "hit the
+        # daily target" math unusable downstream).
         status = "success"
+        if matched < total and matched_grams > 0:
+            scale = total_grams / matched_grams
+            totals = {k: v * scale for k, v in totals.items()}
+    elif matched:
+        status = "partial"  # under half resolved — too thin to trust
     elif all(s == "skipped" for s in statuses):
         status = "skipped"
     else:
@@ -190,7 +381,51 @@ def estimate_recipe_macros(
         "carb_g": round(totals["carb_g"] / servings, 1),
         "fat_g": round(totals["fat_g"] / servings, 1),
         "usda_status": status,
+        "matched_ingredients": matched,
+        "total_ingredients": total,
     }
+
+
+# ---------------------------------------------------------------------------
+# Persisting estimates into recipe markdown frontmatter
+# ---------------------------------------------------------------------------
+
+_FRONTMATTER_RE = re.compile(r"^(---\s*\n)(.*?\n)(---\s*\n)", re.DOTALL)
+_NUTRITION_BLOCK_RE = re.compile(r"^nutrition:[^\n]*\n(?:[ \t]+[^\n]*\n)*", re.MULTILINE)
+
+
+def write_nutrition_frontmatter(
+    path: str, macros: dict, confidence: str, estimated_at: str
+) -> bool:
+    """Write a `nutrition:` block into a recipe .md's frontmatter so the
+    estimate survives DB rebuilds (the indexer reads it back into the
+    nutrition table). Replaces any existing block; only the block is touched —
+    the rest of the frontmatter is left byte-for-byte alone. Returns False
+    (never raises) when the file is missing/unwritable or has no frontmatter.
+    """
+    block = (
+        "nutrition:\n"
+        f"  kcal: {macros['calories']}\n"
+        f"  protein_g: {macros['protein_g']}\n"
+        f"  carbs_g: {macros['carb_g']}\n"
+        f"  fat_g: {macros['fat_g']}\n"
+        f"  confidence: {confidence}\n"
+        f"  estimated_at: {estimated_at}\n"
+    )
+    try:
+        p = Path(path)
+        text = p.read_text(encoding="utf-8")
+        m = _FRONTMATTER_RE.match(text)
+        if not m:
+            return False
+        open_fence, fm, close_fence = m.group(1), m.group(2), m.group(3)
+        fm, n = _NUTRITION_BLOCK_RE.subn(block, fm, count=1)
+        if n == 0:
+            fm = fm + block
+        p.write_text(open_fence + fm + close_fence + text[m.end():], encoding="utf-8")
+        return True
+    except OSError:
+        return False
 
 
 def scale_recipe(recipe_macros: dict, target_kcal: float,

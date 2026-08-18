@@ -1,0 +1,1472 @@
+INFO:     Will watch for changes in these directories: ['/Volumes/General/Coding/Python/Aboyeur/aboyeur', '/Volumes/General/Coding/Python/Aboyeur/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [40331] using WatchFiles
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [40335]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:63876 - "GET /v1/models HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40335]
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [40351]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:63880 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:63892 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 2689, in app
+    await route.handle(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 1272, in handle
+    await super().handle(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 156, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/fastapi/routing.py", line 143, in app
+    await response(scope, receive, send)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/responses.py", line 273, in __call__
+    async with create_collapsing_task_group() as task_group:
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 235, in __aexit__
+    await self.gen.athrow(value)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/_utils.py", line 93, in create_collapsing_task_group
+    raise exc from exc.__cause__ or context
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/_core/_tasks.py", line 275, in _run_coro
+    retval = await self._coro
+             ^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/responses.py", line 276, in wrap
+    await func()
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/responses.py", line 250, in stream_response
+    async for chunk in self.body_iterator:
+    ...<2 lines>...
+        await send({"type": "http.response.body", "body": chunk, "more_body": True})
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/concurrency.py", line 57, in iterate_in_threadpool
+    yield await anyio.to_thread.run_sync(_next, as_iterator)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/starlette/concurrency.py", line 46, in _next
+    return next(iterator)
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 655, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 172, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 68, in _dispatch
+    results = search_recipes(
+        conn, args["query"],
+    ...<5 lines>...
+        limit=args.get("limit", 25),
+    )
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/search.py", line 56, in search_recipes
+    rows = conn.execute(sql, params).fetchall()
+           ~~~~~~~~~~~~^^^^^^^^^^^^^
+sqlite3.OperationalError: fts5: syntax error near ""
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/search.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40351]
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [41271]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/search.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [41271]
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [41283]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [41283]
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [41324]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [41324]
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [41330]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:64130 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:64125 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:64332 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:64475 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:65362 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:49157 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:49375 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:64130 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:64130 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:49812 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 172, in send
+    args = {}
+         ^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 69, in _dispatch
+    pantry = [r["item"] for r in conn.execute("SELECT item FROM pantry").fetchall()]
+              ^^^^^^^^^^^^^
+KeyError: 'query'
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [41330]
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py', 'aboyeur/tools/menu.py', 'aboyeur/agent.py', 'aboyeur/tools/schemas.py', 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [50741]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [50741]
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [50744]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:49961 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:49956 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=%E2%80%937+garlic&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=%E2%80%931+cayenne+pepper&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=%E2%80%931+orange+food+coloring&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=broiler+or+fryer+chicken+legs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=broiler+or+fryer+chicken+breasts&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=young+or+green+tomatoes&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=ingredients+same+as+for+potato+curry&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+ingredients+same+for+brown+curry&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=curry+gravy&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+bread&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=french+beans&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=same+ingredients+as+cabbage+curry&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=curry+stuffs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spices&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=few+lemon+juice&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tamarind+or+lemon+juice+or+vinegar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bishop%E2%80%99s+weed&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=halibut&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tilapia+fillets&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=roasted+curry+leaf+spice+blend&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=breadcrumbs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=same+ingredients+as+for+madras+curry&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=four+of+good+gravy&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+cream&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=few+of+lemon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rabbit&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=butter+or+lard&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+onion&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=gravy+or+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cod+fillets&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=coconut+paste&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cowpeas&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=peanuts&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=jaggery&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=kokum&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=partridge&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=strong+gravy&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=good&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half-of+good+gravy&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=few+lemon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nice+spices&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pinch+of+cayenne+pepper&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=slightly+peppered+tripe&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=juice+of+half+a+lemon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pepper+and+salt+to+taste&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dessertspoonful+curry+powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dessertspoonful+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=good-sized+fowl&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=liver&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fat+of+bacon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bishop%27s+weed&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=horse+gram&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fairly+well-packed&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=%E2%80%932+fresh+hot+green+chilies&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=urad+dal+grains&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=black-eyed+peas&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fresh+spinach+leaves&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fresh+green+chiles&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=to+medium-size+bitter+melons&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=whole+black+lentils&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=unsalted+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+lentils&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+3+fresh+green+thai&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:49961 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:49961 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50277 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50288 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50294 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50305 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50298 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50438 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50598 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50432 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupfuls+of+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=baking-powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=peaches&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pancakes&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=strawberries&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=four+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=little+pepper&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chives+or+parsley&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=milk+to+each+egg&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+6+small+fresh+basil+leaves&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=six+%C2%BD-inch-thick+good&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+4+garlic&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+or+three+of+parsley&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=little+celery&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+kernel+of+garlic&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+carrots&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sized+cabbage&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=other+vegetables&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+small+of+rice+for+each+person&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dinner+plate&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=blackberries&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=remnants+of+turkey+from+a+previous+dinner&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=turkey+gravy+or+white+stock+or+a+small+of+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pulverized+coffee&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=apple+sauce&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chili+sauce&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=guinea+fowl&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hominy&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=currant+jelly&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mustard+sauce&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=squash&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=slaw&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=grapes&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50781 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50592 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50838 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:51937 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52010 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52088 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52108 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50775 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 88, in _dispatch
+    return update_profile(conn, args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/profile.py", line 95, in update_profile
+    existing = next(
+        (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+    )
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/profile.py", line 96, in <genexpr>
+    (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+                                                           ~~~~~~~~~~~~^^^^^^
+TypeError: list indices must be integers or slices, not str
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=easy+salad+dressing&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+a+fine-chopped+pepper&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dainty+of+bread&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=butter+or+margarine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sharp+cheese&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=olive+or+vegetable+oil&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=box+gelatine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=thick+cream&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vanilla&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 503 Service Unavailable"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mixed+spices&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rich+cheese&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=yolks+of+two+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=saltspoonful+of+cayenne&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mashed+potato&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+a+of+cider+vinegar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+mustard&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+a+of+salt&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 503 Service Unavailable"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+teacups+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+baking+powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+salt&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=easy-cooking+tart+apples&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 503 Service Unavailable"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+or+three+spoonfuls+rather+thick+sweet+cream&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+quarters+of+a+of+lard&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+quarters+of+a+of+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+quarters+of+a+of+iced+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52285 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=and+a+half+of+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+cream&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+a+of+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=teacupful+of+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+eggs+beaten+separately&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+a+of+macaroons&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+medium-sized+potatoes&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potato+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+lard&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+mixture&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+cake+of+yeast&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+rice&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=stoned+peach+or+apricot+from+which+the+skin+has+been+removed&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sauce+made+from+peach+or+apricot+juice&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=easy-cooking+tart+apples&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pickles+of+uniform+size&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mixed+white+and+black+mustard+seed&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=and+cinnamon+bark+mixed+or+any+spices+preferred&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=alum+the+size+of+a+walnut+to+one+of+vinegar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=horse+radish+root&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=batter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chili&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+wine+vinegar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dijon+mustard&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tabasco&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 88, in _dispatch
+    return update_profile(conn, args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/profile.py", line 95, in update_profile
+    existing = next(
+        (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+    )
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/profile.py", line 96, in <genexpr>
+    (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+                                                           ~~~~~~~~~~~~^^^^^^
+TypeError: list indices must be integers or slices, not str
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 71, in _dispatch
+    conn, args["query"],
+          ~~~~^^^^^^^^^
+KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52514 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+suet+or+dripping&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nice+pork&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=leg+of+pork&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sauerkraut&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=boiled+hand+of+pork+or+feet+of+pork&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pie+crust&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lean+salt+pork&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fat+from+frying&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=milk+about+a&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pork+roast&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetables+for+russian+salad&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:50838 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52088 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52508 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chiles+coating+the+chicken&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=%E2%80%93%C2%BC+cayenne+pepper&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potatoes+for+boiling&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+sections&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bay+leaf&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=reserved+chicken+broth&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=seeds+from+6+whole+cardamom&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+onions&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hara+masala&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lentils&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spring+chicken&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spoonfuls+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bouquet+garni&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salt+and+pepper&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=good-sized+broiling+chicken&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spice&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hard+soaked+bread&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pearl+or+other+tiny+onions&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+wings&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=flat+anchovy+fillets&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+whole+beaten+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=boiling+oil+or+fat&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sage+leaves+chopped+fine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+breast+cut+in+very+thin&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bread+crumbs+ground+fine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=good+olive+oil&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dry+mushrooms&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+5+fresh+basil+leaves&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+an+onion+chopped+fine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+5+of+ham&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=water+or+broth&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+4+sausages+freshly+made&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=garlic+cut+into+five+or+six&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tomatoes+cut+in&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=broth+or+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potatoes+cut+into+sections&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+ham&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=crumb+of+bread+soaked+with+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=balsamella&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+or+three+of+tongue&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+or+three+of+ham&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+grated+cheese&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=taste+of+nutmeg&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=balsamella+sauce&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=wafers&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=oil+or+fat+for+frying&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+meat+of+chicken&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+6+blanched+almonds&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+chicken+stock&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bread+crumbs+soaked+in+milk+or+broth&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=yolk+of+an+egg&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+stale+bread&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=croutons&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=butter+or+oil&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=four+of+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+cupfuls+of+brown+stock&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dash+of+cayenne&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=four+of+vinegar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+chopped+onion&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+chopped+capers&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+chopped+pickle&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+tarragon+vinegar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=boiled+celery&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brussels+sprouts&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=stoned+olives&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fragments+of+chicken&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+or+chicken+broth&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=marrow+of+beef+bone&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52108 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52514 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52514 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:53013 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53013 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:53080 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53116 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corn+syrup&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=square+chocolate&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pecans+or+other+chopped+nut+meats&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53080 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:53179 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53179 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:53474 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:54463 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:62464 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:62970 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:63934 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50160 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50181 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50365 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50507 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:51074 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52079 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52087 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52091 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52256 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52256 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:52334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52445 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:60236 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:61831 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:61865 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:62495 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52970 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:52975 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:53349 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53343 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=young+chicken+broken+into&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pinch+of+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+a+lemon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53349 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:53349 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58946 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:58978 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:59120 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:59141 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:59134 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 71, in _dispatch
+    conn, args["query"],
+          ~~~~^^^^^^^^^
+KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:59141 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:59141 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:59383 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:59383 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:59529 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:59529 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:49752 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50187 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:54896 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:54902 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:54924 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:54917 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:54930 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 71, in _dispatch
+    conn, args["query"],
+          ~~~~^^^^^^^^^
+KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:54924 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:54924 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:55017 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 88, in _dispatch
+    return update_profile(conn, args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/profile.py", line 95, in update_profile
+    existing = next(
+        (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+    )
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/tools/profile.py", line 96, in <genexpr>
+    (m for m in profile.get("household", []) if m["id"] == patch_member["id"]), None
+                                                           ~~~~~~~~~~~~^^^^^^
+TypeError: list indices must be integers or slices, not str
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:55017 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:55067 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:55081 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 665, in _oa_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 602, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 175, in send
+    result = _dispatch(self.conn, self.config, tc["name"], args)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 71, in _dispatch
+    conn, args["query"],
+          ~~~~^^^^^^^^^
+KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:55067 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:55081 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:56703 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:56724 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:56853 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:56853 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:56907 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:56916 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:56925 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+southern+corn+meal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=butter+or+lard+melted&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=boiled+sweet+potatoes&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupfuls+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+hot+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=stock+or+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=toast+points&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=four+of+brown+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=the+well-beaten+yolks+of+two+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=glass+of+sherry&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=young+chickens&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hot+cream+gravy&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corn+fritters&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potato+croquettes&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=thin%2C+crisp+bacon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egg+well+beaten&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=green+pepper+chopped&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=onion+chopped&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corn+chopped&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bacon+chopped+fine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bacon+fat+or+drippings&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=quarter+of+lard&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+dinner+of+salt&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=four+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+crisco&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+molasses&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+sour+cream&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=baking+soda&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=powdered+cinnamon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+seeded+raisins&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+currants&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=powdered&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=powdered+allspice&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+white+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rounding+of+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=milk+or+milk+and+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+well+beaten+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+freshly-grated+cocoanut&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+of+cream&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+of+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+of+cocoanut+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=the+yolks+of+four+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+granulated+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=the+grated+rind+of+one+lemon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+lemon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=the+whites+of+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+large+heaping+of+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+buttermilk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half+soda+dissolved+in+little+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+baking+powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+melted+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+stewed+fruit&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+and+one-half+of+fine+bread+crumbs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+brown+sugar&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three+of+melted+shortening&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+of+nutmeg+or+cinnamon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pastry+for+crust&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+scant+of+sifted+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+generous+of+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+half+cupful+of+melted+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=the+well+beaten+yolks+of+three+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=the+well+beaten+whites+of+three+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+half+of+salt&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+baking+powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=or+8+of+round+of+beef&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bit+of+fat+from+the+meat&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pinch+of&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=blades+of+mace&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+of+capers+or+pickled+nasturtium+seeds&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bunch+of+parsley&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sufficient+claret+to+almost+cover+the+meat&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+shortening&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+and+one-half+cupfuls+of+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=yolk+of+two+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+cupfuls+of+sour+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+cupful+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+level+of+baking+soda&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+cupful+of+syrup&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=stiffly+beaten+whites+of+the+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=biscuit+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=any+kind+of+berries&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=jam&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=baking+powder+biscuit+dough+with+milk+increased+to+one+cupful&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=raised+biscuit+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=stoned+dates+or+figs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=baking+powder+biscuit+dough+using+entire+wheat+flour+in+place+of+white+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shoulder+of+veal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=biscuit+or+biscuit+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nice+fat+fowl+about+a+year+old&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-third+of+cold+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=biscuit&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=quick+biscuit+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+chopped+apple&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-half+of+seeded+and+chopped+raisins&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+of+washed+currants&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bread+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shortening&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cottolene&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=baking+powder+biscuit+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bread-+or+biscuit-dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bread+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=to+2+shortening&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pitted+cherries&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=juice&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=water+if+necessary&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spoonful+of+butter&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=risen+dough&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=six+to+a+dozen+sour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lean+bacon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cornbread+stuffing+mix&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+broth+or+water&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salt+and+ground+pepper+to+taste&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=roaster+drumsticks&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=empty+coffee+with+both+ends+removed+and+outside+greased&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=kitchen+twine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=butter+or+margarine+melted&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dixie+cornbread+stuffing&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=madeira+wine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+swift%27s+premium+oleomargarine&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+sweet+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cupful+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=strips+uncooked+bacon&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=packaged+cornbread+stuffing&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dry+sherry&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pepper+to+taste&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three-fourths+cornmeal&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three-fourths+flour&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=two+and+one-half+baking+powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three-fourths+salt&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=three-fourths+sweet+milk&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+or+two+eggs&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one+and+one-half+baking+powder&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=one-fourth+soda&pageSize=1&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:57240 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:56907 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [50744]
+Python(58807) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [58807]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [58807]
+Python(58838) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [58838]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [58838]
+Python(58892) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [58892]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/profile.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [58892]
+Python(58973) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [58973]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [58973]
+Python(61513) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [61513]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61513]
+Python(61548) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [61548]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61548]
+Python(61598) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [61598]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61598]
+Python(61636) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [61636]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61636]
+Python(61886) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [61886]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61886]
+Python(61925) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [61925]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61925]
+Python(62028) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62028]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62028]
+Python(62118) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62118]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62118]
+Python(62187) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62187]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62187]
+Python(62277) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62277]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/menu.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62277]
+Python(62354) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62354]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/menu.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62354]
+Python(62444) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62444]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/menu.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62444]
+Python(62492) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62492]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/menu.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62492]
+Python(62578) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62578]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/schemas.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62578]
+Python(62626) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [62626]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62626]
+Python(64306) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64306]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64306]
+Python(64344) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64344]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64344]
+Python(64372) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64372]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64372]
+Python(64408) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64408]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64408]
+Python(64474) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64474]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64474]
+Python(64512) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64512]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64512]
+Python(64549) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64549]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:57649 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57651 - "GET /profile/ui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57653 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64549]
+Python(65476) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65476]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65476]
+Python(65609) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65609]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65609]
+Python(65743) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65743]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65743]
+Python(65831) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65831]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65831]
+Python(65857) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65857]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65857]
+Python(65949) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65949]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65949]
+Python(65985) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65985]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/indexer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65985]
+Python(66022) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [66022]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/indexer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [66022]
+Python(66067) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [66067]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/indexer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [66067]
+Python(66107) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [66107]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/indexer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [66107]
+Python(66192) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [66192]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:57753 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:57776 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57782 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:57776 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:57776 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     100.71.143.90:57798 - "GET /profile/ui HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57798 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57798 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     100.71.143.90:57803 - "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 Not Found
+INFO:     100.71.143.90:57803 - "GET /apple-touch-icon.png HTTP/1.1" 404 Not Found
+INFO:     100.71.143.90:57803 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     100.71.143.90:57820 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57852 - "GET /v1/models HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     100.71.143.90:57855 - "GET /profile/ui HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57855 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57865 - "POST /profile/save HTTP/1.1" 200 OK

@@ -70,8 +70,11 @@ TOOL_SCHEMAS: list[dict] = [
             "description": (
                 "Get the household: members, computed per-member daily/per-meal calorie and "
                 "macro targets (BMR/TDEE-based), allergies, dislikes, likes, cuisine affinity, "
-                "diet modes. Always check this before planning a menu — it drives targets and "
-                "the hard allergy filter."
+                "diet modes. Each member's per_meal target already accounts for their own "
+                "meals_per_day if they have a personal override (falls back to the household "
+                "default otherwise) — don't assume every member eats on the same schedule. "
+                "Always check this before planning a menu — it drives targets and the hard "
+                "allergy filter."
             ),
             "parameters": {"type": "object", "properties": {}},
         },
@@ -84,7 +87,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "Update the household profile. Use add_allergies whenever the user mentions "
                 "an allergy — do this immediately, don't wait to be asked. Add/remove fields "
                 "take lists and merge (they don't replace the existing list); set_* fields "
-                "replace outright."
+                "replace outright. set_meals_per_day is the household-wide default — if only "
+                "ONE person is changing their eating pattern (e.g. going OMAD), do NOT use "
+                "set_meals_per_day, use add_member with that person's id and meals_per_day "
+                "instead so the rest of the household isn't affected."
             ),
             "parameters": {
                 "type": "object",
@@ -100,13 +106,24 @@ TOOL_SCHEMAS: list[dict] = [
                         "description": "e.g. ['vegetarian'], ['keto']. Replaces the existing list.",
                     },
                     "set_cuisine_affinity": {"type": "array", "items": {"type": "string"}},
-                    "set_meals_per_day": {"type": "integer"},
+                    "set_meals_per_day": {
+                        "type": "integer",
+                        "description": (
+                            "Household-wide default meals/day. Only use this when the change "
+                            "applies to everyone; for one person use add_member instead."
+                        ),
+                    },
                     "add_member": {
                         "type": "object",
                         "description": (
                             "Household member: {id, label, sex, age, height_cm, weight_kg, "
-                            "activity, daily_kcal}. id required; anthropometrics optional "
-                            "(daily_kcal is the fallback target if they're omitted)."
+                            "activity, daily_kcal, meals_per_day}. id required; every other "
+                            "field is optional and merges onto that member's existing record "
+                            "(omitted fields are kept as-is, not cleared) — so you can patch "
+                            "just meals_per_day for one person, e.g. {'id': 'sam', "
+                            "'meals_per_day': 1} to put only Sam on OMAD, without needing to "
+                            "resend their anthropometrics. Omit meals_per_day to fall back to "
+                            "the household default."
                         ),
                     },
                     "remove_member": {"type": "string", "description": "Member id to remove."},
@@ -155,19 +172,37 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "plan_menu",
             "description": (
-                "Turn a candidate pool of recipe ids into an optimized day-by-day menu. "
+                "Turn a candidate pool of recipe ids into an optimized menu — ONE call plans "
+                "every meal for every day (days x meals_per_day total picks); it does NOT need "
+                "to be called once per meal, that internal looping already happens for you. "
                 "Maximizes shared ingredients (fewer grocery items) and fit against the "
-                "household's calorie targets; never repeats a recipe; keeps desserts out of "
-                "the dinner slots. Pass at least 2x as many candidate_ids as days — call "
-                "search_recipes a few times first to build that pool. Returns per-day picks "
-                "with an overlap score and macro fit you should mention when presenting the plan."
+                "household's calorie targets; never repeats a recipe; keeps desserts and drinks "
+                "out of the picks; hard-filters to the household's cuisine_affinity when set. "
+                "Pass at least 2x as many candidate_ids as (days x meals_per_day) — call "
+                "search_recipes a few times first to build that pool (batch multiple "
+                "search_recipes calls into one turn when you can, e.g. one per cuisine, instead "
+                "of one turn per call — every extra turn is a slow round-trip to a local model). "
+                "Enforces a minimum ingredient-overlap floor (25/100) and tops up under-fed "
+                "days with a second dish per meal (role='top-up') so each day's total kcal "
+                "lands within 15% of the household's daily target — a meal entry can therefore "
+                "have two dishes; present both. Returns picks grouped by day and meal plus "
+                "daily_totals (per-day kcal vs target with an under/ok/over/unknown status), "
+                "an overlap score, and macro fit — mention daily totals and any 'unknown' "
+                "days (missing nutrition data) when presenting the plan."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "candidate_ids": {"type": "array", "items": {"type": "integer"}},
-                    "days": {"type": "integer", "description": "Number of dinners to plan, e.g. 7."},
-                    "meals_per_day": {"type": "integer", "description": "Default 1 (dinner-only planning)."},
+                    "days": {"type": "integer", "description": "Number of days to plan, e.g. 7."},
+                    "meals_per_day": {
+                        "type": "integer",
+                        "description": (
+                            "How many meals per day to plan for, e.g. 3 for breakfast/lunch/"
+                            "dinner. Default 1. Handled in one pass — do not call plan_menu "
+                            "multiple times to cover this."
+                        ),
+                    },
                     "constraints": {
                         "type": "object",
                         "description": (
@@ -185,7 +220,7 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "swap_menu_item",
             "description": (
-                "Replace one day's recipe in a menu with a different recipe id, and get the "
+                "Replace one meal's recipe in a menu with a different recipe id, and get the "
                 "re-scored plan back. menu_id is the id plan_menu (or a prior swap_menu_item) "
                 "returned — omit it to act on the most recently planned menu."
             ),
@@ -194,6 +229,13 @@ TOOL_SCHEMAS: list[dict] = [
                 "properties": {
                     "menu_id": {"type": "integer", "description": "Omit to use the most recent menu."},
                     "day": {"type": "integer", "description": "Which day (1-indexed) to replace."},
+                    "meal": {
+                        "type": "integer",
+                        "description": (
+                            "Which meal within that day (1-indexed), only needed when the plan "
+                            "has meals_per_day > 1. Default 1."
+                        ),
+                    },
                     "replacement_id": {"type": "integer"},
                 },
                 "required": ["day", "replacement_id"],

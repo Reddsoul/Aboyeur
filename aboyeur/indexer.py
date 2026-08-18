@@ -72,6 +72,7 @@ class ParsedRecipe:
     ingredients: list[str]
     tags: list[str]
     mtime: float
+    nutrition: dict | None = None  # frontmatter nutrition block, if present
 
 
 def iter_recipe_entries(recipes_dir: Path) -> Iterator[tuple[Path, float]]:
@@ -147,6 +148,12 @@ def parse_recipe_file(path: Path, mtime: float | None = None) -> ParsedRecipe | 
     if serves_m:
         servings = int(serves_m.group(1))
 
+    # Optional nutrition block, written back by estimate_nutrition — lets a
+    # DB rebuild recover past estimates without re-hitting the LLM/USDA.
+    nutrition = front.get("nutrition")
+    if not isinstance(nutrition, dict) or nutrition.get("kcal") is None:
+        nutrition = None
+
     return ParsedRecipe(
         path=str(path),
         title=str(title).strip(),
@@ -156,6 +163,7 @@ def parse_recipe_file(path: Path, mtime: float | None = None) -> ParsedRecipe | 
         ingredients=[str(i) for i in ingredients],
         tags=[str(t) for t in tags],
         mtime=mtime if mtime is not None else path.stat().st_mtime,
+        nutrition=nutrition,
     )
 
 
@@ -168,7 +176,7 @@ def _upsert(conn: sqlite3.Connection, r: ParsedRecipe) -> str:
     cur = conn.execute("SELECT id FROM recipes WHERE path = ?", (r.path,))
     row = cur.fetchone()
     if row is None:
-        conn.execute(
+        cur = conn.execute(
             """INSERT INTO recipes
                (path, title, book, cuisine, servings, ingredients_json, tags_json, mtime, indexed_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -177,6 +185,7 @@ def _upsert(conn: sqlite3.Connection, r: ParsedRecipe) -> str:
                 json.dumps(r.ingredients), json.dumps(r.tags), r.mtime, now,
             ),
         )
+        _upsert_nutrition(conn, cur.lastrowid, r.nutrition)
         return "inserted"
     conn.execute(
         """UPDATE recipes SET title=?, book=?, cuisine=?, servings=?,
@@ -187,7 +196,34 @@ def _upsert(conn: sqlite3.Connection, r: ParsedRecipe) -> str:
             json.dumps(r.ingredients), json.dumps(r.tags), r.mtime, now, r.path,
         ),
     )
+    _upsert_nutrition(conn, row["id"], r.nutrition)
     return "updated"
+
+
+def _upsert_nutrition(conn: sqlite3.Connection, recipe_id: int, nutrition: dict | None) -> None:
+    """Restore a frontmatter nutrition block into the nutrition table, so a
+    rebuilt DB doesn't re-estimate recipes that were already resolved."""
+    if not nutrition:
+        return
+    try:
+        conn.execute(
+            """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, per_serving, confidence, estimated_at)
+               VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+               ON CONFLICT(recipe_id) DO UPDATE SET kcal=excluded.kcal, protein_g=excluded.protein_g,
+               carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, confidence=excluded.confidence,
+               estimated_at=excluded.estimated_at""",
+            (
+                recipe_id,
+                float(nutrition.get("kcal") or 0),
+                float(nutrition.get("protein_g") or 0),
+                float(nutrition.get("carbs_g") or 0),
+                float(nutrition.get("fat_g") or 0),
+                str(nutrition.get("confidence") or "medium"),
+                str(nutrition.get("estimated_at") or ""),
+            ),
+        )
+    except (TypeError, ValueError):
+        pass  # a hand-mangled block never blocks indexing the recipe itself
 
 
 def index_corpus(config: Config, rebuild: bool = False, progress_cb=None) -> IndexStats:

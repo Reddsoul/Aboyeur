@@ -74,6 +74,18 @@ CREATE TABLE IF NOT EXISTS nutrition (
     estimated_at  TEXT
 );
 
+-- Parsed ingredient lines ("6 eggs" -> food "eggs", ~300 g), LLM-produced.
+-- Keyed by the raw line so a corpus-wide repeat ("salt and pepper to taste")
+-- is parsed once ever. Heuristic fallbacks are NOT cached (same reasoning as
+-- usda_cache: a fallback isn't information about the line, and caching it
+-- would stop the LLM from ever being retried).
+CREATE TABLE IF NOT EXISTS ingredient_parse (
+    raw        TEXT PRIMARY KEY,
+    food       TEXT NOT NULL,
+    grams      REAL NOT NULL,
+    parsed_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS usda_cache (
     ingredient   TEXT PRIMARY KEY,
     fdc_id       TEXT,

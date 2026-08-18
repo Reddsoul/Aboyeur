@@ -8,10 +8,17 @@ USDA data.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import sqlite3
+from pathlib import Path
+
+import httpx
+import pytest
 
 from aboyeur.config import Config
+from aboyeur.db import connect
+from aboyeur.engines import nutrition as nutrition_engine
 from aboyeur.tools import (
     estimate_nutrition,
     get_profile,
@@ -61,6 +68,25 @@ def test_search_recipes_respects_limit_cap(db_conn: sqlite3.Connection):
 def test_search_recipes_pantry_match_flag(db_conn: sqlite3.Connection):
     results = search_recipes(db_conn, "chocolate", pantry=["chocolate"])
     assert any(r["pantry_match"] for r in results)
+
+
+def test_search_recipes_survives_fts5_special_characters(db_conn: sqlite3.Connection):
+    # Raw punctuation used to reach FTS5's MATCH parser unescaped and raise
+    # sqlite3.OperationalError ("fts5: syntax error near ...") — which, inside
+    # a streaming chat response, aborted the connection outright instead of
+    # returning a clean error. Regression coverage for that incident.
+    for query in [
+        "Indian / Mexican", "gluten-free", 'chicken "curry"',
+        "beef (spicy)", "-tofu", "a:b*c", "chicken NOT beef",
+    ]:
+        results = search_recipes(db_conn, query)
+        assert isinstance(results, list)
+
+
+def test_search_recipes_all_punctuation_query_returns_empty(db_conn: sqlite3.Connection):
+    # No alnum tokens survive sanitizing — must short-circuit to [] rather
+    # than hand FTS5 an empty/invalid MATCH string.
+    assert search_recipes(db_conn, "---///:::") == []
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +150,40 @@ def test_update_profile_unrelated_field_never_touches_allergies(db_conn: sqlite3
     assert profile["meals_per_day"] == 4
 
 
+def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connection):
+    update_profile(db_conn, {"add_member": {
+        "id": "adult_1", "label": "Jose", "sex": "m", "age": 30,
+        "height_cm": 178, "weight_kg": 80, "activity": "moderate",
+    }})
+    # Later patch only sets meals_per_day for this one person — anthropometrics
+    # must survive, otherwise the BMR target silently degrades to the fallback.
+    update_profile(db_conn, {"add_member": {"id": "adult_1", "meals_per_day": 1}})
+    profile = get_profile(db_conn)
+    member = next(m for m in profile["household"] if m["id"] == "adult_1")
+    assert member["meals_per_day"] == 1
+    assert member["height_cm"] == 178
+    assert member["weight_kg"] == 80
+    assert profile["targets"]["adult_1"]["source"] == "bmr"
+
+
+def test_update_profile_add_member_accepts_list(db_conn: sqlite3.Connection):
+    # The local model sometimes sends add_member as a list despite the schema
+    # saying object — this used to raise TypeError and kill the stream.
+    update_profile(db_conn, {"add_member": [
+        {"id": "adult_1", "label": "Jose"},
+        {"id": "kid_1", "label": "Sam", "meals_per_day": 1},
+    ]})
+    profile = get_profile(db_conn)
+    assert {m["id"] for m in profile["household"]} == {"adult_1", "kid_1"}
+
+
+def test_update_profile_add_member_rejects_non_dict(db_conn: sqlite3.Connection):
+    with pytest.raises(ValueError, match="add_member"):
+        update_profile(db_conn, {"add_member": "adult_1"})
+    with pytest.raises(ValueError, match="add_member"):
+        update_profile(db_conn, {"add_member": {"label": "no id"}})
+
+
 # ---------------------------------------------------------------------------
 # manage_pantry
 # ---------------------------------------------------------------------------
@@ -169,6 +229,177 @@ def test_estimate_nutrition_does_not_cache_low_confidence(db_conn: sqlite3.Conne
     estimate_nutrition(db_conn, config, [rid])
     row = db_conn.execute("SELECT confidence FROM nutrition WHERE recipe_id = ?", (rid,)).fetchone()
     assert row is None
+
+
+def _fake_usda_response(monkeypatch):
+    """Every ingredient 'looked up' resolves to the same canned macros, and
+    counts each real httpx.get call so tests can assert the cache, not the
+    network, served repeat requests.
+    """
+    calls = {"n": 0}
+
+    def fake_get(url, params=None, timeout=None):
+        calls["n"] += 1
+        return httpx.Response(
+            200,
+            json={"foods": [{"foodNutrients": [
+                {"nutrientId": 1008, "value": 200.0},
+                {"nutrientId": 1003, "value": 10.0},
+                {"nutrientId": 1005, "value": 20.0},
+                {"nutrientId": 1004, "value": 5.0},
+            ]}]},
+            request=httpx.Request("GET", url),
+        )
+
+    monkeypatch.setattr(nutrition_engine.httpx, "get", fake_get)
+    return calls
+
+
+def test_estimate_nutrition_reuses_cached_recipe_without_recomputing(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    """Once a recipe's nutrition is resolved (persisted to the `nutrition`
+    table), a second estimate_nutrition call for the same id must come
+    straight from the DB — no ingredient lookups, no USDA calls at all.
+    """
+    calls = _fake_usda_response(monkeypatch)
+    live_config = dataclasses.replace(config, usda_api_key="fake-key-for-test")
+    rid = _all_ids(db_conn)[0]
+
+    first = estimate_nutrition(db_conn, live_config, [rid])
+    assert first[rid]["confidence"] == "medium"
+    calls_after_first = calls["n"]
+    assert calls_after_first > 0
+
+    second = estimate_nutrition(db_conn, live_config, [rid])
+    assert second == first
+    assert calls["n"] == calls_after_first  # zero additional USDA calls
+
+
+def test_lookup_ingredient_macros_reuses_cached_ingredient_without_recomputing(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    """Two recipes sharing an ingredient (e.g. "salt") should hit USDA for
+    that ingredient once, not once per recipe — the usda_cache table is
+    keyed by ingredient name, not recipe id.
+    """
+    calls = _fake_usda_response(monkeypatch)
+    live_config = dataclasses.replace(config, usda_api_key="fake-key-for-test")
+
+    first = nutrition_engine.lookup_ingredient_macros(db_conn, live_config, "salt")
+    assert first["status"] == "success"
+    calls_after_first = calls["n"]
+
+    second = nutrition_engine.lookup_ingredient_macros(db_conn, live_config, "salt")
+    assert second == first
+    assert calls["n"] == calls_after_first  # cache hit, no second HTTP call
+
+
+def _fake_lookup(macros_by_name):
+    def fake(conn, cfg, name):
+        hit = macros_by_name.get(name)
+        if hit:
+            return {**hit, "status": "success"}
+        return {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "failed"}
+    return fake
+
+
+def test_estimate_recipe_macros_extrapolates_unmatched_ingredients(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    """Half the ingredients resolving used to mean half the real calories —
+    a systematic undercount that broke daily-target math downstream."""
+    monkeypatch.setattr(nutrition_engine, "lookup_ingredient_macros", _fake_lookup(
+        {"chicken": {"kcal": 200.0, "protein_g": 20.0, "carb_g": 0.0, "fat_g": 10.0}}
+    ))
+    m = nutrition_engine.estimate_recipe_macros(db_conn, config, ["chicken", "mystery goo"], servings=1)
+    assert m["usda_status"] == "success"
+    assert m["matched_ingredients"] == 1
+    assert m["total_ingredients"] == 2
+    # 200 kcal * 0.8 grams-factor, doubled to cover the unmatched ingredient
+    assert m["calories"] == 320.0
+
+
+def test_estimate_recipe_macros_partial_when_under_half_matched(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    monkeypatch.setattr(nutrition_engine, "lookup_ingredient_macros", _fake_lookup(
+        {"chicken": {"kcal": 200.0, "protein_g": 20.0, "carb_g": 0.0, "fat_g": 10.0}}
+    ))
+    m = nutrition_engine.estimate_recipe_macros(
+        db_conn, config, ["chicken", "mystery goo", "stranger goo"], servings=1)
+    assert m["usda_status"] == "partial"  # 1/3 matched — too thin to trust
+
+
+def test_parse_ingredients_prefers_cache_over_llm(db_conn: sqlite3.Connection, config: Config, monkeypatch):
+    db_conn.execute(
+        "INSERT INTO ingredient_parse (raw, food, grams, parsed_at) VALUES (?, ?, ?, ?)",
+        ("6 eggs", "eggs", 300.0, "2026-01-01T00:00:00Z"),
+    )
+    monkeypatch.setattr(nutrition_engine, "_llm_parse_lines",
+                        lambda *a: (_ for _ in ()).throw(AssertionError("LLM called on cache hit")))
+    out = nutrition_engine.parse_ingredients(db_conn, config, ["6 eggs"])
+    assert out == [{"food": "eggs", "grams": 300.0, "source": "cache"}]
+
+
+def test_parse_ingredients_caches_llm_results(db_conn: sqlite3.Connection, config: Config, monkeypatch):
+    monkeypatch.setattr(nutrition_engine, "_llm_parse_lines",
+                        lambda cfg, lines: [{"food": "eggs", "grams": 600.0}])
+    first = nutrition_engine.parse_ingredients(db_conn, config, ["12 eggs"])
+    assert first[0]["source"] == "llm"
+    # Second call must come from the table, not the LLM.
+    monkeypatch.setattr(nutrition_engine, "_llm_parse_lines",
+                        lambda *a: (_ for _ in ()).throw(AssertionError("LLM re-called")))
+    second = nutrition_engine.parse_ingredients(db_conn, config, ["12 eggs"])
+    assert second == [{"food": "eggs", "grams": 600.0, "source": "cache"}]
+
+
+def test_parse_ingredients_heuristic_fallback_is_not_cached(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    monkeypatch.setattr(nutrition_engine, "_llm_parse_lines", lambda cfg, lines: None)
+    out = nutrition_engine.parse_ingredients(db_conn, config, ["one-half cupful of syrup"])
+    assert out[0] == {"food": "syrup", "grams": 80.0, "source": "heuristic"}
+    assert db_conn.execute("SELECT COUNT(*) c FROM ingredient_parse").fetchone()["c"] == 0
+
+
+def test_estimate_nutrition_persists_block_to_recipe_md(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    _fake_usda_response(monkeypatch)
+    monkeypatch.setattr(nutrition_engine, "_llm_parse_lines", lambda cfg, lines: None)
+    live_config = dataclasses.replace(config, usda_api_key="fake-key-for-test")
+    rid = _all_ids(db_conn)[0]
+    estimate_nutrition(db_conn, live_config, [rid])
+
+    path = db_conn.execute("SELECT path FROM recipes WHERE id = ?", (rid,)).fetchone()["path"]
+    text = Path(path).read_text()
+    assert "nutrition:" in text
+    assert "confidence: medium" in text
+
+
+def test_indexer_restores_nutrition_from_frontmatter(
+    db_conn: sqlite3.Connection, config: Config, monkeypatch
+):
+    """A DB rebuild must recover persisted estimates without any network."""
+    calls = _fake_usda_response(monkeypatch)
+    monkeypatch.setattr(nutrition_engine, "_llm_parse_lines", lambda cfg, lines: None)
+    live_config = dataclasses.replace(config, usda_api_key="fake-key-for-test")
+    rid = _all_ids(db_conn)[0]
+    first = estimate_nutrition(db_conn, live_config, [rid])
+    path = db_conn.execute("SELECT path FROM recipes WHERE id = ?", (rid,)).fetchone()["path"]
+
+    from aboyeur.indexer import index_corpus
+    index_corpus(config, rebuild=True)  # wipes nothing but re-upserts all rows
+    fresh = connect(config.db_path)
+    try:
+        new_rid = fresh.execute("SELECT id FROM recipes WHERE path = ?", (path,)).fetchone()["id"]
+        calls_before = calls["n"]
+        restored = estimate_nutrition(fresh, live_config, [new_rid])
+        assert restored[new_rid]["kcal"] == first[rid]["kcal"]
+        assert calls["n"] == calls_before  # served from the restored table
+    finally:
+        fresh.close()
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +462,45 @@ def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config:
     row = db_conn.execute("SELECT days_json FROM menus WHERE id = ?", (plan["menu_id"],)).fetchone()
     stored = json.loads(row["days_json"])
     assert stored["days"][0]["recipe_id"] == replacement
+
+
+def test_plan_menu_meals_per_day_grouped_into_day_and_meal_in_one_call(
+    db_conn: sqlite3.Connection, config: Config
+):
+    # The actual fix for a real incident: plan_menu used to be called once
+    # PER MEAL by the LLM (N sequential LLM round trips) — a 6-day x 3-meal
+    # request burned all 60 tool-call rounds over ~10 minutes with zero
+    # output. It must now produce every meal for every day from ONE call.
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, candidate_ids=ids, days=2, meals_per_day=3)
+    assert len(plan["days"]) == 6
+    assert plan["meals_per_day"] == 3
+    days_seen = sorted({d["day"] for d in plan["days"]})
+    assert days_seen == [1, 2]
+    for day in days_seen:
+        meals = sorted(d["meal"] for d in plan["days"] if d["day"] == day)
+        assert meals == [1, 2, 3]
+    recipe_ids = [d["recipe_id"] for d in plan["days"]]
+    assert len(recipe_ids) == len(set(recipe_ids))  # no repeats across the whole plan
+
+
+def test_swap_menu_item_targets_specific_meal_when_meals_per_day_over_1(
+    db_conn: sqlite3.Connection, config: Config
+):
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, candidate_ids=ids, days=2, meals_per_day=2)
+    used = {d["recipe_id"] for d in plan["days"]}
+    replacement = next(i for i in ids if i not in used)
+
+    swapped = swap_menu_item(
+        db_conn, config, day=1, replacement_id=replacement, meal=2, menu_id=plan["menu_id"]
+    )
+    target = next(d for d in swapped["days"] if d["day"] == 1 and d["meal"] == 2)
+    assert target["recipe_id"] == replacement
+    assert target["pick_reason"] == "manual swap"
+    # day 1 meal 1 must be untouched
+    other = next(d for d in swapped["days"] if d["day"] == 1 and d["meal"] == 1)
+    assert other["recipe_id"] != replacement
 
 
 def test_swap_menu_item_unknown_day_errors(db_conn: sqlite3.Connection, config: Config):

@@ -5,7 +5,12 @@
       "Bash(echo \"---exit:$?\")",
       "Bash(python3 -c ' *)",
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Volumes/General/Aboyeur/poc.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
-      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Volumes/General/Aboyeur/poc.py'\\).read\\(\\)\\); print\\('syntax OK'\\)\")"
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Volumes/General/Aboyeur/poc.py'\\).read\\(\\)\\); print\\('syntax OK'\\)\")",
+      "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -m pytest tests/ -q)",
+      "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -c \"import ast; ast.parse\\(open\\('/Volumes/General/Coding/Python/Aboyeur/backend/main.py'\\).read\\(\\)\\); ast.parse\\(open\\('/Volumes/General/Coding/Python/Aboyeur/backend/profile_ui.py'\\).read\\(\\)\\); print\\('syntax ok'\\)\")",
+      "Bash(curl -s -m 5 http://localhost:8000/profile/data)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"profile/ui: %{http_code}\\\\n\" http://localhost:8000/profile/ui)",
+      "Bash(curl -s -m 10 http://localhost:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\":[{\"role\":\"user\",\"content\":\"/profile\"}]}')"
     ]
   }
 }
