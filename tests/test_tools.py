@@ -415,6 +415,23 @@ def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: C
     assert "menu_id" in plan
 
 
+def test_plan_menu_reports_macro_targets_and_ingredient_summary(
+    db_conn: sqlite3.Connection, config: Config
+):
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    # Macro targets, not just calories.
+    assert set(plan["daily_target_macros"]) == {"protein_g", "carb_g", "fat_g"}
+    for day in plan["daily_totals"]:
+        assert {"protein_g", "carb_g", "fat_g"} <= set(day)
+    # Plan-wide ingredient stats: total distinct + which overlap across recipes.
+    summary = plan["ingredient_summary"]
+    assert summary["total_unique"] > 0
+    assert summary["shared_count"] == len(summary["shared"])
+    for entry in summary["shared"]:
+        assert entry["recipes"] >= 2
+
+
 def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config):
     ids = _all_ids(db_conn)
     plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)

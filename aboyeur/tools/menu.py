@@ -14,9 +14,11 @@ import datetime
 import json
 import sqlite3
 import time
+from collections import Counter
 
 from aboyeur.config import Config
 from aboyeur.engines import optimizer
+from aboyeur.engines.nutrition import per_meal_target
 from aboyeur.tools.nutrition import estimate_nutrition
 from aboyeur.tools.profile import get_profile
 
@@ -25,11 +27,14 @@ def _avg_target_kcal(targets: dict) -> float:
     return (sum(t["per_meal"]["kcal"] for t in targets.values()) / len(targets)) if targets else 600.0
 
 
-def _avg_target_macros(targets: dict) -> dict | None:
+def _avg_target_macros(targets: dict) -> dict:
     """Household-average per-meal protein/carb/fat targets — the macro-fit
-    term scores against these, not just calories."""
+    term scores against these, not just calories. With no household yet, the
+    default 30/40/30 split of the fallback per-meal kcal, so plans always
+    state macro targets."""
     if not targets:
-        return None
+        fallback = per_meal_target(_avg_target_kcal(targets), 1)
+        return {k: fallback[k] for k in ("protein_g", "carb_g", "fat_g")}
     n = len(targets)
     return {
         key: sum(t["per_meal"][key] for t in targets.values()) / n
@@ -37,11 +42,26 @@ def _avg_target_macros(targets: dict) -> dict | None:
     }
 
 
+def _ingredient_summary(ingredient_lists: list[list[str]]) -> dict:
+    """Plan-wide ingredient stats: how many distinct (meaningful) ingredients
+    the whole plan needs, and which ones multiple recipes share — the
+    shopping-efficiency story the overlap score summarizes as one number."""
+    counts: Counter[str] = Counter()
+    for ings in ingredient_lists:
+        counts.update(optimizer.meaningful_ingredients(ings))
+    shared = sorted((i for i, n in counts.items() if n >= 2), key=lambda i: (-counts[i], i))
+    return {
+        "total_unique": len(counts),
+        "shared_count": len(shared),
+        "shared": [{"ingredient": i, "recipes": counts[i]} for i in shared],
+    }
+
+
 def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: list[int]) -> list[dict]:
     macros_by_id = estimate_nutrition(conn, config, candidate_ids)
     placeholders = ",".join("?" * len(candidate_ids))
     rows = conn.execute(
-        f"SELECT id, title, book, path, cuisine, ingredients_json FROM recipes "
+        f"SELECT id, title, book, path, cuisine, servings, ingredients_json FROM recipes "
         f"WHERE id IN ({placeholders})",
         candidate_ids,
     ).fetchall()
@@ -50,7 +70,7 @@ def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: li
         m = macros_by_id.get(row["id"], {})
         out.append({
             "id": row["id"], "title": row["title"], "book": row["book"], "path": row["path"],
-            "cuisine": row["cuisine"],
+            "cuisine": row["cuisine"], "servings": row["servings"],
             "ingredients": json.loads(row["ingredients_json"]),
             "macros": {
                 "calories": m.get("kcal", 0),
@@ -131,6 +151,12 @@ def plan_menu(
             "day": p.day, "meal": p.meal, "role": p.role,
             "recipe_id": p.recipe_id, "title": p.title, "book": p.book, "path": p.path,
             "kcal": p.kcal,
+            "protein_g": p.protein_g, "carb_g": p.carb_g, "fat_g": p.fat_g,
+            # Servings of the dish to eat (kcal/macros above already include
+            # it). recipe_servings is the batch size as written, so "eat 2
+            # servings of a serves-10 recipe" = cook 1/5 of the batch.
+            "portion_multiplier": p.portion_multiplier,
+            "recipe_servings": p.servings,
             "shared_ingredients": p.shared_ingredients, "macro_fit": p.macro_fit,
             "pick_reason": p.pick_reason,
         }
@@ -146,6 +172,11 @@ def plan_menu(
         "constraints_met": result["constraints_met"],
         "daily_totals": result["daily_totals"],
         "daily_target_kcal": round(avg_kcal * meals_per_day),
+        "daily_target_macros": (
+            {k: round(v * meals_per_day, 1) for k, v in target_macros.items()}
+            if target_macros else None
+        ),
+        "ingredient_summary": _ingredient_summary([p.ingredients for p in result["picks"]]),
         "targets": targets,
         # Recipes whose nutrition didn't resolve (no USDA key, or lookups
         # failed) — calorie math involving these days is unreliable and the
@@ -191,7 +222,7 @@ def swap_menu_item(
 
     placeholders = ",".join("?" * len(ids))
     rows = conn.execute(
-        f"SELECT id, title, book, path, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
+        f"SELECT id, title, book, path, servings, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
     ).fetchall()
     by_id = {r["id"]: r for r in rows}
     if replacement_id not in by_id:
@@ -205,7 +236,8 @@ def swap_menu_item(
     meaningful_by_id = {rid: optimizer.meaningful_ingredients(ing_by_id[rid]) for rid in ids}
 
     target_macros = _avg_target_macros(profile["targets"])
-    new_days = []
+    daily_target = plan.get("daily_target_kcal") or 0
+    new_picks = []
     for i, rid in enumerate(ids):
         row = by_id[rid]
         others = (
@@ -214,31 +246,52 @@ def swap_menu_item(
         )
         shared = sorted(meaningful_by_id[rid] & others)
         m = macros_by_id.get(rid, {})
-        kcal = m.get("kcal", 0)
+        kcal = float(m.get("kcal") or 0)
         fit = round(optimizer.macro_fit(
             {"calories": kcal, "protein_g": m.get("protein_g"),
              "carb_g": m.get("carb_g"), "fat_g": m.get("fat_g")},
             avg_kcal, target_macros,
         ), 2)
-        new_days.append({
-            "day": days[i]["day"], "meal": days[i].get("meal", 1),
-            "role": days[i].get("role", "main"),
-            "recipe_id": rid, "title": row["title"], "book": row["book"],
-            "path": row["path"], "kcal": kcal,
-            "shared_ingredients": shared, "macro_fit": fit,
-            "pick_reason": "manual swap" if i == idx else days[i].get("pick_reason", ""),
-        })
+        new_picks.append(optimizer.MenuPick(
+            recipe_id=rid, title=row["title"], book=row["book"], path=row["path"],
+            ingredients=ing_by_id[rid], shared_ingredients=shared,
+            macro_fit=fit,
+            pick_reason="manual swap" if i == idx else days[i].get("pick_reason", ""),
+            day=days[i]["day"], meal=days[i].get("meal", 1),
+            role=days[i].get("role", "main"), kcal=kcal,
+            protein_g=float(m.get("protein_g") or 0),
+            carb_g=float(m.get("carb_g") or 0),
+            fat_g=float(m.get("fat_g") or 0),
+            servings=row["servings"],
+        ))
 
-    picks_for_score = [
-        optimizer.MenuPick(d["recipe_id"], d["title"], d["book"], d["path"], ing_by_id[d["recipe_id"]],
-                            d["shared_ingredients"], d["macro_fit"], d["pick_reason"])
-        for d in new_days
+    # Macros above are fresh per-serving values; re-apply portion scaling per
+    # day so the swapped plan hits the daily target the same way plan_menu's
+    # optimizer pass does.
+    picks_by_day: dict[int, list[optimizer.MenuPick]] = {}
+    for p in new_picks:
+        picks_by_day.setdefault(p.day, []).append(p)
+    for dps in picks_by_day.values():
+        optimizer.scale_day_portions(dps, daily_target, avg_kcal, target_macros)
+
+    new_days = [
+        {
+            "day": p.day, "meal": p.meal, "role": p.role,
+            "recipe_id": p.recipe_id, "title": p.title, "book": p.book,
+            "path": p.path, "kcal": p.kcal,
+            "protein_g": p.protein_g, "carb_g": p.carb_g, "fat_g": p.fat_g,
+            "portion_multiplier": p.portion_multiplier,
+            "recipe_servings": p.servings,
+            "shared_ingredients": p.shared_ingredients, "macro_fit": p.macro_fit,
+            "pick_reason": p.pick_reason,
+        }
+        for p in new_picks
     ]
 
-    daily_target = plan.get("daily_target_kcal") or 0
     daily_totals = []
-    for dnum in sorted({d["day"] for d in new_days}):
-        dk = sum(d.get("kcal") or 0 for d in new_days if d["day"] == dnum)
+    for dnum in sorted(picks_by_day):
+        dps = picks_by_day[dnum]
+        dk = sum(p.kcal for p in dps)
         if dk <= 0 or not daily_target:
             status = "unknown"
         elif dk < daily_target * (1 - optimizer.DAILY_KCAL_TOLERANCE):
@@ -247,9 +300,15 @@ def swap_menu_item(
             status = "over"
         else:
             status = "ok"
-        daily_totals.append({"day": dnum, "kcal": round(dk), "target_kcal": daily_target, "status": status})
+        daily_totals.append({
+            "day": dnum, "kcal": round(dk),
+            "protein_g": round(sum(p.protein_g for p in dps), 1),
+            "carb_g": round(sum(p.carb_g for p in dps), 1),
+            "fat_g": round(sum(p.fat_g for p in dps), 1),
+            "target_kcal": daily_target, "status": status,
+        })
 
-    overlap_score = optimizer.compute_overlap_score(picks_for_score)
+    overlap_score = optimizer.compute_overlap_score(new_picks)
     new_plan = {
         **plan,
         "days": new_days,
@@ -257,6 +316,7 @@ def swap_menu_item(
         "overlap_floor_met": overlap_score >= optimizer.MIN_OVERLAP_SCORE,
         "macro_fit_avg": round(sum(d["macro_fit"] for d in new_days) / len(new_days), 2) if new_days else 0.0,
         "daily_totals": daily_totals,
+        "ingredient_summary": _ingredient_summary(list(ing_by_id.values())),
     }
     _update_menu(conn, mid, new_plan)
     return {"menu_id": mid, **new_plan}

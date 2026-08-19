@@ -6,6 +6,7 @@ Imports use the `backend.` package (PYTHONPATH=/app in Docker).
 import json
 import logging
 import shutil
+import sqlite3
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -551,7 +552,7 @@ import threading
 
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
-from aboyeur.db import connect as _aboyeur_connect
+from aboyeur.db import connect as _aboyeur_connect, init_db as _aboyeur_init_db
 from aboyeur.tools.profile import (
     get_profile as _aboyeur_get_profile,
     make_guest_profile as _make_guest_profile,
@@ -563,6 +564,7 @@ from backend import profile_ui
 # ingest pipeline wired up (never populated) — chat delegates here instead.
 _aboyeur_config = _AboyeurConfig.load()
 _aboyeur_conn = _aboyeur_connect(_aboyeur_config.db_path)
+_aboyeur_init_db(_aboyeur_conn)
 
 # Multiple testers can now be in flight at once. Conversation state is kept
 # per-caller (see below); the one thing genuinely shared is _aboyeur_conn, a
@@ -638,16 +640,32 @@ def profile_page():
     return HTMLResponse(profile_ui.PROFILE_PAGE_HTML)
 
 
+# Profile endpoints use their own short-lived connection, NOT _aboyeur_lock:
+# an agent turn can hold that lock for minutes (USDA lookups, LLM rounds) and
+# the profile editor must stay usable meanwhile. WAL mode makes cross-
+# connection reads safe; busy_timeout covers the rare write collision.
+def _profile_conn() -> sqlite3.Connection:
+    conn = _aboyeur_connect(_aboyeur_config.db_path)
+    conn.execute("PRAGMA busy_timeout=5000")
+    return conn
+
+
 @app.get("/profile/data")
 def profile_data():
-    with _aboyeur_lock:
-        return _aboyeur_get_profile(_aboyeur_conn)
+    conn = _profile_conn()
+    try:
+        return _aboyeur_get_profile(conn)
+    finally:
+        conn.close()
 
 
 @app.post("/profile/save")
 def profile_save(desired: dict):
-    with _aboyeur_lock:
-        return profile_ui.save_profile(_aboyeur_conn, desired)
+    conn = _profile_conn()
+    try:
+        return profile_ui.save_profile(conn, desired)
+    finally:
+        conn.close()
 
 
 def _profile_command_reply(message: str, request: Request) -> Optional[str]:

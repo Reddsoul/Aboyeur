@@ -69,6 +69,67 @@ def test_daily_kcal_for_member_falls_back_to_sex_aware_default_without_inventing
     assert nutrition.daily_kcal_for_member({}) == 2000.0
 
 
+def test_goal_lose_applies_deficit_to_maintenance():
+    # 2440 maintenance + lose -> 1690, inside the textbook 1500-1900 band.
+    member = {"daily_kcal": 2440, "goal": "lose"}
+    assert nutrition.maintenance_kcal_for_member(member) == 2440.0
+    assert nutrition.daily_kcal_for_member(member) == 1690.0
+
+
+def test_goal_gain_applies_surplus():
+    assert nutrition.daily_kcal_for_member({"daily_kcal": 2000, "goal": "gain"}) == 2400.0
+
+
+def test_goal_lose_floors_at_minimum_intake():
+    # Deficit must never push below the standard minimums (1200 f / 1500 m).
+    assert nutrition.daily_kcal_for_member({"sex": "f", "daily_kcal": 1600, "goal": "lose"}) == 1200.0
+    assert nutrition.daily_kcal_for_member({"sex": "m", "daily_kcal": 1900, "goal": "lose"}) == 1500.0
+    # Unknown sex gets the conservative 1500 floor.
+    assert nutrition.daily_kcal_for_member({"daily_kcal": 1900, "goal": "lose"}) == 1500.0
+
+
+def test_goal_floor_never_exceeds_maintenance():
+    # Maintenance already below the floor: don't force intake UP to the floor.
+    assert nutrition.daily_kcal_for_member({"sex": "m", "daily_kcal": 1400, "goal": "lose"}) == 1400.0
+
+
+def test_goal_weight_drives_deficit_with_taper():
+    # Far from goal (>5 kg): 0.75 kg/week -> 825 kcal/day deficit.
+    far = {"daily_kcal": 2440, "weight_kg": 95, "goal_weight_kg": 80, "goal": "lose"}
+    assert nutrition.goal_adjust_kcal(far) == -7700.0 * 0.75 / 7
+    # Close (2-5 kg): 0.5 kg/week -> 550/day.
+    near = {"daily_kcal": 2440, "weight_kg": 83, "goal_weight_kg": 80, "goal": "lose"}
+    assert nutrition.goal_adjust_kcal(near) == -7700.0 * 0.5 / 7
+    # Nearly there (<2 kg): 0.25 kg/week -> 275/day.
+    close = {"daily_kcal": 2440, "weight_kg": 81, "goal_weight_kg": 80, "goal": "lose"}
+    assert nutrition.goal_adjust_kcal(close) == -7700.0 * 0.25 / 7
+
+
+def test_goal_weight_drives_gain_surplus():
+    member = {"weight_kg": 60, "goal_weight_kg": 70, "goal": "gain"}
+    assert nutrition.goal_adjust_kcal(member) == 7700.0 * 0.35 / 7
+    member_near = {"weight_kg": 68, "goal_weight_kg": 70, "goal": "gain"}
+    assert nutrition.goal_adjust_kcal(member_near) == 7700.0 * 0.25 / 7
+
+
+def test_goal_without_goal_weight_uses_fixed_fallback():
+    assert nutrition.goal_adjust_kcal({"goal": "lose"}) == -750.0
+    assert nutrition.goal_adjust_kcal({"goal": "gain"}) == 400.0
+    assert nutrition.goal_adjust_kcal({"goal": "maintain", "weight_kg": 90, "goal_weight_kg": 80}) == 0.0
+
+
+def test_household_targets_include_goal_and_maintenance():
+    profile = {
+        "meals_per_day": 3,
+        "household": [{"id": "a", "daily_kcal": 2440, "goal": "lose"}],
+    }
+    t = nutrition.household_targets(profile)["a"]
+    assert t["goal"] == "lose"
+    assert t["maintenance_kcal"] == 2440
+    assert t["daily_kcal"] == 1690
+    assert t["daily_macros"]["protein_g"] == round(0.30 * 1690 / 4.0, 1)
+
+
 def test_household_targets_labels_source_correctly():
     profile = {
         "meals_per_day": 3,
@@ -354,14 +415,63 @@ def test_select_menu_tops_up_under_target_days():
         assert {p.role for p in day_picks} == {"main", "top-up"}
 
 
-def test_select_menu_never_stacks_more_than_two_dishes_per_meal():
+def test_select_menu_caps_dishes_per_meal():
+    # Normally MAX_DISHES_PER_MEAL; one extra dish is allowed only when even
+    # max portion scaling can't stretch the picked dishes to the day target.
     mains = [_candidate(1, "Tiny Main", "BookA", ["chicken"], kcal=100)]
     fillers = [
         _candidate(10 + i, f"Filler {i}", f"FBook{i}", ["rice flour", f"f_{i}"], kcal=100)
         for i in range(1, 6)
     ]
     result = optimizer.select_menu(mains + fillers, days=1, pantry=set(), target_kcal=1000)
-    assert len([p for p in result["picks"] if p.day == 1]) <= optimizer.MAX_DISHES_PER_MEAL
+    assert len([p for p in result["picks"] if p.day == 1]) <= optimizer.MAX_DISHES_PER_MEAL + 1
+
+
+def test_select_menu_no_third_dish_when_scaling_can_reach_target():
+    # Two 550 kcal dishes reach a 2323 kcal day within the portion clamp —
+    # the normal two-dish cap holds.
+    candidates = [
+        _candidate(i, f"Dish {i}", f"Book{i}", ["chicken", f"x_{i}"], kcal=550)
+        for i in range(1, 6)
+    ]
+    result = optimizer.select_menu(candidates, days=1, pantry=set(), target_kcal=2323)
+    assert len(result["picks"]) <= optimizer.MAX_DISHES_PER_MEAL
+
+
+def test_select_menu_scales_portions_to_reach_omad_target():
+    # OMAD: 2323 kcal in one meal. Two single servings (~1100 kcal) can never
+    # reach it — portion scaling must close the rest of the gap.
+    candidates = [
+        _candidate(i, f"Dish {i}", f"Book{i}", ["chicken", "ginger", f"x_{i}"], kcal=550)
+        for i in range(1, 6)
+    ]
+    result = optimizer.select_menu(candidates, days=1, pantry=set(), target_kcal=2323)
+    dt = result["daily_totals"][0]
+    assert dt["status"] == "ok", dt
+    assert abs(dt["kcal"] - 2323) <= 5
+    for p in result["picks"]:
+        assert p.portion_multiplier > 1.0
+
+
+def test_select_menu_portion_scaling_respects_clamp():
+    # A 100 kcal dish against a 1000 kcal day: honest answer is "still under",
+    # not a 10x portion of a garnish.
+    candidates = [_candidate(1, "Tiny", "BookA", ["chicken"], kcal=100)]
+    result = optimizer.select_menu(candidates, days=1, pantry=set(), target_kcal=1000)
+    p = result["picks"][0]
+    assert p.portion_multiplier == optimizer.PORTION_MULT_MAX
+    assert result["daily_totals"][0]["status"] == "under"
+
+
+def test_scale_day_portions_scales_macros_with_kcal():
+    pick = optimizer.MenuPick(1, "A", "book", "p.md", ["chicken"], [], 0.5, "",
+                              day=1, meal=1, kcal=500, protein_g=40, carb_g=30, fat_g=20)
+    optimizer.scale_day_portions([pick], daily_target=1000, per_meal_kcal=1000)
+    assert pick.portion_multiplier == 2.0
+    assert pick.kcal == 1000
+    assert pick.protein_g == 80
+    assert pick.carb_g == 60
+    assert pick.fat_g == 40
 
 
 def test_select_menu_days_without_nutrition_data_flagged_unknown():
@@ -384,6 +494,46 @@ def test_macro_fit_blends_macro_targets():
 # ---------------------------------------------------------------------------
 # ingredient name cleaning for USDA lookups
 # ---------------------------------------------------------------------------
+
+def test_validated_macros_rejects_impossible_grams():
+    # Observed in the wild: branded "salt" entry claiming 1330 g carbs/100 g.
+    food = {"foodNutrients": [{"nutrientId": 1005, "value": 1330.0}]}
+    assert nutrition._validated_macros(food) is None
+
+
+def test_validated_macros_rejects_kcal_macro_disagreement():
+    # Label says 500 kcal but the macros only account for ~96 — junk entry.
+    food = {"foodNutrients": [
+        {"nutrientId": 1008, "value": 500}, {"nutrientId": 1003, "value": 5},
+        {"nutrientId": 1005, "value": 10}, {"nutrientId": 1004, "value": 4},
+    ]}
+    assert nutrition._validated_macros(food) is None
+
+
+def test_validated_macros_recomputes_missing_kcal():
+    # Some Foundation entries omit nutrient 1008 — kcal comes from Atwater.
+    food = {"foodNutrients": [
+        {"nutrientId": 1003, "value": 10}, {"nutrientId": 1005, "value": 20},
+        {"nutrientId": 1004, "value": 10},
+    ]}
+    m = nutrition._validated_macros(food)
+    assert m["kcal"] == 4 * 10 + 4 * 20 + 9 * 10
+
+
+def test_validated_macros_rejects_all_zero_entry():
+    # Empty nutrient sets are missing data, not a macro-free food.
+    assert nutrition._validated_macros({"foodNutrients": []}) is None
+
+
+def test_validated_macros_accepts_consistent_entry():
+    food = {"foodNutrients": [
+        {"nutrientId": 1008, "value": 165}, {"nutrientId": 1003, "value": 31},
+        {"nutrientId": 1005, "value": 0}, {"nutrientId": 1004, "value": 3.6},
+    ]}
+    m = nutrition._validated_macros(food)
+    assert m == {"kcal": 165.0, "protein_g": 31.0, "carb_g": 0.0, "fat_g": 3.6,
+                 "status": "success"}
+
 
 def test_clean_ingredient_name_strips_recipe_prose():
     assert nutrition.clean_ingredient_name("one-half cupful of syrup") == "syrup"

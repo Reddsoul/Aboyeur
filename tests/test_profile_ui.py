@@ -30,6 +30,20 @@ def test_save_profile_creates_members_and_lists(db_conn: sqlite3.Connection):
     assert saved["targets"]["jose"]["source"] == "bmr"
 
 
+def test_save_profile_goal_and_goal_weight_round_trip(db_conn: sqlite3.Connection):
+    state = {**FULL_STATE, "household": [
+        {**FULL_STATE["household"][0], "goal": "lose", "goal_weight_kg": "72"},
+    ]}
+    saved = profile_ui.save_profile(db_conn, state)
+    member = saved["household"][0]
+    assert member["goal"] == "lose"
+    assert member["goal_weight_kg"] == 72.0
+    t = saved["targets"]["jose"]
+    # 80 -> 72 kg is >5 kg out: 0.75 kg/week -> 825/day deficit, computed not manual.
+    assert t["goal_adjust_kcal"] == -round(7700 * 0.75 / 7)
+    assert t["daily_kcal"] == t["maintenance_kcal"] + t["goal_adjust_kcal"]
+
+
 def test_save_profile_removes_dropped_allergy(db_conn: sqlite3.Connection):
     profile_ui.save_profile(db_conn, FULL_STATE)
     second = {**FULL_STATE, "allergies": ["shellfish"]}

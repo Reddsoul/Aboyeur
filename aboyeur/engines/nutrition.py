@@ -31,6 +31,42 @@ _ACTIVITY = {
 _SPLIT = {"protein": 0.30, "carb": 0.40, "fat": 0.30}
 _KCAL_PER_G = {"protein": 4.0, "carb": 4.0, "fat": 9.0}
 
+# Weight-goal calorie adjustment applied on top of maintenance (TDEE or
+# explicit daily_kcal, both treated as maintenance).
+#
+# With a goal weight set, the deficit/surplus is computed: a safe weekly rate
+# picked from how far the member is from goal, converted to kcal/day via
+# ~7700 kcal per kg of body weight. Losing tapers as the goal nears (0.75 →
+# 0.5 → 0.25 kg/week); gaining stays a lean-bulk rate (0.25–0.35 kg/week).
+#
+# Without a goal weight, fixed fallbacks: "lose" = −750/day — middle of the
+# standard 500–1000 kcal/day deficit for 1–2 lb/week (e.g. 2440 maintenance
+# → 1690 target, inside the textbook 1500–1900 band); "gain" = +400/day.
+_GOAL_ADJUST = {"lose": -750.0, "maintain": 0.0, "gain": 400.0}
+_KCAL_PER_KG = 7700.0
+
+
+def goal_adjust_kcal(member: dict) -> float:
+    """Signed kcal/day adjustment for the member's weight goal."""
+    goal = (member.get("goal") or "maintain").strip().lower()
+    if goal not in ("lose", "gain"):
+        return 0.0
+    weight = member.get("weight_kg")
+    goal_weight = member.get("goal_weight_kg")
+    if weight and goal_weight:
+        remaining = abs(float(weight) - float(goal_weight))
+        if goal == "lose":
+            rate = 0.25 if remaining < 2 else 0.5 if remaining <= 5 else 0.75
+            return -_KCAL_PER_KG * rate / 7.0
+        rate = 0.25 if remaining <= 5 else 0.35
+        return _KCAL_PER_KG * rate / 7.0
+    return _GOAL_ADJUST[goal]
+
+# Never plan below these, whatever the deficit math says — standard minimum
+# intakes (1200 women / 1500 men); unknown sex gets the conservative floor.
+_MIN_KCAL_BY_SEX = {"f": 1200.0, "m": 1500.0}
+_MIN_KCAL_UNKNOWN = 1500.0
+
 # Rough grams-per-ingredient-per-serving assumption when no better signal exists.
 _DEFAULT_GRAMS_PER_INGREDIENT = 80.0
 
@@ -70,8 +106,8 @@ _DEFAULT_KCAL_BY_SEX = {"f": 1800.0, "m": 2300.0}
 _DEFAULT_KCAL_UNKNOWN = 2000.0
 
 
-def daily_kcal_for_member(member: dict) -> float:
-    """Resolve a household member's daily kcal target.
+def maintenance_kcal_for_member(member: dict) -> float:
+    """Resolve a household member's maintenance kcal (no goal adjustment).
 
     Full anthropometric data -> BMR x activity (TDEE). Else the supplied
     daily_kcal. Else a sex-aware generic default — never a guessed age or
@@ -86,6 +122,16 @@ def daily_kcal_for_member(member: dict) -> float:
     return _DEFAULT_KCAL_BY_SEX.get(sex, _DEFAULT_KCAL_UNKNOWN)
 
 
+def daily_kcal_for_member(member: dict) -> float:
+    """Maintenance kcal adjusted for the member's weight goal, floored at the
+    standard minimum intake for their sex."""
+    maintenance = maintenance_kcal_for_member(member)
+    adjusted = maintenance + goal_adjust_kcal(member)
+    sex = (member.get("sex") or "").strip().lower()[:1]
+    floor = _MIN_KCAL_BY_SEX.get(sex, _MIN_KCAL_UNKNOWN)
+    return max(adjusted, min(floor, maintenance))
+
+
 def household_targets(profile: dict) -> dict:
     """Per-person per-meal targets for the whole household.
 
@@ -94,14 +140,20 @@ def household_targets(profile: dict) -> dict:
     household_meals = profile.get("meals_per_day", 3)
     out = {}
     for m in profile.get("household", []):
+        maintenance = maintenance_kcal_for_member(m)
         daily = daily_kcal_for_member(m)
         has_anthro = all(m.get(k) is not None for k in ("sex", "age", "height_cm", "weight_kg"))
         meals = m.get("meals_per_day", household_meals)
         out[m["id"]] = {
             "label": m.get("label", m["id"]),
+            "goal": (m.get("goal") or "maintain").strip().lower(),
+            "goal_weight_kg": m.get("goal_weight_kg"),
+            "goal_adjust_kcal": round(goal_adjust_kcal(m)),
+            "maintenance_kcal": round(maintenance),
             "daily_kcal": round(daily),
             "source": "bmr" if has_anthro else "fallback",
             "per_meal": per_meal_target(daily, meals),
+            "daily_macros": per_meal_target(daily, 1),
         }
     return out
 
@@ -249,6 +301,60 @@ def parse_ingredients(
                           "source": "heuristic"}
     return out
 
+# Per-100g sanity gate on USDA search hits. Search with no dataType filter
+# returns branded products first, whose labels are frequently garbage per
+# 100 g (observed in the wild: salt at 1330 g carbs/100 g, turmeric at 125 g
+# carbs with 0 kcal, "onion" matching onion powder). A food passes only if
+# its macro grams can physically fit in 100 g and its stated energy agrees
+# with the Atwater energy of its own macros (4/4/9).
+_MACRO_SUM_MAX = 105.0  # p+c+f grams per 100 g food; small headroom for rounding
+_ATWATER_TOLERANCE = 0.30
+
+# Foods that are macro-zero by definition — USDA search matches them badly
+# ("water" ranks water spinach and crackers above bottled water), and a
+# lookup can only get them wrong.
+_ZERO_MACRO_FOODS = {"water", "ice", "salt", "kosher salt", "sea salt"}
+
+
+def _norm_word(w: str) -> str:
+    """Light singular/plural normalization so 'onion' matches 'Onions, raw'."""
+    if len(w) > 3 and w.endswith("es"):
+        return w[:-2]
+    if len(w) > 2 and w.endswith("s"):
+        return w[:-1]
+    return w
+
+
+def _validated_macros(food: dict) -> dict | None:
+    """Extract per-100g macros from one USDA search hit, or None if the
+    entry is internally inconsistent (junk label data)."""
+    nutrients = {n.get("nutrientId"): n.get("value", 0)
+                 for n in food.get("foodNutrients", [])}
+    kcal = float(nutrients.get(_N_KCAL, 0) or 0)
+    protein = float(nutrients.get(_N_PROTEIN, 0) or 0)
+    carb = float(nutrients.get(_N_CARB, 0) or 0)
+    fat = float(nutrients.get(_N_FAT, 0) or 0)
+    if min(kcal, protein, carb, fat) < 0 or protein + carb + fat > _MACRO_SUM_MAX:
+        return None
+    atwater = 4.0 * protein + 4.0 * carb + 9.0 * fat
+    if kcal <= 0:
+        if atwater <= 0:
+            # All-zero: search results sometimes ship Foundation entries with
+            # an empty nutrient set ("Oil, canola" at 0 kcal). Genuinely
+            # macro-free foods (water, salt) are answered from
+            # _ZERO_MACRO_FOODS before USDA is ever queried, so an all-zero
+            # hit here is missing data, not information — skip it.
+            return None
+        # Energy missing but macros present (some Foundation entries omit
+        # nutrient 1008) — recompute from the macros instead of summing
+        # 0 kcal against real grams.
+        kcal = atwater
+    elif kcal >= 20 and abs(kcal - atwater) / kcal > _ATWATER_TOLERANCE:
+        return None
+    return {"kcal": kcal, "protein_g": protein, "carb_g": carb, "fat_g": fat,
+            "status": "success"}
+
+
 def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str) -> dict:
     """Per-100g macros for one ingredient via USDA. Cached in the usda_cache table.
 
@@ -263,36 +369,58 @@ def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str
     if row is not None:
         return json.loads(row["macros_json"])
 
+    if key in _ZERO_MACRO_FOODS or clean_ingredient_name(key) in _ZERO_MACRO_FOODS:
+        return {"kcal": 0.0, "protein_g": 0.0, "carb_g": 0.0, "fat_g": 0.0,
+                "status": "success"}
+
     if not config.usda_api_key:
         result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "skipped"}
     else:
         result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "failed"}
         # Query the cleaned food noun first ("syrup", not "one-half cupful of
         # syrup"), falling back to the raw line if the cleaned one misses.
-        # The cache key stays the raw name.
+        # The cache key stays the raw name. Curated datasets (Foundation /
+        # SR Legacy) are tried before the unfiltered pool — branded products
+        # only get a look when no curated food matches, and every hit must
+        # pass the _validated_macros sanity gate.
         queries = [q for q in dict.fromkeys([clean_ingredient_name(key), key]) if q]
-        for q in queries:
-            try:
-                resp = httpx.get(
-                    USDA_URL,
-                    params={"query": q, "pageSize": 1, "api_key": config.usda_api_key},
-                    timeout=15,
-                )
-                resp.raise_for_status()
-                foods = resp.json().get("foods") or []
-                if foods:
-                    nutrients = {n.get("nutrientId"): n.get("value", 0)
-                                 for n in foods[0].get("foodNutrients", [])}
-                    result = {
-                        "kcal": float(nutrients.get(_N_KCAL, 0) or 0),
-                        "protein_g": float(nutrients.get(_N_PROTEIN, 0) or 0),
-                        "carb_g": float(nutrients.get(_N_CARB, 0) or 0),
-                        "fat_g": float(nutrients.get(_N_FAT, 0) or 0),
-                        "status": "success",
-                    }
+        for data_types in ("Foundation,SR Legacy", None):
+            for q in queries:
+                params = {"query": q, "pageSize": 10, "api_key": config.usda_api_key}
+                if data_types:
+                    params["dataType"] = data_types
+                try:
+                    resp = httpx.get(USDA_URL, params=params, timeout=15)
+                    resp.raise_for_status()
+                    foods = resp.json().get("foods") or []
+                except (httpx.HTTPError, ValueError, KeyError):
+                    result["status"] = "failed"
+                    continue
+                # Among sane hits, prefer one whose description actually
+                # names the queried food — plain relevance ranking happily
+                # returns "Butter, salted" for the query "salt".
+                validated = [(food, _validated_macros(food)) for food in foods]
+                validated = [(f, v) for f, v in validated if v is not None]
+                if validated:
+                    q_words = {_norm_word(w) for w in q.split()}
+                    named = []
+                    for f, v in validated:
+                        d_words = {_norm_word(w) for w in
+                                   _WORD_RE.findall((f.get("description") or "").lower())}
+                        if q_words & d_words:
+                            named.append((v, "raw" in d_words))
+                    if named:
+                        # Recipe lines state as-purchased (raw) quantities, so
+                        # a raw-form entry beats a prepared one — "Tomatoes,
+                        # red, raw" (18 kcal) over "Tomatoes, sun-dried" (302).
+                        result = next((v for v, raw in named if raw), named[0][0])
+                    else:
+                        result = validated[0][1]
                     break
-            except (httpx.HTTPError, ValueError, KeyError):
-                result["status"] = "failed"
+            if result["status"] == "success":
+                break
+            if result["status"] == "success":
+                break
 
     # Only cache real hits. "skipped" (no key) and "failed" (no key yet, rate
     # limit, transient network error, or a query USDA just doesn't match)

@@ -46,6 +46,15 @@ _OVERLAP_ESCALATION = (1.0, 2.0, 4.0, 8.0)
 DAILY_KCAL_TOLERANCE = 0.15
 MAX_DISHES_PER_MEAL = 2
 
+# After top-ups, each day's portions are scaled to close the remaining kcal
+# gap. Macros are per-serving, so a 2.1x multiplier means "eat 2.1 servings
+# of the dish as written" — independent of how many people the recipe batch
+# feeds (a serves-10 recipe's per-serving macros are already 1/10 of the
+# batch). Clamped: below 0.5 a portion stops being a meal, above 3.0 the
+# plan should pick bigger dishes instead of tripling a garnish.
+PORTION_MULT_MIN = 0.5
+PORTION_MULT_MAX = 3.0
+
 # Ingredients that appear in nearly every recipe — not meaningful for overlap
 # scoring. Using these to drive selection causes same-book/same-staples
 # clustering instead of genuinely shared ingredients.
@@ -98,6 +107,14 @@ class MenuPick:
     meal: int = 1
     role: str = "main"  # "main" or "top-up" (second dish added to hit daily kcal)
     kcal: float = 0.0
+    protein_g: float = 0.0
+    carb_g: float = 0.0
+    fat_g: float = 0.0
+    # Servings of the dish to eat (macros above are already scaled by it).
+    portion_multiplier: float = 1.0
+    # How many servings the recipe as written yields (None if unparsed) —
+    # lets the caller phrase "recipe serves 10, cook 1/5 of it" honestly.
+    servings: int | None = None
 
 
 def is_dessert(title: str) -> bool:
@@ -266,6 +283,10 @@ def select_menu(
                 pick_reason=reason,
                 day=slot // meals_per_day + 1, meal=slot % meals_per_day + 1,
                 kcal=float(best.get("macros", {}).get("calories") or 0),
+                protein_g=float(best.get("macros", {}).get("protein_g") or 0),
+                carb_g=float(best.get("macros", {}).get("carb_g") or 0),
+                fat_g=float(best.get("macros", {}).get("fat_g") or 0),
+                servings=best.get("servings"),
             ))
             selected_meaningful |= m_ings
             book_counts[best["book"]] = book_counts.get(best["book"], 0) + 1
@@ -310,6 +331,45 @@ def select_menu(
     }
 
 
+def scale_day_portions(
+    day_picks: list[MenuPick],
+    daily_target: float,
+    per_meal_kcal: float,
+    target_macros: dict | None = None,
+) -> None:
+    """Scale one day's portions in place so its total kcal hits the daily
+    target (clamped to PORTION_MULT_MIN..MAX). Macros are per-serving, so the
+    multiplier reads as "servings to eat" no matter how many the recipe batch
+    feeds. Then re-score each meal's macro_fit from the combined scaled
+    macros — the fit should describe what's actually served, not one
+    unscaled serving against a whole-meal target.
+    """
+    day_kcal = sum(p.kcal for p in day_picks)
+    if day_kcal <= 0 or not daily_target:
+        return
+    mult = max(PORTION_MULT_MIN, min(PORTION_MULT_MAX, daily_target / day_kcal))
+    if abs(mult - 1.0) >= 0.005:
+        for p in day_picks:
+            p.portion_multiplier = round(p.portion_multiplier * mult, 2)
+            p.kcal = round(p.kcal * mult, 1)
+            p.protein_g = round(p.protein_g * mult, 1)
+            p.carb_g = round(p.carb_g * mult, 1)
+            p.fat_g = round(p.fat_g * mult, 1)
+    meals: dict[int, list[MenuPick]] = {}
+    for p in day_picks:
+        meals.setdefault(p.meal, []).append(p)
+    for meal_picks in meals.values():
+        combined = {
+            "calories": sum(p.kcal for p in meal_picks),
+            "protein_g": sum(p.protein_g for p in meal_picks),
+            "carb_g": sum(p.carb_g for p in meal_picks),
+            "fat_g": sum(p.fat_g for p in meal_picks),
+        }
+        fit = round(macro_fit(combined, per_meal_kcal, target_macros), 2)
+        for p in meal_picks:
+            p.macro_fit = fit
+
+
 def _fill_daily_kcal(
     picks: list[MenuPick],
     pool: list[dict],
@@ -352,6 +412,11 @@ def _fill_daily_kcal(
                 dish_counts[p.meal] = dish_counts.get(p.meal, 0) + 1
                 meal_kcal[p.meal] = meal_kcal.get(p.meal, 0) + p.kcal
             open_meals = [m for m in dish_counts if dish_counts[m] < MAX_DISHES_PER_MEAL]
+            if not open_meals and day_kcal * PORTION_MULT_MAX < daily_target * (1 - DAILY_KCAL_TOLERANCE):
+                # Even max portion scaling can't stretch the picked dishes to
+                # the day target (an OMAD day of small curries). One extra
+                # dish per meal beats reporting a guaranteed-under day.
+                open_meals = [m for m in dish_counts if dish_counts[m] < MAX_DISHES_PER_MEAL + 1]
             if not open_meals:
                 break
             target_meal = min(open_meals, key=lambda m: (dish_counts[m], meal_kcal[m]))
@@ -377,9 +442,18 @@ def _fill_daily_kcal(
                 macro_fit=round(macro_fit(best.get("macros", {}), per_meal_kcal, target_macros), 2),
                 pick_reason=f"top-up: day {day} was {round(gap)} kcal under target",
                 day=day, meal=target_meal, role="top-up", kcal=best_kcal,
+                protein_g=float(best["macros"].get("protein_g") or 0),
+                carb_g=float(best["macros"].get("carb_g") or 0),
+                fat_g=float(best["macros"].get("fat_g") or 0),
+                servings=best.get("servings"),
             ))
             selected_meaningful |= m_ings
             day_kcal += best_kcal
+
+        # Top-ups add whole dishes; portion scaling closes the rest of the
+        # gap — without it a 1-meal (OMAD) day maxes out at 2 single
+        # servings and can never reach a real daily target.
+        scale_day_portions(day_picks, daily_target, per_meal_kcal, target_macros)
 
     all_picks = sorted(
         (p for dps in by_day.values() for p in dps),
@@ -398,6 +472,9 @@ def _fill_daily_kcal(
             status = "ok"
         daily_totals.append({
             "day": day, "kcal": round(day_kcal),
+            "protein_g": round(sum(p.protein_g for p in by_day[day]), 1),
+            "carb_g": round(sum(p.carb_g for p in by_day[day]), 1),
+            "fat_g": round(sum(p.fat_g for p in by_day[day]), 1),
             "target_kcal": round(daily_target), "status": status,
         })
     return all_picks, daily_totals

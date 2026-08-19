@@ -119,7 +119,12 @@ TOOL_SCHEMAS: list[dict] = [
                         "type": "object",
                         "description": (
                             "Household member: {id, label, sex, age, height_cm, weight_kg, "
-                            "activity, daily_kcal, meals_per_day}. id required; every other "
+                            "activity, daily_kcal, meals_per_day, goal, goal_weight_kg}. "
+                            "goal is one of 'lose'/'maintain'/'gain' — set it whenever the "
+                            "user states a weight goal; goal_weight_kg is their target "
+                            "weight (convert lbs to kg). The calorie deficit/surplus is "
+                            "computed from goal + goal_weight_kg automatically — never set "
+                            "daily_kcal to hand-build a deficit. id required; every other "
                             "field is optional and merges onto that member's existing record "
                             "(omitted fields are kept as-is, not cleared) — so you can patch "
                             "just meals_per_day for one person, e.g. {'id': 'sam', "

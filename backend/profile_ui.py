@@ -18,8 +18,8 @@ import sqlite3
 from aboyeur.tools.profile import get_profile, update_profile
 
 _MEMBER_INT_FIELDS = {"age", "meals_per_day"}
-_MEMBER_FLOAT_FIELDS = {"height_cm", "weight_kg", "daily_kcal"}
-_MEMBER_STR_FIELDS = {"id", "label", "sex", "activity"}
+_MEMBER_FLOAT_FIELDS = {"height_cm", "weight_kg", "daily_kcal", "goal_weight_kg"}
+_MEMBER_STR_FIELDS = {"id", "label", "sex", "activity", "goal"}
 _MEMBER_FIELDS = _MEMBER_INT_FIELDS | _MEMBER_FLOAT_FIELDS | _MEMBER_STR_FIELDS
 
 _ACTIVITIES = ("sedentary", "light", "moderate", "active", "very_active")
@@ -127,8 +127,16 @@ def profile_markdown(profile: dict, edit_url: str) -> str:
                 bits.append(_fmt_weight(m["weight_kg"], imperial))
             if m.get("activity"):
                 bits.append(m["activity"])
+            if m.get("goal") and m["goal"] != "maintain":
+                goal_bit = f"goal: {m['goal']}"
+                if m.get("goal_weight_kg") is not None:
+                    goal_bit += f" to {_fmt_weight(m['goal_weight_kg'], imperial)}"
+                bits.append(goal_bit)
             if t:
-                bits.append(f"→ {t.get('daily_kcal', '?')} kcal/day ({t.get('source', '?')})")
+                kcal_bit = f"→ {t.get('daily_kcal', '?')} kcal/day ({t.get('source', '?')})"
+                if t.get("goal") and t["goal"] != "maintain":
+                    kcal_bit += f", maintenance {t.get('maintenance_kcal', '?')}"
+                bits.append(kcal_bit)
             if m.get("meals_per_day"):
                 bits.append(f"{m['meals_per_day']} meals/day")
             lines.append("- " + ", ".join(bits))
@@ -218,9 +226,11 @@ PROFILE_PAGE_HTML = """<!doctype html>
     <h2>Household members</h2>
     <div id="members"></div>
     <div class="toolbar"><button type="button" onclick="addMember()">+ Add member</button></div>
-    <p class="hint">Height/weight/age/activity drive BMR-based calorie targets. Leave a
-    field blank to unset it. Per-person meals/day overrides the household default
-    (e.g. 1 = OMAD). Values are stored metric regardless of the display units.</p>
+    <p class="hint">Height/weight/age/activity drive BMR-based calorie and macro targets —
+    calories are always computed, never entered by hand. Pick a goal (lose/gain) and a goal
+    weight and the calorie deficit/surplus is worked out for you. Leave a field blank to
+    unset it. Per-person meals/day overrides the household default (e.g. 1 = OMAD). Values
+    are stored metric regardless of the display units.</p>
   </section>
 
   <section>
@@ -252,6 +262,7 @@ PROFILE_PAGE_HTML = """<!doctype html>
 
 <script>
 const ACTIVITIES = ["", "sedentary", "light", "moderate", "active", "very_active"];
+const GOALS = ["", "maintain", "lose", "gain"];
 const CM_PER_IN = 2.54, KG_PER_LB = 0.45359237;
 let targets = {};
 let units = "metric";
@@ -297,6 +308,19 @@ function memberRow(m = {}) {
   const activity = el("select", { name: "activity" });
   ACTIVITIES.forEach(v => activity.append(el("option", { value: v }, v || "—")));
   activity.value = m.activity || "";
+  const goal = el("select", { name: "goal" });
+  GOALS.forEach(v => goal.append(el("option", { value: v }, v || "—")));
+  goal.value = m.goal || "";
+  // Goal weight appears only when losing/gaining — it drives the computed
+  // calorie deficit/surplus; there is no manual calorie entry.
+  const goalWtCell = units === "imperial"
+    ? field("Goal wt lb", mk("goal_weight_lb", "number", kgToLb(m.goal_weight_kg ?? "")))
+    : field("Goal wt kg", mk("goal_weight_kg", "number", m.goal_weight_kg));
+  const syncGoalWt = () => {
+    goalWtCell.style.display = (goal.value === "lose" || goal.value === "gain") ? "" : "none";
+  };
+  goal.addEventListener("change", syncGoalWt);
+  syncGoalWt();
 
   let heightCell;
   if (units === "imperial") {
@@ -317,16 +341,22 @@ function memberRow(m = {}) {
     heightCell,
     weightCell,
     field("Activity", activity),
-    field("Daily kcal", mk("daily_kcal", "number", m.daily_kcal)),
+    field("Goal", goal),
+    goalWtCell,
     field("Meals/day", mk("meals_per_day", "number", m.meals_per_day)),
     el("div", { class: "row-actions" },
        el("button", { type: "button", class: "ghost-danger",
                       onclick: () => { row.remove(); queueSave(); } }, "Remove")),
   );
   const t = targets[m.id];
-  if (t) row.append(el("div", { class: "target" },
-    `Target: ${t.daily_kcal} kcal/day (${t.source}) — per meal ${t.per_meal.kcal} kcal, ` +
-    `${t.per_meal.protein_g}g protein / ${t.per_meal.carb_g}g carb / ${t.per_meal.fat_g}g fat`));
+  if (t) {
+    const adj = t.goal_adjust_kcal || 0;
+    const goalNote = t.goal && t.goal !== "maintain"
+      ? ` (${t.goal}: maintenance ${t.maintenance_kcal} ${adj >= 0 ? "+" : "−"} ${Math.abs(adj)}/day)` : "";
+    row.append(el("div", { class: "target" },
+      `Target: ${t.daily_kcal} kcal/day (${t.source})${goalNote} — per meal ${t.per_meal.kcal} kcal, ` +
+      `${t.per_meal.protein_g}g protein / ${t.per_meal.carb_g}g carb / ${t.per_meal.fat_g}g fat`));
+  }
   return row;
 }
 
@@ -337,13 +367,15 @@ function collectMembers() {
     const v = {};
     row.querySelectorAll("input, select").forEach(i => { if (i.name) v[i.name] = i.value; });
     const out = { id: row.dataset.id, label: v.label, sex: v.sex, age: v.age,
-                  activity: v.activity, daily_kcal: v.daily_kcal, meals_per_day: v.meals_per_day };
+                  activity: v.activity, goal: v.goal, meals_per_day: v.meals_per_day };
     if (units === "imperial") {
       out.height_cm = ftInToCm(v.height_ft, v.height_in);
       out.weight_kg = lbToKg(v.weight_lb);
+      out.goal_weight_kg = lbToKg(v.goal_weight_lb);
     } else {
       out.height_cm = v.height_cm;
       out.weight_kg = v.weight_kg;
+      out.goal_weight_kg = v.goal_weight_kg;
     }
     return out;
   });
