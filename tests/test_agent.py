@@ -29,18 +29,18 @@ class _FakeCollector:
             yield self.content
 
 
-def _scripted_agent(db_conn, config, monkeypatch, script):
+def _scripted_agent(db_conn, config, user_id, monkeypatch, script):
     _FakeCollector.script = list(script)
     monkeypatch.setattr(agent_mod, "StreamCollector", _FakeCollector)
     monkeypatch.setattr(agent_mod, "stream_chat", lambda *a, **k: iter(()))
     monkeypatch.setattr(agent_mod, "make_client", lambda config: None)
-    return Agent(db_conn, config)
+    return Agent(db_conn, config, user_id)
 
 
 def test_missing_required_arg_becomes_error_tool_result(
-    db_conn: sqlite3.Connection, config: Config, monkeypatch
+    db_conn: sqlite3.Connection, config: Config, user_id: int, monkeypatch
 ):
-    agent = _scripted_agent(db_conn, config, monkeypatch, [
+    agent = _scripted_agent(db_conn, config, user_id, monkeypatch, [
         ("", [{"id": "t1", "name": "search_recipes", "arguments": "{}"}]),
         ("here are some ideas", []),
     ])
@@ -54,9 +54,9 @@ def test_missing_required_arg_becomes_error_tool_result(
 
 
 def test_wrong_arg_type_becomes_error_tool_result(
-    db_conn: sqlite3.Connection, config: Config, monkeypatch
+    db_conn: sqlite3.Connection, config: Config, user_id: int, monkeypatch
 ):
-    agent = _scripted_agent(db_conn, config, monkeypatch, [
+    agent = _scripted_agent(db_conn, config, user_id, monkeypatch, [
         ("", [{
             "id": "t1", "name": "update_profile",
             "arguments": '{"add_member": "jose"}',
@@ -72,7 +72,7 @@ def test_wrong_arg_type_becomes_error_tool_result(
 
 
 def test_guest_profile_overrides_and_never_persists(
-    db_conn: sqlite3.Connection, config: Config, monkeypatch
+    db_conn: sqlite3.Connection, config: Config, user_id: int, monkeypatch,
 ):
     """A guest session's update_profile writes stay in the guest dict; the
     stored household profile is untouched, and the override is cleared once
@@ -80,10 +80,10 @@ def test_guest_profile_overrides_and_never_persists(
     from aboyeur.tools import profile as profile_tools
     from aboyeur.tools.profile import get_profile, update_profile
 
-    update_profile(db_conn, {"add_allergies": ["peanut"]})  # the household's real profile
+    update_profile(db_conn, user_id, {"add_allergies": ["peanut"]})  # the household's real profile
 
     guest = profile_tools.make_guest_profile()
-    agent = _scripted_agent(db_conn, config, monkeypatch, [
+    agent = _scripted_agent(db_conn, config, user_id, monkeypatch, [
         ("", [{
             "id": "t1", "name": "update_profile",
             "arguments": '{"add_allergies": ["shellfish"], "add_member": '
@@ -98,14 +98,19 @@ def test_guest_profile_overrides_and_never_persists(
 
     assert guest["allergies"] == ["shellfish"]
     assert [m["id"] for m in guest["household"]] == ["guest"]
-    stored = get_profile(db_conn)
+    stored = get_profile(db_conn, user_id)
     assert stored["allergies"] == ["peanut"]  # untouched
     assert stored["household"] == []
-    assert not profile_tools.guest_active()  # override cleared after the turn
+    # No module-global to leak: guest_profile lives on this Agent instance
+    # only, so a fresh Agent for the same user sees the real stored profile,
+    # never the guest's.
+    fresh = Agent(db_conn, config, user_id)
+    assert fresh.guest_profile is None
+    assert get_profile(db_conn, user_id, guest=fresh.guest_profile)["allergies"] == ["peanut"]
 
 
-def test_guest_system_prompt_flags_guest_mode(db_conn: sqlite3.Connection, config: Config, monkeypatch):
+def test_guest_system_prompt_flags_guest_mode(db_conn: sqlite3.Connection, config: Config, monkeypatch, user_id: int):
     from aboyeur.tools.profile import make_guest_profile
     monkeypatch.setattr(agent_mod, "make_client", lambda config: None)
-    agent = Agent(db_conn, config, guest_profile=make_guest_profile())
+    agent = Agent(db_conn, config, user_id, guest_profile=make_guest_profile())
     assert "GUEST MODE ACTIVE" in agent.messages[0]["content"]

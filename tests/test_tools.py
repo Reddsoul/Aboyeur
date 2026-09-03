@@ -21,6 +21,7 @@ from aboyeur.db import connect
 from aboyeur.engines import nutrition as nutrition_engine
 from aboyeur.tools import (
     estimate_nutrition,
+    get_menu_recipes,
     get_profile,
     get_recipe,
     get_shopping_list,
@@ -116,49 +117,49 @@ def test_get_recipe_scale_multiplier_only(db_conn: sqlite3.Connection):
 # get_profile / update_profile
 # ---------------------------------------------------------------------------
 
-def test_get_profile_default_is_empty_but_shaped(db_conn: sqlite3.Connection):
-    profile = get_profile(db_conn)
+def test_get_profile_default_is_empty_but_shaped(db_conn: sqlite3.Connection, user_id: int):
+    profile = get_profile(db_conn, user_id)
     assert profile["allergies"] == []
     assert profile["targets"] == {}
 
 
-def test_update_profile_allergy_roundtrip(db_conn: sqlite3.Connection):
-    update_profile(db_conn, {"add_allergies": ["Peanut", "shellfish"]})
-    profile = get_profile(db_conn)
+def test_update_profile_allergy_roundtrip(db_conn: sqlite3.Connection, user_id: int):
+    update_profile(db_conn, user_id, {"add_allergies": ["Peanut", "shellfish"]})
+    profile = get_profile(db_conn, user_id)
     assert profile["allergies"] == ["peanut", "shellfish"]
 
-    update_profile(db_conn, {"remove_allergies": ["peanut"]})
-    profile = get_profile(db_conn)
+    update_profile(db_conn, user_id, {"remove_allergies": ["peanut"]})
+    profile = get_profile(db_conn, user_id)
     assert profile["allergies"] == ["shellfish"]
 
 
-def test_update_profile_add_member_computes_targets(db_conn: sqlite3.Connection):
-    update_profile(db_conn, {"add_member": {
+def test_update_profile_add_member_computes_targets(db_conn: sqlite3.Connection, user_id: int):
+    update_profile(db_conn, user_id, {"add_member": {
         "id": "adult_1", "label": "Jose", "sex": "m", "age": 30,
         "height_cm": 178, "weight_kg": 80, "activity": "moderate",
     }})
-    profile = get_profile(db_conn)
+    profile = get_profile(db_conn, user_id)
     assert "adult_1" in profile["targets"]
     assert profile["targets"]["adult_1"]["source"] == "bmr"
 
 
-def test_update_profile_unrelated_field_never_touches_allergies(db_conn: sqlite3.Connection):
-    update_profile(db_conn, {"add_allergies": ["peanut"]})
-    update_profile(db_conn, {"set_meals_per_day": 4})
-    profile = get_profile(db_conn)
+def test_update_profile_unrelated_field_never_touches_allergies(db_conn: sqlite3.Connection, user_id: int):
+    update_profile(db_conn, user_id, {"add_allergies": ["peanut"]})
+    update_profile(db_conn, user_id, {"set_meals_per_day": 4})
+    profile = get_profile(db_conn, user_id)
     assert profile["allergies"] == ["peanut"]
     assert profile["meals_per_day"] == 4
 
 
-def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connection):
-    update_profile(db_conn, {"add_member": {
+def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connection, user_id: int):
+    update_profile(db_conn, user_id, {"add_member": {
         "id": "adult_1", "label": "Jose", "sex": "m", "age": 30,
         "height_cm": 178, "weight_kg": 80, "activity": "moderate",
     }})
     # Later patch only sets meals_per_day for this one person — anthropometrics
     # must survive, otherwise the BMR target silently degrades to the fallback.
-    update_profile(db_conn, {"add_member": {"id": "adult_1", "meals_per_day": 1}})
-    profile = get_profile(db_conn)
+    update_profile(db_conn, user_id, {"add_member": {"id": "adult_1", "meals_per_day": 1}})
+    profile = get_profile(db_conn, user_id)
     member = next(m for m in profile["household"] if m["id"] == "adult_1")
     assert member["meals_per_day"] == 1
     assert member["height_cm"] == 178
@@ -166,45 +167,45 @@ def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connecti
     assert profile["targets"]["adult_1"]["source"] == "bmr"
 
 
-def test_update_profile_add_member_accepts_list(db_conn: sqlite3.Connection):
+def test_update_profile_add_member_accepts_list(db_conn: sqlite3.Connection, user_id: int):
     # The local model sometimes sends add_member as a list despite the schema
     # saying object — this used to raise TypeError and kill the stream.
-    update_profile(db_conn, {"add_member": [
+    update_profile(db_conn, user_id, {"add_member": [
         {"id": "adult_1", "label": "Jose"},
         {"id": "kid_1", "label": "Sam", "meals_per_day": 1},
     ]})
-    profile = get_profile(db_conn)
+    profile = get_profile(db_conn, user_id)
     assert {m["id"] for m in profile["household"]} == {"adult_1", "kid_1"}
 
 
-def test_update_profile_add_member_rejects_non_dict(db_conn: sqlite3.Connection):
+def test_update_profile_add_member_rejects_non_dict(db_conn: sqlite3.Connection, user_id: int):
     with pytest.raises(ValueError, match="add_member"):
-        update_profile(db_conn, {"add_member": "adult_1"})
+        update_profile(db_conn, user_id, {"add_member": "adult_1"})
     with pytest.raises(ValueError, match="add_member"):
-        update_profile(db_conn, {"add_member": {"label": "no id"}})
+        update_profile(db_conn, user_id, {"add_member": {"label": "no id"}})
 
 
 # ---------------------------------------------------------------------------
 # manage_pantry
 # ---------------------------------------------------------------------------
 
-def test_manage_pantry_add_list_remove_clear(db_conn: sqlite3.Connection):
-    manage_pantry(db_conn, "add", ["ginger", "soy sauce"])
-    state = manage_pantry(db_conn, "list")
+def test_manage_pantry_add_list_remove_clear(db_conn: sqlite3.Connection, user_id: int):
+    manage_pantry(db_conn, user_id, "add", ["ginger", "soy sauce"])
+    state = manage_pantry(db_conn, user_id, "list")
     assert {i["item"] for i in state} == {"ginger", "soy sauce"}
 
-    manage_pantry(db_conn, "remove", ["ginger"])
-    state = manage_pantry(db_conn, "list")
+    manage_pantry(db_conn, user_id, "remove", ["ginger"])
+    state = manage_pantry(db_conn, user_id, "list")
     assert {i["item"] for i in state} == {"soy sauce"}
 
-    manage_pantry(db_conn, "clear")
-    assert manage_pantry(db_conn, "list") == []
+    manage_pantry(db_conn, user_id, "clear")
+    assert manage_pantry(db_conn, user_id, "list") == []
 
 
-def test_manage_pantry_unknown_action_raises(db_conn: sqlite3.Connection):
+def test_manage_pantry_unknown_action_raises(db_conn: sqlite3.Connection, user_id: int):
     import pytest
     with pytest.raises(ValueError):
-        manage_pantry(db_conn, "bogus")
+        manage_pantry(db_conn, user_id, "bogus")
 
 
 # ---------------------------------------------------------------------------
@@ -406,9 +407,9 @@ def test_indexer_restores_nutrition_from_frontmatter(
 # plan_menu / swap_menu_item
 # ---------------------------------------------------------------------------
 
-def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: Config):
+def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
     assert len(plan["days"]) == 3
     assert "overlap_score" in plan
     assert "macro_fit_avg" in plan
@@ -416,10 +417,10 @@ def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: C
 
 
 def test_plan_menu_reports_macro_targets_and_ingredient_summary(
-    db_conn: sqlite3.Connection, config: Config
+    db_conn: sqlite3.Connection, config: Config, user_id: int,
 ):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
     # Macro targets, not just calories.
     assert set(plan["daily_target_macros"]) == {"protein_g", "carb_g", "fat_g"}
     for day in plan["daily_totals"]:
@@ -432,49 +433,49 @@ def test_plan_menu_reports_macro_targets_and_ingredient_summary(
         assert entry["recipes"] >= 2
 
 
-def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config):
+def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
     row = db_conn.execute("SELECT status FROM menus WHERE id = ?", (plan["menu_id"],)).fetchone()
     assert row is not None
     assert row["status"] == "draft"
 
 
-def test_plan_menu_never_repeats_a_recipe(db_conn: sqlite3.Connection, config: Config):
+def test_plan_menu_never_repeats_a_recipe(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=5)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=5)
     recipe_ids = [d["recipe_id"] for d in plan["days"]]
     assert len(recipe_ids) == len(set(recipe_ids))
 
 
-def test_swap_menu_item_replaces_the_right_day(db_conn: sqlite3.Connection, config: Config):
+def test_swap_menu_item_replaces_the_right_day(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
 
-    swapped = swap_menu_item(db_conn, config, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
+    swapped = swap_menu_item(db_conn, config, user_id, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
     assert swapped["days"][0]["recipe_id"] == replacement
     assert swapped["days"][0]["pick_reason"] == "manual swap"
 
 
-def test_swap_menu_item_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config):
+def test_swap_menu_item_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
 
-    swapped = swap_menu_item(db_conn, config, day=1, replacement_id=replacement)  # no menu_id
+    swapped = swap_menu_item(db_conn, config, user_id, day=1, replacement_id=replacement)  # no menu_id
     assert swapped["menu_id"] == plan["menu_id"]
     assert swapped["days"][0]["recipe_id"] == replacement
 
 
-def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config: Config):
+def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
-    swap_menu_item(db_conn, config, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
+    swap_menu_item(db_conn, config, user_id, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
 
     row = db_conn.execute("SELECT days_json FROM menus WHERE id = ?", (plan["menu_id"],)).fetchone()
     stored = json.loads(row["days_json"])
@@ -482,14 +483,14 @@ def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config:
 
 
 def test_plan_menu_meals_per_day_grouped_into_day_and_meal_in_one_call(
-    db_conn: sqlite3.Connection, config: Config
+    db_conn: sqlite3.Connection, config: Config, user_id: int,
 ):
     # The actual fix for a real incident: plan_menu used to be called once
     # PER MEAL by the LLM (N sequential LLM round trips) — a 6-day x 3-meal
     # request burned all 60 tool-call rounds over ~10 minutes with zero
     # output. It must now produce every meal for every day from ONE call.
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=2, meals_per_day=3)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2, meals_per_day=3)
     assert len(plan["days"]) == 6
     assert plan["meals_per_day"] == 3
     days_seen = sorted({d["day"] for d in plan["days"]})
@@ -502,15 +503,15 @@ def test_plan_menu_meals_per_day_grouped_into_day_and_meal_in_one_call(
 
 
 def test_swap_menu_item_targets_specific_meal_when_meals_per_day_over_1(
-    db_conn: sqlite3.Connection, config: Config
+    db_conn: sqlite3.Connection, config: Config, user_id: int,
 ):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=2, meals_per_day=2)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2, meals_per_day=2)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
 
     swapped = swap_menu_item(
-        db_conn, config, day=1, replacement_id=replacement, meal=2, menu_id=plan["menu_id"]
+        db_conn, config, user_id, day=1, replacement_id=replacement, meal=2, menu_id=plan["menu_id"]
     )
     target = next(d for d in swapped["days"] if d["day"] == 1 and d["meal"] == 2)
     assert target["recipe_id"] == replacement
@@ -520,15 +521,15 @@ def test_swap_menu_item_targets_specific_meal_when_meals_per_day_over_1(
     assert other["recipe_id"] != replacement
 
 
-def test_swap_menu_item_unknown_day_errors(db_conn: sqlite3.Connection, config: Config):
+def test_swap_menu_item_unknown_day_errors(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=2)
-    result = swap_menu_item(db_conn, config, day=99, replacement_id=ids[0], menu_id=plan["menu_id"])
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    result = swap_menu_item(db_conn, config, user_id, day=99, replacement_id=ids[0], menu_id=plan["menu_id"])
     assert "error" in result
 
 
-def test_swap_menu_item_no_menu_exists_errors(db_conn: sqlite3.Connection, config: Config):
-    result = swap_menu_item(db_conn, config, day=1, replacement_id=1)
+def test_swap_menu_item_no_menu_exists_errors(db_conn: sqlite3.Connection, config: Config, user_id: int):
+    result = swap_menu_item(db_conn, config, user_id, day=1, replacement_id=1)
     assert "error" in result
 
 
@@ -536,31 +537,157 @@ def test_swap_menu_item_no_menu_exists_errors(db_conn: sqlite3.Connection, confi
 # get_shopping_list
 # ---------------------------------------------------------------------------
 
-def test_get_shopping_list_from_menu_id(db_conn: sqlite3.Connection, config: Config):
+def test_get_shopping_list_from_menu_id(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=3)
-    shopping_list = get_shopping_list(db_conn, plan["menu_id"])
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    shopping_list = get_shopping_list(db_conn, config, user_id, plan["menu_id"])
     assert shopping_list["total_items"] > 0
     assert shopping_list["to_buy"] <= shopping_list["total_items"]
 
 
-def test_get_shopping_list_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config):
+def test_get_shopping_list_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan_menu(db_conn, config, candidate_ids=ids, days=3)
-    shopping_list = get_shopping_list(db_conn)  # no menu_id
+    plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    shopping_list = get_shopping_list(db_conn, config, user_id)  # no menu_id
     assert shopping_list["total_items"] > 0
 
 
-def test_get_shopping_list_pantry_have_flag(db_conn: sqlite3.Connection, config: Config):
+def test_get_shopping_list_pantry_have_flag(db_conn: sqlite3.Connection, config: Config, user_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, candidate_ids=ids, days=2)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
     all_ings = {
         ing for d in plan["days"] for ing in json.loads(
             db_conn.execute("SELECT ingredients_json FROM recipes WHERE id = ?",
                              (d["recipe_id"],)).fetchone()["ingredients_json"]
         )
     }
-    manage_pantry(db_conn, "add", list(all_ings)[:1])
-    shopping_list = get_shopping_list(db_conn, plan["menu_id"])
+    manage_pantry(db_conn, user_id, "add", list(all_ings)[:1])
+    shopping_list = get_shopping_list(db_conn, config, user_id, plan["menu_id"])
     haves = [it["have"] for s in shopping_list["sections"].values() for it in s]
     assert any(haves)
+
+
+def test_get_shopping_list_merges_canonical_variants(db_conn: sqlite3.Connection, config: Config, user_id: int):
+    """Cached parses collapse raw variants ('boiled potato', 'potatoes') into
+    one canonical entry with summed grams — the potato-six-ways bug."""
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    per_recipe_lines = [
+        [ing.lower().strip() for ing in json.loads(
+            db_conn.execute("SELECT ingredients_json FROM recipes WHERE id = ?",
+                            (d["recipe_id"],)).fetchone()["ingredients_json"]
+        ) if ing.strip()]
+        for d in plan["days"]
+    ]
+    raw_lines = sorted({line for lines in per_recipe_lines for line in lines})
+    # Seed the parse cache mapping every raw line to one canonical food, as
+    # the LLM parser would after nutrition estimation warmed the cache.
+    for raw in raw_lines:
+        db_conn.execute(
+            "INSERT OR REPLACE INTO ingredient_parse (raw, food, grams, parsed_at) "
+            "VALUES (?, 'potato', 100.0, '2026-01-01T00:00:00Z')", (raw,))
+    db_conn.commit()
+
+    shopping_list = get_shopping_list(db_conn, config, user_id, plan["menu_id"])
+    items = [it for s in shopping_list["sections"].values() for it in s]
+    assert len(items) == 1
+    item = items[0]
+    assert item["name"] == "potato"
+    # Grams sum once per line occurrence (a shared line in two recipes means
+    # buying it for both), recipes count once each however many lines they had.
+    total_occurrences = sum(len(lines) for lines in per_recipe_lines)
+    assert item["approx_grams"] == 100 * total_occurrences
+    assert item["used_in_recipes"] == sum(1 for lines in per_recipe_lines if lines)
+
+
+# ---------------------------------------------------------------------------
+# get_menu_recipes — deterministic STEP-2 delivery
+# ---------------------------------------------------------------------------
+
+def test_get_menu_recipes_orders_and_labels_days(db_conn: sqlite3.Connection, config: Config, user_id: int):
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    result = get_menu_recipes(db_conn, user_id, plan["menu_id"])
+    assert result["menu_id"] == plan["menu_id"]
+    assert result["slot_count"] == len(plan["days"])
+    md = result["markdown"]
+    positions = [md.index(f"# Day {d}") for d in (1, 2, 3)]
+    assert positions == sorted(positions)  # day headings appear in order
+    # Each slot's recipe markdown is present verbatim under its heading.
+    for d in plan["days"]:
+        assert d["title"] in md
+
+
+def test_get_menu_recipes_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, user_id: int):
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    result = get_menu_recipes(db_conn, user_id)  # no menu_id
+    assert result["menu_id"] == plan["menu_id"]
+
+
+def test_get_menu_recipes_no_menu_errors(db_conn: sqlite3.Connection, user_id: int):
+    assert "error" in get_menu_recipes(db_conn, user_id, 9999)
+
+
+# ---------------------------------------------------------------------------
+# Multi-tenancy — every per-household table (profile, pantry, menus) must be
+# scoped by user_id. These exist because _load_menu's default-to-most-recent
+# path (used by swap_menu_item/get_menu_recipes/get_shopping_list whenever
+# menu_id is omitted) had no owner filter until this pass — harmless with one
+# household, a real cross-tenant leak the moment a second account exists.
+# ---------------------------------------------------------------------------
+
+def _other_user(db_conn: sqlite3.Connection) -> int:
+    from aboyeur import auth
+    return auth.get_or_create_user(db_conn, "other-tenant@example.com")
+
+
+def test_profile_is_isolated_per_user(db_conn: sqlite3.Connection, user_id: int):
+    other = _other_user(db_conn)
+    update_profile(db_conn, user_id, {"add_allergies": ["peanut"]})
+    update_profile(db_conn, other, {"add_allergies": ["shellfish"]})
+
+    assert get_profile(db_conn, user_id)["allergies"] == ["peanut"]
+    assert get_profile(db_conn, other)["allergies"] == ["shellfish"]
+
+
+def test_pantry_is_isolated_per_user(db_conn: sqlite3.Connection, user_id: int):
+    other = _other_user(db_conn)
+    manage_pantry(db_conn, user_id, "add", ["ginger"])
+    manage_pantry(db_conn, other, "add", ["basil"])
+
+    mine = {p["item"] for p in manage_pantry(db_conn, user_id, "list")}
+    theirs = {p["item"] for p in manage_pantry(db_conn, other, "list")}
+    assert mine == {"ginger"}
+    assert theirs == {"basil"}
+
+
+def test_menu_default_lookup_never_crosses_users(
+    db_conn: sqlite3.Connection, config: Config, user_id: int
+):
+    """The specific bug: omitting menu_id must resolve to *this user's* most
+    recent menu, never another account's, even when theirs is newer."""
+    other = _other_user(db_conn)
+    ids = _all_ids(db_conn)
+
+    mine = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    plan_menu(db_conn, config, other, candidate_ids=ids, days=2)  # other's newer menu
+
+    # No menu_id passed — must resolve to user_id's own plan, not other's.
+    result = get_menu_recipes(db_conn, user_id)
+    assert result["menu_id"] == mine["menu_id"]
+
+    shopping = get_shopping_list(db_conn, config, user_id)
+    assert shopping.get("error") is None or "sections" in shopping
+
+
+def test_menu_lookup_by_id_rejects_other_users_menu(
+    db_conn: sqlite3.Connection, config: Config, user_id: int
+):
+    other = _other_user(db_conn)
+    ids = _all_ids(db_conn)
+    theirs = plan_menu(db_conn, config, other, candidate_ids=ids, days=2)
+
+    # user_id explicitly asking for other's menu_id must not see it.
+    assert "error" in get_menu_recipes(db_conn, user_id, theirs["menu_id"])
+    assert "error" in get_shopping_list(db_conn, config, user_id, theirs["menu_id"])

@@ -18,6 +18,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def config(tmp_path: Path) -> Config:
     return Config(
         recipes_dir=FIXTURES,
+        reference_dir=tmp_path / "reference",  # unused by these tests, no dir needed
         db_path=tmp_path / "test.db",
         llm_base_url="http://unused",
         llm_model="unused",
@@ -130,6 +131,7 @@ def test_fts_search_returns_relevant_results(config: Config):
 def test_check_recipes_dir_missing_raises():
     bad_config = Config(
         recipes_dir=Path("/nonexistent/does/not/exist"),
+        reference_dir=Path("/nonexistent/does/not/exist/reference"),
         db_path=Path("/tmp/unused.db"),
         llm_base_url="http://unused",
         llm_model="unused",

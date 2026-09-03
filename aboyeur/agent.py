@@ -9,7 +9,6 @@ given the chance to pass it at all.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import sqlite3
@@ -20,19 +19,33 @@ from aboyeur.llm import StreamCollector, make_client, stream_chat
 from aboyeur.prompts import build_system_prompt
 from aboyeur.tools import (
     estimate_nutrition,
+    get_menu_recipes,
     get_profile,
     get_recipe,
     get_shopping_list,
     manage_pantry,
     plan_menu,
+    search_nutrition_reference,
     search_recipes,
     swap_menu_item,
     update_profile,
 )
-from aboyeur.tools import profile as profile_tools
 from aboyeur.tools.schemas import TOOL_SCHEMAS
 
 logger = logging.getLogger("aboyeur")
+
+# No cross-agent lock here on purpose. An earlier version of this wrapped
+# every tool dispatch in a lock to protect a *shared* sqlite3.Connection
+# from concurrent execute() calls (check_same_thread=False only disables the
+# same-thread assertion, it doesn't make one connection object safe for
+# concurrent use) — but that lock ended up wrapping plan_menu's real network
+# calls (USDA lookups, LLM ingredient parsing) too, so one user's slow
+# nutrition estimate blocked every other user's turn, including chats that
+# never touch a recipe. The actual fix is upstream: each Agent gets its own
+# sqlite3.Connection (see backend/main.py's _get_session_agent /
+# _reset_session_agent and the CLI's cmd_chat) — WAL mode supports many
+# concurrent connections to the same file safely, so nothing here needs to
+# serialize at all once connections aren't shared across threads.
 
 MAX_TOOL_ROUNDS = 60  # guard against a runaway tool-call loop. plan_menu now handles
 # meals_per_day internally in one call (see tools/menu.py) instead of needing one
@@ -54,6 +67,10 @@ def _tool_result_text(name: str, result: dict) -> str:
     text with real newlines/unicode sidesteps that; every other tool's
     result is small and structured enough that JSON is the better fit.
     """
+    if name == "get_menu_recipes" and "markdown" in result:
+        # Same verbatim-echo contract as get_recipe; headings are already in
+        # the markdown, so hand it over as plain text.
+        return result["markdown"]
     if name == "get_recipe" and "markdown" in result:
         header_lines = [f"# {result.get('title', '')} (id {result.get('id')})"]
         if result.get("path"):
@@ -68,10 +85,20 @@ def _tool_result_text(name: str, result: dict) -> str:
     return json.dumps(result, default=str)
 
 
-def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -> dict:
+def _dispatch(
+    conn: sqlite3.Connection,
+    config: Config,
+    user_id: int,
+    guest_profile: dict | None,
+    name: str,
+    args: dict,
+) -> dict:
     if name == "search_recipes":
-        profile = get_profile(conn)
-        pantry = [r["item"] for r in conn.execute("SELECT item FROM pantry").fetchall()]
+        profile = get_profile(conn, user_id, guest=guest_profile)
+        pantry_rows = conn.execute(
+            "SELECT item FROM pantry WHERE user_id = ?", (user_id,)
+        ).fetchall()
+        pantry = [r["item"] for r in pantry_rows]
         results = search_recipes(
             conn, args["query"],
             allergies=profile.get("allergies", []),
@@ -87,32 +114,38 @@ def _dispatch(conn: sqlite3.Connection, config: Config, name: str, args: dict) -
         return get_recipe(conn, args["id"], scale_to_servings=args.get("scale_to_servings"))
 
     if name == "get_profile":
-        return get_profile(conn)
+        return get_profile(conn, user_id, guest=guest_profile)
 
     if name == "update_profile":
-        return update_profile(conn, args)
+        return update_profile(conn, user_id, args, guest=guest_profile)
 
     if name == "manage_pantry":
-        return {"pantry": manage_pantry(conn, args["action"], args.get("items"))}
+        return {"pantry": manage_pantry(conn, user_id, args["action"], args.get("items"))}
 
     if name == "estimate_nutrition":
         return estimate_nutrition(conn, config, args["recipe_ids"])
 
     if name == "plan_menu":
         return plan_menu(
-            conn, config, args["candidate_ids"], args["days"],
+            conn, config, user_id, args["candidate_ids"], args["days"],
             meals_per_day=args.get("meals_per_day", 1),
             constraints=args.get("constraints"),
         )
 
     if name == "swap_menu_item":
         return swap_menu_item(
-            conn, config, args["day"], args["replacement_id"],
+            conn, config, user_id, args["day"], args["replacement_id"],
             menu_id=args.get("menu_id"), meal=args.get("meal", 1),
         )
 
+    if name == "get_menu_recipes":
+        return get_menu_recipes(conn, user_id, args.get("menu_id"))
+
     if name == "get_shopping_list":
-        return get_shopping_list(conn, args.get("menu_id"))
+        return get_shopping_list(conn, config, user_id, args.get("menu_id"))
+
+    if name == "search_nutrition_reference":
+        return {"results": search_nutrition_reference(conn, args["query"], limit=args.get("limit", 5))}
 
     return {"error": f"unknown tool {name!r}"}
 
@@ -122,10 +155,16 @@ class Agent:
         self,
         conn: sqlite3.Connection,
         config: Config,
+        user_id: int,
         history: list[dict] | None = None,
         guest_profile: dict | None = None,
     ):
-        """history: prior user/assistant turns to seed the conversation with
+        """user_id: whose profile/pantry/menus this agent's tool calls read
+        and write. Never trust a caller-supplied value for this — it must
+        come from an authenticated session (see backend/main.py's
+        get_current_user), not a request body field.
+
+        history: prior user/assistant turns to seed the conversation with
         (e.g. reconstructing an Agent per-request from an OpenAI-compat
         client that resends its own full history — see backend/main.py's
         oa_chat_completions). Only role/content pairs are needed; a turn's
@@ -135,35 +174,28 @@ class Agent:
         guest_profile: when set, this in-memory dict replaces the stored
         household profile for every tool in this agent's turns (targets,
         allergen filter, system prompt), and update_profile writes into it
-        instead of the DB — nothing a guest says is persisted. See
-        tools/profile.set_guest_profile.
+        instead of the DB — nothing a guest says is persisted. Held as
+        plain instance state (not a module global) so concurrent agents for
+        different users/sessions can never see each other's guest profile.
         """
         self.conn = conn
         self.config = config
+        self.user_id = user_id
         self.guest_profile = guest_profile
         self.client = make_client(config)
-        with self._guest_scope():
-            system = build_system_prompt(get_profile(conn), guest=guest_profile is not None)
+        system = build_system_prompt(
+            get_profile(conn, user_id, guest=guest_profile), guest=guest_profile is not None
+        )
         self.messages: list[dict] = [{"role": "system", "content": system}]
         if history:
             self.messages.extend(history)
-
-    @contextlib.contextmanager
-    def _guest_scope(self):
-        if self.guest_profile is None:
-            yield
-            return
-        profile_tools.set_guest_profile(self.guest_profile)
-        try:
-            yield
-        finally:
-            profile_tools.set_guest_profile(None)
 
     def _refresh_system_prompt(self) -> None:
         self.messages[0] = {
             "role": "system",
             "content": build_system_prompt(
-                get_profile(self.conn), guest=self.guest_profile is not None
+                get_profile(self.conn, self.user_id, guest=self.guest_profile),
+                guest=self.guest_profile is not None,
             ),
         }
 
@@ -172,14 +204,8 @@ class Agent:
         they stream, and — only when debug=True — ("tool_call", dict) /
         ("tool_result", dict) events for each tool the model invokes along
         the way.
-
-        In guest mode the whole turn runs with the guest profile active —
-        safe because callers consume a turn to completion under one lock
-        (backend) or single-threaded (CLI), so the module-level override
-        never leaks into another session's turn.
         """
-        with self._guest_scope():
-            yield from self._send_turn(user_message, debug)
+        yield from self._send_turn(user_message, debug)
 
     def _send_turn(self, user_message: str, debug: bool) -> Iterator[tuple[str, object]]:
         self.messages.append({"role": "user", "content": user_message})
@@ -219,7 +245,10 @@ class Agent:
                 # retry, instead of letting the exception kill the whole
                 # streaming response.
                 try:
-                    result = _dispatch(self.conn, self.config, tc["name"], args)
+                    result = _dispatch(
+                        self.conn, self.config, self.user_id, self.guest_profile,
+                        tc["name"], args,
+                    )
                 except (KeyError, TypeError, ValueError) as e:
                     logger.warning(
                         "tool %s failed on args %r: %s: %s",

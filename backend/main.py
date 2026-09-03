@@ -3,17 +3,19 @@
 Run: uvicorn backend.main:app --host 0.0.0.0 --port 8000
 Imports use the `backend.` package (PYTHONPATH=/app in Docker).
 """
+import hashlib
 import json
 import logging
 import shutil
 import sqlite3
 import time
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -545,14 +547,15 @@ def recipes_correct(body: RecipeCorrect):
 
 class ChatBody(BaseModel):
     message: str
-    session_id: str = "default"
 
 
 import threading
 
+from aboyeur import auth as _aboyeur_auth
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
 from aboyeur.db import connect as _aboyeur_connect, init_db as _aboyeur_init_db
+from aboyeur.migrate import SEED_USER_EMAIL as _SEED_USER_EMAIL, migrate as _aboyeur_migrate
 from aboyeur.tools.profile import (
     get_profile as _aboyeur_get_profile,
     make_guest_profile as _make_guest_profile,
@@ -565,53 +568,118 @@ from backend import profile_ui
 _aboyeur_config = _AboyeurConfig.load()
 _aboyeur_conn = _aboyeur_connect(_aboyeur_config.db_path)
 _aboyeur_init_db(_aboyeur_conn)
+_aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
 
-# Multiple testers can now be in flight at once. Conversation state is kept
-# per-caller (see below); the one thing genuinely shared is _aboyeur_conn, a
-# single sqlite3.Connection — those aren't safe for concurrent use from
-# multiple threads even with check_same_thread=False, so _aboyeur_lock still
-# serializes actual turn *execution* process-wide. Testers queue behind each
-# other rather than running in parallel, but never see each other's messages.
-_aboyeur_lock = threading.Lock()
+# The unauthenticated OpenAI-compat shim (oa_chat_completions, for Odysseus/
+# OpenWebUI) has no login of its own — it always plans for this one seed
+# household, exactly the single-user behavior this app had before accounts
+# existed.
+_SEED_USER_ID = _aboyeur_auth.get_or_create_user(_aboyeur_conn, _SEED_USER_EMAIL)
 
-# /chat only ever gets the new delta message per call (see ChatBody), so it
-# needs a persistent Agent per session_id to hold history between calls.
-_aboyeur_session_agents: dict[str, _AboyeurAgent] = {}
+# /chat holds one live Agent per authenticated user (not a client-supplied
+# session_id — that was never authenticated, so anyone could read/steer
+# another account's conversation by guessing its id). Each Agent gets its
+# OWN sqlite3.Connection (not the shared _aboyeur_conn used only at startup)
+# — check_same_thread=False only disables the same-thread assertion, it
+# doesn't make concurrent execute() calls on one connection object safe.
+# With separate connections, different users' turns need no lock between
+# them at all: WAL mode is built for exactly this multi-connection pattern.
+_aboyeur_session_agents: dict[int, _AboyeurAgent] = {}
 _aboyeur_sessions_lock = threading.Lock()  # guards dict get-or-create, not turn execution
 
 
-def _get_session_agent(session_id: str) -> _AboyeurAgent:
+def _get_session_agent(user_id: int) -> _AboyeurAgent:
     with _aboyeur_sessions_lock:
-        agent = _aboyeur_session_agents.get(session_id)
+        agent = _aboyeur_session_agents.get(user_id)
         if agent is None:
-            agent = _AboyeurAgent(_aboyeur_conn, _aboyeur_config)
-            _aboyeur_session_agents[session_id] = agent
+            agent = _AboyeurAgent(_profile_conn(), _aboyeur_config, user_id)
+            _aboyeur_session_agents[user_id] = agent
         return agent
 
 
-def _reset_session_agent(session_id: str, guest: bool = False) -> _AboyeurAgent:
+def _reset_session_agent(user_id: int, guest: bool = False) -> _AboyeurAgent:
     with _aboyeur_sessions_lock:
         agent = _AboyeurAgent(
-            _aboyeur_conn, _aboyeur_config,
+            _profile_conn(), _aboyeur_config, user_id,
             guest_profile=_make_guest_profile() if guest else None,
         )
-        _aboyeur_session_agents[session_id] = agent
+        _aboyeur_session_agents[user_id] = agent
         return agent
+
+
+# ===========================================================================
+# Auth — invite-only accounts (see `aboyeur create-user`), JWT in an httpOnly
+# cookie. No public signup route.
+# ===========================================================================
+
+_SESSION_COOKIE = "aboyeur_session"
+
+
+def get_current_user(request: Request) -> int:
+    token = request.cookies.get(_SESSION_COOKIE)
+    if not token:
+        raise HTTPException(401, "not logged in")
+    try:
+        return _aboyeur_auth.verify_token(token)
+    except _aboyeur_auth.AuthError as e:
+        raise HTTPException(401, str(e))
+
+
+class LoginBody(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/login")
+def auth_login(body: LoginBody, response: Response):
+    conn = _profile_conn()
+    try:
+        user_id = _aboyeur_auth.verify_login(conn, body.email, body.password)
+    except _aboyeur_auth.AuthError:
+        raise HTTPException(401, "invalid email or password")
+    finally:
+        conn.close()
+    token = _aboyeur_auth.issue_token(user_id)
+    response.set_cookie(
+        _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=True,
+        max_age=_aboyeur_auth.JWT_TTL_SECONDS,
+    )
+    return {"user_id": user_id}
+
+
+@app.post("/auth/logout")
+def auth_logout(response: Response):
+    response.delete_cookie(_SESSION_COOKIE)
+    return {"ok": True}
+
+
+@app.get("/auth/me")
+def auth_me(user_id: int = Depends(get_current_user)):
+    return {"user_id": user_id}
 
 
 def _sse(data: str) -> str:
-    return f"data: {data}\n\n"
+    # Per the SSE spec, a multi-line payload needs its own "data: " prefix on
+    # EVERY line — a bare embedded "\n" (routine in streamed markdown: list
+    # items, paragraph breaks) would otherwise silently truncate the event at
+    # a spec-compliant client, since only "data:"-prefixed lines are part of
+    # the field. Empty input still yields one "data: " line, not zero — a
+    # dropped event is worse than an empty one.
+    lines = data.split("\n") or [""]
+    return "".join(f"data: {line}\n" for line in lines) + "\n"
 
 
 def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
     """Streams a reply from the given Agent. Yields raw content strings,
     unwrapped. Shared by the native /chat SSE endpoint and the
-    /v1/chat/completions OpenAI-compat shim.
+    /v1/chat/completions OpenAI-compat shim. No lock here — the LLM
+    round-trip can run for multiple users at once; only the brief DB moments
+    inside agent.send()'s tool dispatch serialize (aboyeur/agent.py's
+    _DB_LOCK).
     """
-    with _aboyeur_lock:
-        for kind, payload in agent.send(message):
-            if kind == "text":
-                yield payload
+    for kind, payload in agent.send(message):
+        if kind == "text":
+            yield payload
 
 
 def _agent_stream(agent: _AboyeurAgent, message: str):
@@ -637,13 +705,17 @@ def _agent_stream(agent: _AboyeurAgent, message: str):
 
 @app.get("/profile/ui", response_class=HTMLResponse)
 def profile_page():
+    # Static page; its own JS calls /profile/data and /profile/save below,
+    # both auth-gated — an unauthenticated visitor sees the page shell but
+    # every fetch it makes 401s until they've logged in via /auth/login.
     return HTMLResponse(profile_ui.PROFILE_PAGE_HTML)
 
 
-# Profile endpoints use their own short-lived connection, NOT _aboyeur_lock:
-# an agent turn can hold that lock for minutes (USDA lookups, LLM rounds) and
-# the profile editor must stay usable meanwhile. WAL mode makes cross-
-# connection reads safe; busy_timeout covers the rare write collision.
+# Every route below opens its own short-lived connection rather than sharing
+# one across threads — an agent turn can run for minutes (USDA lookups, LLM
+# rounds) and the profile editor / catalog API must stay responsive
+# meanwhile. WAL mode makes cross-connection reads/writes safe; busy_timeout
+# covers the rare write collision.
 def _profile_conn() -> sqlite3.Connection:
     conn = _aboyeur_connect(_aboyeur_config.db_path)
     conn.execute("PRAGMA busy_timeout=5000")
@@ -651,32 +723,65 @@ def _profile_conn() -> sqlite3.Connection:
 
 
 @app.get("/profile/data")
-def profile_data():
+def profile_data(user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        return _aboyeur_get_profile(conn)
+        return _aboyeur_get_profile(conn, user_id)
     finally:
         conn.close()
 
 
 @app.post("/profile/save")
-def profile_save(desired: dict):
+def profile_save(desired: dict, user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        return profile_ui.save_profile(conn, desired)
+        return profile_ui.save_profile(conn, user_id, desired)
     finally:
         conn.close()
 
 
-def _profile_command_reply(message: str, request: Request) -> Optional[str]:
+def _profile_command_reply(message: str, request: Request, user_id: int) -> Optional[str]:
     """Deterministic /profile handler — the command never touches the LLM."""
     if not message.strip().lower().startswith("/profile"):
         return None
     host = request.headers.get("host", "localhost:8000")
     edit_url = f"http://{host}/profile/ui"
-    with _aboyeur_lock:
-        profile = _aboyeur_get_profile(_aboyeur_conn)
+    conn = _profile_conn()
+    try:
+        profile = _aboyeur_get_profile(conn, user_id)
+    finally:
+        conn.close()
     return profile_ui.profile_markdown(profile, edit_url)
+
+
+# In-memory guest-profile carry-over for the stateless OpenAI shim (see the
+# long comment in oa_chat_completions). Keyed by a hash of the conversation's
+# user-turn contents; bounded LRU so abandoned conversations age out. Memory
+# only, by design — guest data must never touch the DB.
+_OA_GUEST_CACHE_MAX = 64
+_oa_guest_profiles: "OrderedDict[str, dict]" = OrderedDict()
+_oa_guest_lock = threading.Lock()
+
+
+def _oa_history_key(user_contents: list[str]) -> str:
+    h = hashlib.sha256()
+    for c in user_contents:
+        h.update(c.encode("utf-8", "replace"))
+        h.update(b"\x00")
+    return h.hexdigest()
+
+
+def _oa_guest_lookup(key: str) -> Optional[dict]:
+    with _oa_guest_lock:
+        return _oa_guest_profiles.get(key)
+
+
+def _oa_guest_store(key: str, profile: dict) -> None:
+    with _oa_guest_lock:
+        _oa_guest_profiles[key] = profile
+        _oa_guest_profiles.move_to_end(key)
+        while len(_oa_guest_profiles) > _OA_GUEST_CACHE_MAX:
+            _oa_guest_profiles.popitem(last=False)
 
 
 _GUEST_OFF_WORDS = ("off", "end", "stop", "exit")
@@ -699,24 +804,24 @@ def _guest_command(message: str) -> Optional[str]:
 
 
 @app.post("/chat")
-def chat(body: ChatBody, request: Request):
-    reply = _profile_command_reply(body.message, request)
+def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_user)):
+    reply = _profile_command_reply(body.message, request, user_id)
     if reply is not None:
         return StreamingResponse(iter([_sse(reply), _sse("[DONE]")]),
                                  media_type="text/event-stream")
 
     guest = _guest_command(body.message)
     if guest == "OFF":
-        _reset_session_agent(body.session_id)
+        _reset_session_agent(user_id)
         return StreamingResponse(
             iter([_sse("Guest session ended — back to the household profile."), _sse("[DONE]")]),
             media_type="text/event-stream")
     if guest is not None:
-        agent = _reset_session_agent(body.session_id, guest=True)
+        agent = _reset_session_agent(user_id, guest=True)
         return StreamingResponse(_agent_stream(agent, guest or _GUEST_DEFAULT_PROMPT),
                                  media_type="text/event-stream")
 
-    agent = _get_session_agent(body.session_id)
+    agent = _get_session_agent(user_id)
     return StreamingResponse(_agent_stream(agent, body.message),
                              media_type="text/event-stream")
 
@@ -753,7 +858,7 @@ def _oa_chunk(request_id: str, created: int, content: Optional[str] = None,
     return f"data: {json.dumps(payload)}\n\n"
 
 
-def _oa_stream(agent: _AboyeurAgent, message: str):
+def _oa_stream(agent: _AboyeurAgent, message: str, on_done=None):
     request_id = f"chatcmpl-{uuid.uuid4().hex}"
     created = int(time.time())
     try:
@@ -768,6 +873,9 @@ def _oa_stream(agent: _AboyeurAgent, message: str):
             request_id, created,
             content="\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]",
         )
+    finally:
+        if on_done is not None:
+            on_done()
     yield _oa_chunk(request_id, created, finish_reason="stop")
     yield "data: [DONE]\n\n"
 
@@ -785,18 +893,18 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
     """OpenAI-compatible endpoint so OpenWebUI can register Aboyeur as a model.
 
     Stateless per request: any OpenAI-style client (OpenWebUI included)
-    resends the full conversation on every call, so a fresh Agent is
-    rebuilt from body.messages each time instead of relying on server-side
-    memory. That's what makes concurrent testers safe — two callers never
-    share an Agent or a messages list, only the underlying sqlite connection
-    (serialized by _aboyeur_lock in _agent_tokens).
+    resends the full conversation on every call, so a fresh Agent (and its
+    own sqlite3.Connection — see the Agent construction below) is rebuilt
+    from body.messages each time instead of relying on server-side memory.
+    That's what makes concurrent testers safe — two callers never share an
+    Agent, a messages list, or a connection.
     """
     user_msgs = [m for m in body.messages if m.role == "user"]
     if not user_msgs:
         raise HTTPException(400, "no user message")
     message = user_msgs[-1].content
 
-    reply = _profile_command_reply(message, request)
+    reply = _profile_command_reply(message, request, _SEED_USER_ID)
     if reply is not None:
         if body.stream:
             return StreamingResponse(_oa_static_stream(reply),
@@ -813,9 +921,7 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
 
     # Stateless guest detection: the /guest command lives in the resent
     # history, so scan user turns in order — the last /guest directive wins
-    # ("/guest off" ends it). The guest profile itself is rebuilt empty each
-    # request; the guest's stats are re-derived from their messages in the
-    # history, and nothing is ever written to the stored profile.
+    # ("/guest off" ends it).
     guest_active = False
     for m in body.messages:
         if m.role != "user":
@@ -836,16 +942,44 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
         {"role": m.role, "content": m.content}
         for m in body.messages[:-1] if m.role in ("user", "assistant")
     ]
+
+    # Guest continuity across stateless requests: update_profile writes from a
+    # guest turn land only in the per-request in-memory dict, and the model
+    # does NOT re-derive them from the resent history on later turns (it never
+    # re-calls update_profile for old messages). Without carry-over, turn N+1's
+    # plan_menu sees an empty guest profile and silently plans against the
+    # generic 600 kcal/meal fallback — observed in the wild as a 1200 kcal/day
+    # "target" presented as legit. So the guest dict is cached in memory keyed
+    # by the hash of the conversation's user turns: this request looks up the
+    # dict stored by the previous request (whose user turns are exactly our
+    # prefix) and stores its own updated copy for the next one. Copy-on-read
+    # keeps branched/regenerated conversations from mutating each other.
+    # Nothing is ever written to the stored household profile.
+    guest_profile = None
+    on_done = None
+    if guest_active:
+        user_contents = [m.content for m in body.messages if m.role == "user"]
+        prev = _oa_guest_lookup(_oa_history_key(user_contents[:-1]))
+        guest_profile = json.loads(json.dumps(prev)) if prev is not None else _make_guest_profile()
+        next_key = _oa_history_key(user_contents)
+        on_done = lambda: _oa_guest_store(next_key, guest_profile)  # noqa: E731
+
+    # Always the seed household — this shim has no login of its own (see the
+    # _SEED_USER_ID comment above). Stateless per request (per this
+    # function's own docstring), so a fresh connection per call is the
+    # natural fit — no connection is shared across concurrent callers here.
     agent = _AboyeurAgent(
-        _aboyeur_conn, _aboyeur_config, history=history,
-        guest_profile=_make_guest_profile() if guest_active else None,
+        _profile_conn(), _aboyeur_config, _SEED_USER_ID, history=history,
+        guest_profile=guest_profile,
     )
 
     if body.stream:
-        return StreamingResponse(_oa_stream(agent, message),
+        return StreamingResponse(_oa_stream(agent, message, on_done=on_done),
                                  media_type="text/event-stream")
 
     content = "".join(_agent_tokens(agent, message))
+    if on_done is not None:
+        on_done()
     return {
         "id": f"chatcmpl-{uuid.uuid4().hex}",
         "object": "chat.completion",
@@ -861,6 +995,132 @@ def _monday_of_week() -> str:
     today = datetime.now(timezone.utc).date()
     monday = today - timedelta(days=today.weekday())
     return monday.isoformat()
+
+
+# ===========================================================================
+# Recipe catalog + menu REST API — the new authenticated web frontend's
+# browsing surface. Distinct from /chat: calls the same aboyeur/tools
+# functions directly (no LLM round-trip) for list/detail/favorite/plan
+# actions instead of a conversation turn. Each route opens its own
+# short-lived connection via _profile_conn() (defined above), same pattern
+# as the profile editor — no locking needed since every request gets its own
+# sqlite3.Connection object and WAL mode allows safe concurrent access
+# across connections to the same file.
+# ===========================================================================
+
+from aboyeur.tools.favorites import add_favorite, list_favorite_ids, remove_favorite
+from aboyeur.tools.menu import plan_menu as _plan_menu
+from aboyeur.tools.recipe import get_recipe as _get_recipe
+from aboyeur.tools.search import browse_recipes, recipe_facets
+from aboyeur.tools.shopping import get_shopping_list as _get_shopping_list
+
+
+@app.get("/api/recipes/facets")
+def api_recipe_facets(user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        return recipe_facets(conn)
+    finally:
+        conn.close()
+
+
+@app.get("/api/recipes")
+def api_recipes(
+    query: str = "", cuisine: Optional[str] = None, book: Optional[str] = None,
+    offset: int = Query(0, ge=0), limit: int = Query(24, ge=1, le=100),
+    user_id: int = Depends(get_current_user),
+):
+    conn = _profile_conn()
+    try:
+        profile = _aboyeur_get_profile(conn, user_id)
+        results, total = browse_recipes(
+            conn, query=query, cuisine=cuisine, book=book,
+            allergies=profile.get("allergies", []), offset=offset, limit=limit,
+        )
+        favorites = list_favorite_ids(conn, user_id)
+        for r in results:
+            r["favorite"] = r["id"] in favorites
+        return {"results": results, "total": total, "offset": offset, "limit": limit}
+    finally:
+        conn.close()
+
+
+@app.get("/api/recipes/{recipe_id}")
+def api_recipe_detail(recipe_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        recipe = _get_recipe(conn, recipe_id)
+        if "error" in recipe:
+            raise HTTPException(404, recipe["error"])
+        # get_recipe only returns {id, title, path, servings, markdown} — the
+        # verbatim-recipe tool contract. The catalog detail view also wants
+        # the same summary fields the grid card already showed (book,
+        # cuisine, ingredients, tags), so the panel doesn't have to re-fetch
+        # or lose context when it opens.
+        row = conn.execute(
+            "SELECT book, cuisine, ingredients_json, tags_json FROM recipes WHERE id = ?",
+            (recipe_id,),
+        ).fetchone()
+        if row is not None:
+            recipe["book"] = row["book"]
+            recipe["cuisine"] = row["cuisine"]
+            recipe["ingredients"] = json.loads(row["ingredients_json"])
+            recipe["tags"] = json.loads(row["tags_json"])
+        recipe["favorite"] = recipe_id in list_favorite_ids(conn, user_id)
+        return recipe
+    finally:
+        conn.close()
+
+
+@app.post("/api/recipes/{recipe_id}/favorite")
+def api_favorite_add(recipe_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        add_favorite(conn, user_id, recipe_id)
+        return {"favorite": True}
+    finally:
+        conn.close()
+
+
+@app.delete("/api/recipes/{recipe_id}/favorite")
+def api_favorite_remove(recipe_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        remove_favorite(conn, user_id, recipe_id)
+        return {"favorite": False}
+    finally:
+        conn.close()
+
+
+class MenuPlanBody(BaseModel):
+    candidate_ids: list[int]
+    days: int
+    meals_per_day: int = 1
+    constraints: Optional[dict] = None
+
+
+@app.post("/api/menu/plan")
+def api_menu_plan(body: MenuPlanBody, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        return _plan_menu(
+            conn, _aboyeur_config, user_id, body.candidate_ids, body.days,
+            meals_per_day=body.meals_per_day, constraints=body.constraints,
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/api/menu/{menu_id}/shopping-list")
+def api_menu_shopping_list(menu_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        result = _get_shopping_list(conn, _aboyeur_config, user_id, menu_id)
+        if "error" in result:
+            raise HTTPException(404, result["error"])
+        return result
+    finally:
+        conn.close()
 
 
 # ===========================================================================

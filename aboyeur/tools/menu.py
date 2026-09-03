@@ -21,6 +21,7 @@ from aboyeur.engines import optimizer
 from aboyeur.engines.nutrition import per_meal_target
 from aboyeur.tools.nutrition import estimate_nutrition
 from aboyeur.tools.profile import get_profile
+from aboyeur.tools.recipe import get_recipe
 
 
 def _avg_target_kcal(targets: dict) -> float:
@@ -83,34 +84,46 @@ def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: li
     return out
 
 
-def _save_menu(conn: sqlite3.Connection, plan: dict) -> int:
+def _save_menu(conn: sqlite3.Connection, user_id: int, plan: dict) -> int:
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     cur = conn.execute(
-        "INSERT INTO menus (week_of, days_json, status, created_at) VALUES (?, ?, 'draft', ?)",
-        (datetime.date.today().isoformat(), json.dumps(plan), now),
+        "INSERT INTO menus (user_id, week_of, days_json, status, created_at) "
+        "VALUES (?, ?, ?, 'draft', ?)",
+        (user_id, datetime.date.today().isoformat(), json.dumps(plan), now),
     )
     conn.commit()
     return cur.lastrowid
 
 
-def _load_menu(conn: sqlite3.Connection, menu_id: int | None) -> tuple[int, dict] | None:
+def _load_menu(
+    conn: sqlite3.Connection, user_id: int, menu_id: int | None
+) -> tuple[int, dict] | None:
     if menu_id is not None:
-        row = conn.execute("SELECT id, days_json FROM menus WHERE id = ?", (menu_id,)).fetchone()
+        row = conn.execute(
+            "SELECT id, days_json FROM menus WHERE id = ? AND user_id = ?", (menu_id, user_id)
+        ).fetchone()
     else:
-        row = conn.execute("SELECT id, days_json FROM menus ORDER BY id DESC LIMIT 1").fetchone()
+        row = conn.execute(
+            "SELECT id, days_json FROM menus WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
     if row is None:
         return None
     return row["id"], json.loads(row["days_json"])
 
 
-def _update_menu(conn: sqlite3.Connection, menu_id: int, plan: dict) -> None:
-    conn.execute("UPDATE menus SET days_json = ? WHERE id = ?", (json.dumps(plan), menu_id))
+def _update_menu(conn: sqlite3.Connection, user_id: int, menu_id: int, plan: dict) -> None:
+    conn.execute(
+        "UPDATE menus SET days_json = ? WHERE id = ? AND user_id = ?",
+        (json.dumps(plan), menu_id, user_id),
+    )
     conn.commit()
 
 
 def plan_menu(
     conn: sqlite3.Connection,
     config: Config,
+    user_id: int,
     candidate_ids: list[int],
     days: int,
     meals_per_day: int = 1,
@@ -128,8 +141,8 @@ def plan_menu(
     swap/shopping-list calls. See engines/optimizer.py for the scoring shape
     and task.md §7.
     """
-    profile = get_profile(conn)
-    pantry_rows = conn.execute("SELECT item FROM pantry").fetchall()
+    profile = get_profile(conn, user_id)
+    pantry_rows = conn.execute("SELECT item FROM pantry WHERE user_id = ?", (user_id,)).fetchall()
     pantry = {r["item"] for r in pantry_rows}
 
     targets = profile["targets"]
@@ -185,13 +198,65 @@ def plan_menu(
         "micro_coverage": None,  # Phase 4
         "gaps": [],  # Phase 4
     }
-    menu_id = _save_menu(conn, plan)
+    menu_id = _save_menu(conn, user_id, plan)
     return {"menu_id": menu_id, **plan}
+
+
+def get_menu_recipes(conn: sqlite3.Connection, user_id: int, menu_id: int | None = None) -> dict:
+    """Every recipe in a menu, pre-ordered by day then meal and pre-labeled
+    with a day/meal heading — one markdown document the LLM echoes verbatim.
+
+    Exists because STEP-2 delivery used to mean one get_recipe call per slot
+    with the model mapping recipe_id -> day itself from a plan JSON several
+    turns back; a mid-size local model observably mislabels that (day 3's
+    recipes presented under a "Day 1" heading). Deterministic ordering and
+    headings belong in code, not in the model.
+    """
+    loaded = _load_menu(conn, user_id, menu_id)
+    if loaded is None:
+        return {"error": f"no menu with id {menu_id}" if menu_id is not None else "no menu exists yet — call plan_menu first"}
+    mid, plan = loaded
+
+    slots = sorted(
+        plan.get("days", []),
+        key=lambda d: (d["day"], d.get("meal", 1), d.get("role", "main") != "main"),
+    )
+    if not slots:
+        return {"error": f"menu {mid} has no meal slots"}
+    multi_meal = (plan.get("meals_per_day") or 1) > 1
+
+    parts = []
+    for s in slots:
+        # h1, so slot headings out-rank the recipes' own "## Ingredients" etc.
+        heading = f"# Day {s['day']}"
+        if multi_meal:
+            heading += f", Meal {s.get('meal', 1)}"
+        if s.get("role") == "top-up":
+            heading += " (second dish)"
+        heading += f": {s.get('title', '')}"
+
+        lines = [heading]
+        pm = s.get("portion_multiplier") or 1.0
+        if abs(pm - 1.0) >= 0.005:
+            note = f"_Portion: eat {pm} servings of this dish._"
+            if s.get("recipe_servings"):
+                note += f" _(Recipe as written makes {s['recipe_servings']} servings.)_"
+            lines.append(note)
+
+        r = get_recipe(conn, s["recipe_id"])
+        if "error" in r:
+            lines.append(f"(recipe unavailable: {r['error']})")
+        else:
+            lines.append(r["markdown"].strip())
+        parts.append("\n\n".join(lines))
+
+    return {"menu_id": mid, "slot_count": len(slots), "markdown": "\n\n---\n\n".join(parts)}
 
 
 def swap_menu_item(
     conn: sqlite3.Connection,
     config: Config,
+    user_id: int,
     day: int,
     replacement_id: int,
     menu_id: int | None = None,
@@ -202,7 +267,7 @@ def swap_menu_item(
     created menu if omitted (the normal case: one active plan in flight).
     meal defaults to 1 — only needed when the plan has meals_per_day > 1.
     """
-    loaded = _load_menu(conn, menu_id)
+    loaded = _load_menu(conn, user_id, menu_id)
     if loaded is None:
         return {"error": f"no menu with id {menu_id}" if menu_id is not None else "no menu exists yet — call plan_menu first"}
     mid, plan = loaded
@@ -228,7 +293,7 @@ def swap_menu_item(
     if replacement_id not in by_id:
         return {"error": f"no recipe with id {replacement_id}"}
 
-    profile = get_profile(conn)
+    profile = get_profile(conn, user_id)
     avg_kcal = _avg_target_kcal(profile["targets"])
     macros_by_id = estimate_nutrition(conn, config, ids)
 
@@ -318,5 +383,5 @@ def swap_menu_item(
         "daily_totals": daily_totals,
         "ingredient_summary": _ingredient_summary(list(ing_by_id.values())),
     }
-    _update_menu(conn, mid, new_plan)
+    _update_menu(conn, user_id, mid, new_plan)
     return {"menu_id": mid, **new_plan}

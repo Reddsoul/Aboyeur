@@ -317,12 +317,23 @@ _ZERO_MACRO_FOODS = {"water", "ice", "salt", "kosher salt", "sea salt"}
 
 
 def _norm_word(w: str) -> str:
-    """Light singular/plural normalization so 'onion' matches 'Onions, raw'."""
-    if len(w) > 3 and w.endswith("es"):
+    """Light singular/plural normalization so 'onion' matches 'Onions, raw'.
+
+    -es is only stripped after the endings that actually take an -es plural
+    (potatoes, dishes, boxes); a plain -e word + s ('vegetables', 'cheeses')
+    just loses the s — the old blanket -es rule produced 'vegetabl'."""
+    if len(w) > 3 and w.endswith(("oes", "ches", "shes", "sses", "xes", "zes")):
         return w[:-2]
-    if len(w) > 2 and w.endswith("s"):
+    if len(w) > 2 and w.endswith("s") and not w.endswith("ss"):
         return w[:-1]
     return w
+
+
+def fold_plural(name: str) -> str:
+    """Word-by-word singular fold: 'potatoes' -> 'potato', 'green onions' ->
+    'green onion'. Used to merge plural/singular spellings of the same food
+    in shopping-list aggregation and overlap scoring."""
+    return " ".join(_norm_word(w) for w in (name or "").lower().split())
 
 
 def _validated_macros(food: dict) -> dict | None:

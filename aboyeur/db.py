@@ -61,6 +61,47 @@ CREATE TABLE IF NOT EXISTS embeddings (
     created_at  TEXT NOT NULL
 );
 
+-- Vintage nutrition-science/diet-theory reference text (Gutenberg bookshelf
+-- 684 and similar — books with prose about nutrition, not recipes). Chunked
+-- per source file; searched via search_nutrition_reference, kept separate
+-- from the recipes table/FTS since it's prose, not structured recipe data.
+-- See aboyeur/reference_indexer.py.
+CREATE TABLE IF NOT EXISTS nutrition_reference (
+    id          INTEGER PRIMARY KEY,
+    path        TEXT NOT NULL,
+    book        TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    text        TEXT NOT NULL,
+    mtime       REAL NOT NULL,
+    indexed_at  TEXT NOT NULL,
+    UNIQUE(path, chunk_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_nutrition_reference_book ON nutrition_reference(book);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS nutrition_reference_fts USING fts5(
+    text, book,
+    content='nutrition_reference',
+    content_rowid='id'
+);
+
+CREATE TRIGGER IF NOT EXISTS nutref_ai AFTER INSERT ON nutrition_reference BEGIN
+    INSERT INTO nutrition_reference_fts(rowid, text, book)
+    VALUES (new.id, new.text, new.book);
+END;
+
+CREATE TRIGGER IF NOT EXISTS nutref_ad AFTER DELETE ON nutrition_reference BEGIN
+    INSERT INTO nutrition_reference_fts(nutrition_reference_fts, rowid, text, book)
+    VALUES ('delete', old.id, old.text, old.book);
+END;
+
+CREATE TRIGGER IF NOT EXISTS nutref_au AFTER UPDATE ON nutrition_reference BEGIN
+    INSERT INTO nutrition_reference_fts(nutrition_reference_fts, rowid, text, book)
+    VALUES ('delete', old.id, old.text, old.book);
+    INSERT INTO nutrition_reference_fts(rowid, text, book)
+    VALUES (new.id, new.text, new.book);
+END;
+
 CREATE TABLE IF NOT EXISTS nutrition (
     recipe_id     INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE,
     kcal          REAL,
@@ -94,25 +135,56 @@ CREATE TABLE IF NOT EXISTS usda_cache (
     fetched_at   TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS pantry (
-    item        TEXT PRIMARY KEY,
-    qty         TEXT,
-    added_at    TEXT NOT NULL,
-    expires_at  TEXT
+-- Multi-tenant: one row per account. password_hash is NULL for a user
+-- provisioned before a password is set (not used in the current CLI-only
+-- flow, but keeps room for an invite-then-set-password step later).
+CREATE TABLE IF NOT EXISTS users (
+    id             INTEGER PRIMARY KEY,
+    email          TEXT NOT NULL UNIQUE,
+    password_hash  TEXT,
+    created_at     TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS pantry (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item        TEXT NOT NULL,
+    qty         TEXT,
+    added_at    TEXT NOT NULL,
+    expires_at  TEXT,
+    PRIMARY KEY (user_id, item)
+);
+
+-- One row per user (was a single CHECK(id=1) row pre-multi-tenant).
 CREATE TABLE IF NOT EXISTS profile (
-    id          INTEGER PRIMARY KEY CHECK (id = 1),
+    user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     data_json   TEXT NOT NULL,
     updated_at  TEXT NOT NULL
 );
 
+-- idx_menus_user is NOT created here: on an existing pre-multi-tenant DB,
+-- this whole schema runs via executescript before aboyeur.migrate has
+-- rebuilt menus into the new shape, and CREATE INDEX (unlike CREATE TABLE
+-- IF NOT EXISTS) doesn't no-op gracefully against a same-named table that's
+-- missing the indexed column — it errors immediately. aboyeur.migrate.migrate()
+-- creates the index itself once menus.user_id is guaranteed to exist,
+-- whether the table was just rebuilt or was already fresh.
 CREATE TABLE IF NOT EXISTS menus (
     id          INTEGER PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     week_of     TEXT NOT NULL,
     days_json   TEXT NOT NULL,
     status      TEXT NOT NULL DEFAULT 'draft',
     created_at  TEXT NOT NULL
+);
+
+-- Recipe catalog favorites (the Library UI's star toggle). Recipes stay a
+-- single shared read-only corpus across every user — only this join table
+-- is per-user.
+CREATE TABLE IF NOT EXISTS favorites (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    recipe_id   INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (user_id, recipe_id)
 );
 
 CREATE TABLE IF NOT EXISTS interactions (

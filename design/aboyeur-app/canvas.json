@@ -1,0 +1,8 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 960, "title": "Onboarding" },
+    { "file": "Library.dc.html", "x": 1500, "y": 0, "w": 1440, "h": 900, "title": "Recipe Library" },
+    { "file": "Chat.dc.html", "x": 3000, "y": 0, "w": 900, "h": 900, "title": "Chat" }
+  ],
+  "launch": { "view": "focused", "file": "Main.dc.html" }
+}

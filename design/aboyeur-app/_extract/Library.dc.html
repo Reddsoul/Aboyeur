@@ -1,0 +1,488 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --ink: #1d1d1f; --muted: #6e6e73;
+    --line: #d2d2d7; --fill: #ececee; --fill-strong: #e2e2e6;
+    --danger: #ff3b30; --success: #34c759; --warn: #ff9500;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e; --card: #000000; --ink: #f5f5f7; --muted: #98989d;
+      --line: #38383a; --fill: #2c2c2e; --fill-strong: #3a3a3c;
+      --danger: #ff453a; --success: #30d158; --warn: #ff9f0a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--card); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  a { color: var(--accent); }
+  button, input { font-family: inherit; }
+
+  .app { display: flex; width: 100%; height: 900px; background: var(--card); overflow: hidden; }
+
+  .sidebar { width: 260px; flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--line);
+    padding: 16px 12px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+  .search-field { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border-radius: 9px;
+    background: var(--fill); color: var(--muted); }
+  .search-field input { flex: 1; border: none; background: transparent; outline: none; font-size: 14px; color: var(--ink); }
+  .side-group { display: flex; flex-direction: column; gap: 2px; }
+  .side-heading { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+    color: var(--muted); padding: 6px 10px 4px; }
+  .side-row { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 8px;
+    border: none; background: transparent; cursor: pointer; font-size: 13.5px; color: var(--ink); width: 100%; text-align: left; }
+  .side-row-on { background: var(--accent); color: #ffffff; }
+  .side-row-on .side-count { color: rgba(255,255,255,0.75); }
+  .side-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .side-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-count { font-size: 12px; color: var(--muted); }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .toolbar { display: flex; align-items: center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .toolbar-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .toolbar-count { font-size: 13px; color: var(--muted); }
+  .toolbar-spacer { flex: 1; }
+  .seg-wrap { display: flex; background: var(--fill); border-radius: 8px; padding: 2px; gap: 2px; }
+  .seg-icon-btn { width: 30px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+    background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .seg-icon-btn-on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.14); }
+  .btn-primary { height: 32px; padding: 0 16px; border-radius: 8px; border: none; background: var(--accent);
+    color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+  .content { flex: 1; display: flex; min-height: 0; }
+  .grid-scroll { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+
+  .rcard { border-radius: 14px; border: 1px solid var(--line); background: var(--bg); overflow: hidden; cursor: pointer;
+    display: flex; flex-direction: column; text-align: left; padding: 0; }
+  .rcard-selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .rcard-swatch { height: 96px; position: relative; display: flex; align-items: flex-start; justify-content: flex-end; padding: 8px; }
+  .fav-btn { width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(0,0,0,0.28);
+    color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .fav-btn-on { color: #ffd60a; }
+  .rcard-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .rcard-title { font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+  .rcard-sub { font-size: 12.5px; color: var(--muted); }
+  .macro-row { display: flex; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+  .macro-pill { font-size: 11px; font-weight: 600; padding: 3px 7px; border-radius: 6px; background: var(--fill); color: var(--muted); }
+
+  .list-row { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+  .list-row-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .list-swatch { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
+  .list-title { font-size: 14px; font-weight: 600; }
+  .list-sub { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .list-macros { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    padding: 80px 20px; color: var(--muted); text-align: center; }
+
+  .detail { width: 400px; flex-shrink: 0; border-left: 1px solid var(--line); background: var(--card);
+    overflow-y: auto; padding: 18px 22px 28px; }
+  .detail-close { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--fill);
+    color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .detail-hero { height: 140px; border-radius: 16px; margin: 14px 0 18px; }
+  .detail-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .detail-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+  .stat-tile { border-radius: 10px; background: var(--fill); padding: 10px 6px; text-align: center; }
+  .stat-num { font-size: 16px; font-weight: 700; }
+  .stat-label { font-size: 10.5px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .detail-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--muted); margin: 18px 0 8px; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 980px; background: var(--fill); color: var(--ink); }
+  .ing-row { font-size: 14px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .ing-row:last-child { border-bottom: none; }
+
+  .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.32); display: flex;
+    align-items: center; justify-content: center; z-index: 10; }
+  .modal-sheet { width: 420px; background: var(--card); border-radius: 18px; padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.3); }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+  .field-label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  .text-input { width: 100%; height: 38px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--fill); color: var(--ink); font-size: 14px; margin-bottom: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+  .btn-ghost { height: 34px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: transparent;
+    color: var(--ink); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+</style>
+</helmet>
+
+<div class="app" style="--accent: {{accent}}; position: relative;">
+
+  <div class="sidebar">
+    <div class="search-field">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" value="{{query}}" onChange="{{setQuery}}" placeholder="Search recipes">
+    </div>
+
+    <div class="side-group">
+      <div class="side-heading">Library</div>
+      <sc-for list="{{libraryRows}}" as="row" hint-placeholder-count="2">
+        <button type="button" class="{{row.cls}}" onClick="{{row.select}}">
+          <span class="side-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{row.icon}}"/></svg></span>
+          <span class="side-label">{{row.label}}</span>
+          <span class="side-count">{{row.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div class="side-group">
+      <div class="side-heading">Cuisine</div>
+      <sc-for list="{{cuisineRows}}" as="row" hint-placeholder-count="6">
+        <button type="button" class="{{row.cls}}" onClick="{{row.select}}">
+          <span class="side-label">{{row.label}}</span>
+          <span class="side-count">{{row.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div class="side-group">
+      <div class="side-heading">Cookbooks</div>
+      <sc-for list="{{bookRows}}" as="row" hint-placeholder-count="4">
+        <button type="button" class="{{row.cls}}" onClick="{{row.select}}">
+          <span class="side-label">{{row.label}}</span>
+          <span class="side-count">{{row.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div class="side-group">
+      <div class="side-heading">Diet</div>
+      <sc-for list="{{dietRows}}" as="row" hint-placeholder-count="3">
+        <button type="button" class="{{row.cls}}" onClick="{{row.select}}">
+          <span class="side-label">{{row.label}}</span>
+          <span class="side-count">{{row.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div class="side-group">
+      <div class="side-heading">Smart Filters</div>
+      <sc-for list="{{smartRows}}" as="row" hint-placeholder-count="2">
+        <button type="button" class="{{row.cls}}" onClick="{{row.select}}">
+          <span class="side-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{row.icon}}"/></svg></span>
+          <span class="side-label">{{row.label}}</span>
+          <span class="side-count">{{row.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="toolbar">
+      <div>
+        <div class="toolbar-title">{{sectionTitle}}</div>
+        <div class="toolbar-count">{{countLabel}}</div>
+      </div>
+      <div class="toolbar-spacer"></div>
+      <div class="seg-wrap">
+        <button type="button" class="{{gridBtnCls}}" onClick="{{setViewGrid}}" aria-label="Grid view">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </button>
+        <button type="button" class="{{listBtnCls}}" onClick="{{setViewList}}" aria-label="List view">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+      <button type="button" class="btn-primary" onClick="{{openNewRecipe}}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New Recipe
+      </button>
+    </div>
+
+    <div class="content">
+      <div class="grid-scroll">
+
+        <sc-if value="{{hasResults}}" hint-placeholder-val="{{true}}">
+          <sc-if value="{{viewIsGrid}}" hint-placeholder-val="{{true}}">
+            <div class="grid">
+              <sc-for list="{{filteredRecipes}}" as="r" hint-placeholder-count="8">
+                <button type="button" class="{{r.cardCls}}" onClick="{{r.select}}">
+                  <div class="rcard-swatch" style="background:{{r.swatch}};">
+                    <button type="button" class="{{r.favCls}}" onClick="{{r.toggleFav}}" aria-label="Favorite">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="{{r.favFill}}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 2.9 6.3 6.9.8-5.1 4.8 1.4 6.9L12 18.3 5.9 21.8l1.4-6.9-5.1-4.8 6.9-.8Z"/></svg>
+                    </button>
+                  </div>
+                  <div class="rcard-body">
+                    <div class="rcard-title">{{r.title}}</div>
+                    <div class="rcard-sub">{{r.book}} · {{r.cuisine}}</div>
+                    <div class="macro-row">
+                      <span class="macro-pill">{{r.kcal}} kcal</span>
+                      <span class="macro-pill">{{r.protein}}g P</span>
+                      <span class="macro-pill">{{r.carb}}g C</span>
+                      <span class="macro-pill">{{r.fat}}g F</span>
+                    </div>
+                  </div>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{viewIsList}}" hint-placeholder-val="{{false}}">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <sc-for list="{{filteredRecipes}}" as="r" hint-placeholder-count="8">
+                <button type="button" class="{{r.listCls}}" onClick="{{r.select}}">
+                  <div class="list-swatch" style="background:{{r.swatch}};"></div>
+                  <div style="flex:1; min-width:0; text-align:left;">
+                    <div class="list-title">{{r.title}}</div>
+                    <div class="list-sub">{{r.book}} · {{r.cuisine}}</div>
+                  </div>
+                  <div class="list-macros">{{r.kcal}} kcal · {{r.protein}}g P · {{r.carb}}g C · {{r.fat}}g F</div>
+                  <button type="button" class="{{r.favCls}}" onClick="{{r.toggleFav}}" aria-label="Favorite">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="{{r.favFill}}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 2.9 6.3 6.9.8-5.1 4.8 1.4 6.9L12 18.3 5.9 21.8l1.4-6.9-5.1-4.8 6.9-.8Z"/></svg>
+                  </button>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{hasNoResults}}" hint-placeholder-val="{{false}}">
+          <div class="empty-state">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <div style="font-size:15px; font-weight:600;">No recipes match</div>
+            <div style="font-size:13px;">Try a different search or filter.</div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <sc-if value="{{hasSelection}}" hint-placeholder-val="{{false}}">
+        <div class="detail">
+          <div style="display:flex; justify-content:flex-end;">
+            <button type="button" class="detail-close" onClick="{{closeDetail}}" aria-label="Close">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="detail-hero" style="background:{{selected.swatch}};"></div>
+          <div class="detail-title">{{selected.title}}</div>
+          <div class="detail-sub">{{selected.book}} · {{selected.cuisine}} · Serves {{selected.servings}}</div>
+
+          <div class="stat-grid">
+            <div class="stat-tile"><div class="stat-num">{{selected.kcal}}</div><div class="stat-label">Kcal</div></div>
+            <div class="stat-tile"><div class="stat-num">{{selected.protein}}g</div><div class="stat-label">Protein</div></div>
+            <div class="stat-tile"><div class="stat-num">{{selected.carb}}g</div><div class="stat-label">Carbs</div></div>
+            <div class="stat-tile"><div class="stat-num">{{selected.fat}}g</div><div class="stat-label">Fat</div></div>
+          </div>
+
+          <div class="detail-section-title">Tags</div>
+          <div class="tag-row">
+            <sc-for list="{{selected.tagList}}" as="t" hint-placeholder-count="3">
+              <span class="tag">{{t.label}}</span>
+            </sc-for>
+          </div>
+
+          <div class="detail-section-title">Ingredients</div>
+          <div>
+            <sc-for list="{{selected.ingredientList}}" as="ing" hint-placeholder-count="5">
+              <div class="ing-row">{{ing.label}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{newRecipeOpen}}" hint-placeholder-val="{{false}}">
+    <div class="modal-backdrop">
+      <div class="modal-sheet">
+        <div class="modal-title">New Recipe</div>
+        <label class="field-label">Title</label>
+        <input type="text" class="text-input" value="{{draftTitle}}" onChange="{{setDraftTitle}}" placeholder="Recipe title">
+        <label class="field-label">Cuisine</label>
+        <input type="text" class="text-input" value="{{draftCuisine}}" onChange="{{setDraftCuisine}}" placeholder="e.g. Thai">
+        <label class="field-label">Cookbook</label>
+        <input type="text" class="text-input" value="{{draftBook}}" onChange="{{setDraftBook}}" placeholder="Source book">
+        <label class="field-label">Servings</label>
+        <input type="number" class="text-input" value="{{draftServings}}" onChange="{{setDraftServings}}" placeholder="4" style="margin-bottom:0;">
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" onClick="{{closeNewRecipe}}">Cancel</button>
+          <button type="button" class="btn-primary" onClick="{{saveNewRecipe}}" style="height:34px;">Save</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#0071e3","options":["#0071e3","#ff375f","#34c759","#ff9500","#af52de"]},"$preview":{"width":1440,"height":900}}'>
+
+const ICONS = {
+  list: "M4 6h16M4 12h16M4 18h16",
+  star: "m12 3 2.9 6.3 6.9.8-5.1 4.8 1.4 6.9L12 18.3 5.9 21.8l1.4-6.9-5.1-4.8 6.9-.8Z",
+  shield: "M12 3 4 6v6c0 5 3.4 8.2 8 9 4.6-.8 8-4 8-9V6l-8-3Z",
+  bolt: "M13 2 3 14h7l-1 8 10-12h-7l1-8Z",
+};
+
+const SWATCHES = [
+  "linear-gradient(135deg,#ff9f6b,#ff5f6d)", "linear-gradient(135deg,#6bd9ff,#4a7dff)",
+  "linear-gradient(135deg,#9be15d,#00e3ae)", "linear-gradient(135deg,#f9d976,#f39f86)",
+  "linear-gradient(135deg,#a685e2,#7c5cff)", "linear-gradient(135deg,#ffd66b,#ff9a3c)",
+  "linear-gradient(135deg,#6bffb8,#2fd4c7)", "linear-gradient(135deg,#ff8bd6,#ff5f9e)",
+];
+
+const SEED_RECIPES = [
+  { id: 1, title: "Chicken Tikka Masala", book: "Spice Route", cuisine: "Indian", servings: 4, technique: "braise", tags: ["Gluten-free"], allergens: ["dairy"], minutes: 55, kcal: 520, protein: 38, carb: 22, fat: 30, favorite: true, ingredients: ["Chicken thigh", "Yogurt", "Tomato", "Garam masala", "Cream"] },
+  { id: 2, title: "Weeknight Pad Thai", book: "Weeknight Sichuan", cuisine: "Thai", servings: 2, technique: "stir_fry", tags: ["Dairy-free"], allergens: ["shellfish", "peanut"], minutes: 25, kcal: 610, protein: 24, carb: 68, fat: 24, favorite: false, ingredients: ["Rice noodles", "Shrimp", "Egg", "Tamarind", "Peanuts"] },
+  { id: 3, title: "Margherita Pizza", book: "Coastal Kitchen", cuisine: "Italian", servings: 4, technique: "bake", tags: ["Vegetarian"], allergens: ["dairy", "gluten"], minutes: 40, kcal: 480, protein: 18, carb: 58, fat: 18, favorite: true, ingredients: ["Pizza dough", "San Marzano tomato", "Mozzarella", "Basil", "Olive oil"] },
+  { id: 4, title: "Steak Tacos al Pastor", book: "Sunday Table", cuisine: "Mexican", servings: 4, technique: "grill", tags: ["Gluten-free", "Dairy-free"], allergens: [], minutes: 35, kcal: 540, protein: 34, carb: 30, fat: 28, favorite: false, ingredients: ["Skirt steak", "Pineapple", "Achiote", "Corn tortilla", "Onion"] },
+  { id: 5, title: "Kung Pao Cauliflower", book: "Weeknight Sichuan", cuisine: "Chinese", servings: 3, technique: "stir_fry", tags: ["Vegan", "Vegetarian"], allergens: ["peanut", "soy"], minutes: 30, kcal: 360, protein: 10, carb: 40, fat: 16, favorite: false, ingredients: ["Cauliflower", "Peanuts", "Dried chili", "Sichuan peppercorn", "Soy sauce"] },
+  { id: 6, title: "Miso Glazed Salmon", book: "Coastal Kitchen", cuisine: "Japanese", servings: 2, technique: "roast", tags: ["Gluten-free", "Dairy-free"], allergens: ["fish", "soy"], minutes: 22, kcal: 440, protein: 36, carb: 14, fat: 26, favorite: true, ingredients: ["Salmon fillet", "White miso", "Mirin", "Ginger", "Scallion"] },
+  { id: 7, title: "Falafel Bowl", book: "Sunday Table", cuisine: "Mediterranean", servings: 4, technique: "bake", tags: ["Vegan", "Vegetarian"], allergens: ["gluten"], minutes: 45, kcal: 470, protein: 16, carb: 52, fat: 20, favorite: false, ingredients: ["Chickpeas", "Parsley", "Tahini", "Cucumber", "Pita"] },
+  { id: 8, title: "Classic Beef Chili", book: "The Home Cook's Companion", cuisine: "American", servings: 6, technique: "braise", tags: ["Gluten-free", "Dairy-free"], allergens: [], minutes: 90, kcal: 490, protein: 32, carb: 26, fat: 24, favorite: false, ingredients: ["Ground beef", "Kidney beans", "Tomato", "Chili powder", "Onion"] },
+  { id: 9, title: "Shrimp Scampi", book: "Coastal Kitchen", cuisine: "Italian", servings: 3, technique: "stir_fry", tags: [], allergens: ["shellfish", "gluten"], minutes: 20, kcal: 500, protein: 28, carb: 46, fat: 20, favorite: false, ingredients: ["Shrimp", "Linguine", "Garlic", "White wine", "Parsley"] },
+  { id: 10, title: "Chana Masala", book: "Spice Route", cuisine: "Indian", servings: 4, technique: "braise", tags: ["Vegan", "Vegetarian", "Gluten-free"], allergens: [], minutes: 35, kcal: 320, protein: 13, carb: 48, fat: 8, favorite: true, ingredients: ["Chickpeas", "Tomato", "Cumin", "Coriander", "Ginger"] },
+  { id: 11, title: "Korean Bibimbap", book: "Sunday Table", cuisine: "Korean", servings: 2, technique: "stir_fry", tags: ["Dairy-free"], allergens: ["egg", "soy"], minutes: 40, kcal: 560, protein: 26, carb: 64, fat: 20, favorite: false, ingredients: ["Rice", "Beef", "Spinach", "Carrot", "Gochujang"] },
+  { id: 12, title: "Lemon Herb Roast Chicken", book: "The Home Cook's Companion", cuisine: "American", servings: 4, technique: "roast", tags: ["Gluten-free", "Dairy-free"], allergens: [], minutes: 75, kcal: 470, protein: 42, carb: 6, fat: 30, favorite: true, ingredients: ["Whole chicken", "Lemon", "Thyme", "Garlic", "Butter"] },
+  { id: 13, title: "Mushroom Risotto", book: "Coastal Kitchen", cuisine: "Italian", servings: 3, technique: "braise", tags: ["Vegetarian", "Gluten-free"], allergens: ["dairy"], minutes: 45, kcal: 430, protein: 12, carb: 58, fat: 14, favorite: false, ingredients: ["Arborio rice", "Cremini mushroom", "Parmesan", "White wine", "Shallot"] },
+  { id: 14, title: "Green Papaya Salad", book: "Weeknight Sichuan", cuisine: "Thai", servings: 2, technique: "raw", tags: ["Vegan", "Vegetarian", "Gluten-free", "Dairy-free"], allergens: ["peanut", "fish"], minutes: 15, kcal: 210, protein: 6, carb: 30, fat: 8, favorite: false, ingredients: ["Green papaya", "Lime", "Fish sauce", "Peanuts", "Chili"] },
+  { id: 15, title: "Baja Fish Tacos", book: "Sunday Table", cuisine: "Mexican", servings: 3, technique: "stir_fry", tags: ["Dairy-free"], allergens: ["fish", "gluten"], minutes: 30, kcal: 460, protein: 26, carb: 42, fat: 20, favorite: false, ingredients: ["Cod", "Corn tortilla", "Cabbage", "Lime crema", "Chipotle"] },
+  { id: 16, title: "Butternut Squash Soup", book: "The Home Cook's Companion", cuisine: "American", servings: 4, technique: "braise", tags: ["Vegan", "Vegetarian", "Gluten-free", "Dairy-free"], allergens: [], minutes: 40, kcal: 260, protein: 5, carb: 44, fat: 8, favorite: false, ingredients: ["Butternut squash", "Onion", "Vegetable stock", "Nutmeg", "Olive oil"] },
+];
+
+const DIET_CANDIDATES = ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free"];
+
+class Component extends DCLogic {
+  state = {
+    query: "", section: "all", view: "grid", selectedId: null,
+    recipes: SEED_RECIPES, nextId: 17,
+    newRecipeOpen: false, draftTitle: "", draftCuisine: "", draftBook: "", draftServings: "",
+  };
+
+  setQuery = (e) => this.setState({ query: e.target.value, selectedId: null });
+  selectSection = (section) => () => this.setState({ section, selectedId: null });
+  setViewGrid = () => this.setState({ view: "grid" });
+  setViewList = () => this.setState({ view: "list" });
+  selectRecipe = (id) => () => this.setState({ selectedId: id });
+  closeDetail = () => this.setState({ selectedId: null });
+  toggleFav = (id) => (e) => {
+    e.stopPropagation();
+    this.setState({ recipes: this.state.recipes.map((r) => r.id === id ? { ...r, favorite: !r.favorite } : r) });
+  };
+
+  openNewRecipe = () => this.setState({ newRecipeOpen: true, draftTitle: "", draftCuisine: "", draftBook: "", draftServings: "" });
+  closeNewRecipe = () => this.setState({ newRecipeOpen: false });
+  setDraftTitle = (e) => this.setState({ draftTitle: e.target.value });
+  setDraftCuisine = (e) => this.setState({ draftCuisine: e.target.value });
+  setDraftBook = (e) => this.setState({ draftBook: e.target.value });
+  setDraftServings = (e) => this.setState({ draftServings: e.target.value });
+  saveNewRecipe = () => {
+    const t = (this.state.draftTitle || "").trim();
+    if (!t) return;
+    const swatch = SWATCHES[this.state.nextId % SWATCHES.length];
+    const rec = {
+      id: this.state.nextId, title: t,
+      cuisine: (this.state.draftCuisine || "Uncategorized").trim() || "Uncategorized",
+      book: (this.state.draftBook || "My Recipes").trim() || "My Recipes",
+      servings: Number(this.state.draftServings) || 4,
+      technique: "", tags: [], allergens: [], minutes: 30,
+      kcal: 0, protein: 0, carb: 0, fat: 0, favorite: false,
+      ingredients: [], swatch,
+    };
+    this.setState({
+      recipes: [rec, ...this.state.recipes], nextId: this.state.nextId + 1,
+      newRecipeOpen: false, section: "all", selectedId: rec.id,
+    });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accent || "#0071e3";
+    const recipes = s.recipes.map((r, i) => ({ ...r, swatch: r.swatch || SWATCHES[i % SWATCHES.length] }));
+
+    const cuisines = [...new Set(recipes.map((r) => r.cuisine))].sort();
+    const books = [...new Set(recipes.map((r) => r.book))].sort();
+    const diets = DIET_CANDIDATES.filter((d) => recipes.some((r) => r.tags.includes(d)));
+
+    const q = (s.query || "").toLowerCase().trim();
+    let pool = recipes;
+    if (s.section === "favorites") pool = pool.filter((r) => r.favorite);
+    else if (s.section === "allergySafe") pool = pool.filter((r) => r.allergens.length === 0);
+    else if (s.section === "quick") pool = pool.filter((r) => r.minutes <= 30);
+    else if (s.section.startsWith("cuisine:")) pool = pool.filter((r) => r.cuisine === s.section.slice(8));
+    else if (s.section.startsWith("book:")) pool = pool.filter((r) => r.book === s.section.slice(5));
+    else if (s.section.startsWith("diet:")) pool = pool.filter((r) => r.tags.includes(s.section.slice(5)));
+
+    if (q) {
+      pool = pool.filter((r) =>
+        r.title.toLowerCase().includes(q) || r.cuisine.toLowerCase().includes(q) ||
+        r.book.toLowerCase().includes(q) || r.ingredients.some((ing) => ing.toLowerCase().includes(q)) ||
+        r.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+
+    const filteredRecipes = pool.map((r) => ({
+      ...r,
+      cardCls: "rcard" + (s.selectedId === r.id ? " rcard-selected" : ""),
+      listCls: "list-row" + (s.selectedId === r.id ? " list-row-selected" : ""),
+      favCls: "fav-btn" + (r.favorite ? " fav-btn-on" : ""),
+      favFill: r.favorite ? "currentColor" : "none",
+      select: this.selectRecipe(r.id),
+      toggleFav: this.toggleFav(r.id),
+    }));
+
+    const mk = (section, label, icon, count) => ({
+      label, icon, count,
+      cls: "side-row" + (s.section === section ? " side-row-on" : ""),
+      select: this.selectSection(section),
+    });
+
+    const libraryRows = [
+      mk("all", "All Recipes", ICONS.list, recipes.length),
+      mk("favorites", "Favorites", ICONS.star, recipes.filter((r) => r.favorite).length),
+    ];
+    const cuisineRows = cuisines.map((c) => mk(`cuisine:${c}`, c, "", recipes.filter((r) => r.cuisine === c).length));
+    const bookRows = books.map((b) => mk(`book:${b}`, b, "", recipes.filter((r) => r.book === b).length));
+    const dietRows = diets.map((d) => mk(`diet:${d}`, d, "", recipes.filter((r) => r.tags.includes(d)).length));
+    const smartRows = [
+      mk("allergySafe", "Allergy-safe", ICONS.shield, recipes.filter((r) => r.allergens.length === 0).length),
+      mk("quick", "Quick (≤30 min)", ICONS.bolt, recipes.filter((r) => r.minutes <= 30).length),
+    ];
+
+    const sectionTitleMap = { all: "All Recipes", favorites: "Favorites", allergySafe: "Allergy-safe", quick: "Quick (≤30 min)" };
+    let sectionTitle = sectionTitleMap[s.section];
+    if (!sectionTitle) {
+      if (s.section.startsWith("cuisine:")) sectionTitle = s.section.slice(8);
+      else if (s.section.startsWith("book:")) sectionTitle = s.section.slice(5);
+      else if (s.section.startsWith("diet:")) sectionTitle = s.section.slice(5);
+      else sectionTitle = "All Recipes";
+    }
+
+    const selectedRaw = recipes.find((r) => r.id === s.selectedId) || null;
+    const selected = selectedRaw ? {
+      ...selectedRaw,
+      tagList: [...selectedRaw.tags, selectedRaw.technique ? selectedRaw.technique.replace("_", " ") : null]
+        .filter(Boolean).map((t) => ({ label: t })),
+      ingredientList: selectedRaw.ingredients.map((ing) => ({ label: ing })),
+    } : { title: "", book: "", cuisine: "", servings: "", kcal: "", protein: "", carb: "", fat: "", swatch: "", tagList: [], ingredientList: [] };
+
+    return {
+      accent,
+      query: s.query, setQuery: this.setQuery,
+      libraryRows, cuisineRows, bookRows, dietRows, smartRows,
+      sectionTitle, countLabel: `${filteredRecipes.length} recipe${filteredRecipes.length === 1 ? "" : "s"}`,
+      viewIsGrid: s.view === "grid", viewIsList: s.view === "list",
+      gridBtnCls: "seg-icon-btn" + (s.view === "grid" ? " seg-icon-btn-on" : ""),
+      listBtnCls: "seg-icon-btn" + (s.view === "list" ? " seg-icon-btn-on" : ""),
+      setViewGrid: this.setViewGrid, setViewList: this.setViewList,
+      filteredRecipes, hasResults: filteredRecipes.length > 0, hasNoResults: filteredRecipes.length === 0,
+      hasSelection: !!selectedRaw, selected, closeDetail: this.closeDetail,
+      openNewRecipe: this.openNewRecipe,
+
+      newRecipeOpen: s.newRecipeOpen,
+      draftTitle: s.draftTitle, draftCuisine: s.draftCuisine, draftBook: s.draftBook, draftServings: s.draftServings,
+      setDraftTitle: this.setDraftTitle, setDraftCuisine: this.setDraftCuisine,
+      setDraftBook: this.setDraftBook, setDraftServings: this.setDraftServings,
+      closeNewRecipe: this.closeNewRecipe, saveNewRecipe: this.saveNewRecipe,
+    };
+  }
+}
+</script>
+</body>
+</html>

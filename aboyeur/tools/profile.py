@@ -24,24 +24,13 @@ DEFAULT_PROFILE = {
     "units": "metric",
 }
 
-# Guest mode: a /guest session swaps in a temporary in-memory profile here.
-# Every profile consumer (system prompt, search's allergen filter, menu
-# targets) reads through _load_raw, so one override point covers them all;
-# _save_raw writes back to the dict instead of the DB, so nothing a guest
-# says is ever persisted. A plain module global (not a contextvar) because
-# the backend streams responses across threadpool threads — turn execution
-# is already serialized process-wide by the backend's lock, and the Agent
-# sets/clears this around each turn.
-_guest_profile: dict | None = None
-
-
-def set_guest_profile(profile: dict | None) -> None:
-    global _guest_profile
-    _guest_profile = profile
-
-
-def guest_active() -> bool:
-    return _guest_profile is not None
+# Guest mode: a /guest session plans against a temporary, never-persisted
+# profile. Earlier this lived in a module-level global the Agent set/cleared
+# around each turn — fine only because the backend serialized every turn
+# behind one process-wide lock. With real concurrent users that global would
+# leak one user's guest profile into another's turn, so every profile
+# consumer now takes `guest` explicitly instead: passed a dict, operate on
+# it in memory only; passed None, read/write the DB as user_id's own row.
 
 
 def make_guest_profile() -> dict:
@@ -49,39 +38,41 @@ def make_guest_profile() -> dict:
     return json.loads(json.dumps(DEFAULT_PROFILE))
 
 
-def _load_raw(conn: sqlite3.Connection) -> dict:
-    if _guest_profile is not None:
-        return _guest_profile
-    row = conn.execute("SELECT data_json FROM profile WHERE id = 1").fetchone()
+def _load_raw(conn: sqlite3.Connection, user_id: int, guest: dict | None) -> dict:
+    if guest is not None:
+        return guest
+    row = conn.execute("SELECT data_json FROM profile WHERE user_id = ?", (user_id,)).fetchone()
     if row is None:
         return dict(DEFAULT_PROFILE)
     return json.loads(row["data_json"])
 
 
-def _save_raw(conn: sqlite3.Connection, profile: dict) -> None:
-    if _guest_profile is not None:
+def _save_raw(conn: sqlite3.Connection, user_id: int, profile: dict, guest: dict | None) -> None:
+    if guest is not None:
         # In-memory only: keep the guest dict identity so the Agent's
-        # reference stays live across tool calls within the session.
-        if profile is not _guest_profile:
-            _guest_profile.clear()
-            _guest_profile.update(profile)
+        # reference stays live across tool calls within the turn.
+        if profile is not guest:
+            guest.clear()
+            guest.update(profile)
         return
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     conn.execute(
-        "INSERT INTO profile (id, data_json, updated_at) VALUES (1, ?, ?) "
-        "ON CONFLICT(id) DO UPDATE SET data_json=excluded.data_json, updated_at=excluded.updated_at",
-        (json.dumps(profile), now),
+        "INSERT INTO profile (user_id, data_json, updated_at) VALUES (?, ?, ?) "
+        "ON CONFLICT(user_id) DO UPDATE SET data_json=excluded.data_json, updated_at=excluded.updated_at",
+        (user_id, json.dumps(profile), now),
     )
     conn.commit()
 
 
-def get_profile(conn: sqlite3.Connection) -> dict:
+def get_profile(conn: sqlite3.Connection, user_id: int, guest: dict | None = None) -> dict:
     """Household, computed per-member BMR/TDEE targets, restrictions, preferences."""
-    profile = _load_raw(conn)
+    profile = _load_raw(conn, user_id, guest)
     return {**profile, "targets": nutrition.household_targets(profile)}
 
 
-def update_profile(conn: sqlite3.Connection, patch: dict) -> dict:
+def update_profile(
+    conn: sqlite3.Connection, user_id: int, patch: dict, guest: dict | None = None
+) -> dict:
     """Apply a structured patch. Supported keys:
 
     add_allergies, remove_allergies, add_dislikes, remove_dislikes,
@@ -94,7 +85,7 @@ def update_profile(conn: sqlite3.Connection, patch: dict) -> dict:
     one person on OMAD doesn't blow away their anthropometrics.
     remove_member (str id).
     """
-    profile = _load_raw(conn)
+    profile = _load_raw(conn, user_id, guest)
 
     def _add(field: str, values: list[str]) -> None:
         s = set(profile.get(field, []))
@@ -150,5 +141,5 @@ def update_profile(conn: sqlite3.Connection, patch: dict) -> dict:
             m for m in profile.get("household", []) if m["id"] != patch["remove_member"]
         ]
 
-    _save_raw(conn, profile)
-    return get_profile(conn)
+    _save_raw(conn, user_id, profile, guest)
+    return get_profile(conn, user_id, guest)

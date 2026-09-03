@@ -109,3 +109,91 @@ def search_recipes(
             break
 
     return results
+
+
+def browse_recipes(
+    conn: sqlite3.Connection,
+    query: str = "",
+    cuisine: str | None = None,
+    book: str | None = None,
+    allergies: list[str] | None = None,
+    offset: int = 0,
+    limit: int = 24,
+) -> tuple[list[dict], int]:
+    """Paginated catalog browsing (the Library UI's default grid) — unlike
+    search_recipes, an empty query means "show everything" rather than no
+    results, and results page with offset/limit instead of a hard 25 cap.
+    Returns (page of results, total match count).
+
+    total is a pre-allergy-filter SQL count (an upper bound, not exact) —
+    the allergen check runs in Python same as search_recipes, since FTS
+    can't express "ingredients_json does not contain X".
+    """
+    limit = min(max(1, limit), 100)
+    offset = max(0, offset)
+    allergies = allergens.expand_all([a for a in (allergies or []) if a.strip()])
+    safe_query = _safe_fts_query(query) if (query or "").strip() else None
+
+    conditions: list[str] = []
+    params: list = []
+    if safe_query is not None:
+        conditions.append("recipes_fts MATCH ?")
+        params.append(safe_query)
+    if cuisine:
+        conditions.append("r.cuisine = ?")
+        params.append(cuisine)
+    if book:
+        conditions.append("r.book = ?")
+        params.append(book)
+
+    from_clause = (
+        "FROM recipes_fts JOIN recipes r ON r.id = recipes_fts.rowid"
+        if safe_query is not None else "FROM recipes r"
+    )
+    where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    order_clause = "ORDER BY bm25(recipes_fts)" if safe_query is not None else "ORDER BY r.title"
+
+    total_row = conn.execute(f"SELECT COUNT(*) AS n {from_clause} {where_clause}", params).fetchone()
+    total = total_row["n"]
+
+    # Overfetch when filtering by allergy in Python, same reasoning as
+    # search_recipes — a page-sized SQL LIMIT could come back short.
+    fetch_limit = limit * 4 if allergies else limit
+    rows = conn.execute(
+        f"SELECT r.id, r.title, r.book, r.cuisine, r.servings, r.ingredients_json, r.tags_json "
+        f"{from_clause} {where_clause} {order_clause} LIMIT ? OFFSET ?",
+        [*params, fetch_limit, offset],
+    ).fetchall()
+
+    results = []
+    for row in rows:
+        ingredients = json.loads(row["ingredients_json"])
+        if allergies:
+            blob = " ".join(ingredients).lower() + " " + row["title"].lower()
+            if any(a in blob for a in allergies):
+                continue
+        results.append({
+            "id": row["id"], "title": row["title"], "book": row["book"],
+            "cuisine": row["cuisine"], "servings": row["servings"],
+            "ingredients": ingredients, "tags": json.loads(row["tags_json"]),
+        })
+        if len(results) >= limit:
+            break
+
+    return results, total
+
+
+def recipe_facets(conn: sqlite3.Connection) -> dict:
+    """Distinct cuisines and cookbooks with counts, for the catalog sidebar."""
+    cuisines = [
+        {"value": row["cuisine"], "count": row["n"]}
+        for row in conn.execute(
+            "SELECT cuisine, COUNT(*) AS n FROM recipes "
+            "WHERE cuisine IS NOT NULL GROUP BY cuisine ORDER BY n DESC"
+        )
+    ]
+    books = [
+        {"value": row["book"], "count": row["n"]}
+        for row in conn.execute("SELECT book, COUNT(*) AS n FROM recipes GROUP BY book ORDER BY n DESC")
+    ]
+    return {"cuisines": cuisines, "books": books}

@@ -9,6 +9,18 @@ dependencies = [
     "openai>=1.30",
     "httpx>=0.27",
     "python-dotenv>=1.0",
+    "bcrypt>=4.0",
+    "pyjwt>=2.8",
+    # backend/main.py's runtime deps — previously installed ad hoc into the
+    # venv (never declared here), so a plain `uv sync` silently uninstalled
+    # them. Kept loose to match what was already running; see
+    # backend/requirements.txt for the Docker image's own pin of these.
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "sqlalchemy>=2.0",
+    "pydantic>=2.0",
+    "chromadb>=0.5",
+    "fastmcp>=0.4",
 ]
 
 [project.optional-dependencies]

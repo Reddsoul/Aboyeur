@@ -590,3 +590,68 @@ def test_write_nutrition_frontmatter_missing_file_returns_false(tmp_path):
     macros = {"calories": 1, "protein_g": 1, "carb_g": 1, "fat_g": 1}
     assert not nutrition.write_nutrition_frontmatter(
         str(tmp_path / "nope.md"), macros, "medium", "now")
+
+
+# ---------------------------------------------------------------------------
+# plural folding + duplicate-dish guard (2026-08-19 audit fixes)
+# ---------------------------------------------------------------------------
+
+def test_meaningful_ingredients_folds_plurals():
+    m = optimizer.meaningful_ingredients(["potatoes", "potato", "carrots"])
+    assert m == {"potato", "carrot"}
+
+
+def test_meaningful_ingredients_excludes_plural_staples():
+    # 'onions' must be recognized as the staple 'onion'.
+    m = optimizer.meaningful_ingredients(["onions", "chicken"])
+    assert m == {"chicken"}
+
+
+def test_norm_title_merges_double_indexed_variants():
+    # Real corpus pair: same dish indexed twice from the same book.
+    a = optimizer.norm_title("VEGETABLE DINNER, EASILY DIGESTED")
+    b = optimizer.norm_title("Vegetable Dinner, Easily Digested (Pulmentarium Ad Ventrem)")
+    assert a == b == "vegetable dinner easily digested"
+
+
+def test_select_menu_never_serves_duplicate_titles():
+    candidates = [
+        _candidate(1, "NUT ROAST", "BookA", ["walnut", "breadcrumb", "sage"]),
+        _candidate(2, "Nut Roast (Deluxe)", "BookB", ["walnut", "breadcrumb", "sage"]),
+        _candidate(3, "Chicken Curry", "BookC", ["chicken", "ginger", "garlic"]),
+        _candidate(4, "Beef Stew", "BookD", ["beef", "carrot", "turnip"]),
+    ]
+    result = optimizer.select_menu(candidates, days=3, pantry=set(), target_kcal=500)
+    norm_titles = [optimizer.norm_title(p.title) for p in result["picks"]]
+    assert len(norm_titles) == len(set(norm_titles)) == 3
+
+
+def test_build_shopping_list_folds_plural_variants_without_canonical_map():
+    picks = [
+        {"ingredients": ["potatoes"]},
+        {"ingredients": ["potato"]},
+    ]
+    result = shopping.build_shopping_list(picks, pantry=set(), dislikes=[])
+    items = [it for s in result["sections"].values() for it in s]
+    assert len(items) == 1
+    assert items[0]["name"] == "potato"
+    assert items[0]["used_in_recipes"] == 2
+    assert items[0]["merged_from"] == ["potatoes"]
+
+
+def test_build_shopping_list_canonical_map_merges_and_sums_grams():
+    picks = [
+        {"ingredients": ["irish potato", "salt"]},
+        {"ingredients": ["boiled potato"]},
+    ]
+    canonical = {
+        "irish potato": {"food": "potato", "grams": 150.0},
+        "boiled potato": {"food": "potato", "grams": 120.0},
+        "salt": {"food": "salt", "grams": 5.0},
+    }
+    result = shopping.build_shopping_list(picks, pantry=set(), dislikes=[], canonical=canonical)
+    items = {it["name"]: it for s in result["sections"].values() for it in s}
+    assert set(items) == {"potato", "salt"}
+    assert items["potato"]["approx_grams"] == 270
+    assert items["potato"]["used_in_recipes"] == 2
+    assert sorted(items["potato"]["merged_from"]) == ["boiled potato", "irish potato"]

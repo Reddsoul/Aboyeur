@@ -33,6 +33,7 @@ def config(tmp_path: Path, _fixtures_local: Path) -> Config:
     shutil.copytree(_fixtures_local, recipes_dir)
     return Config(
         recipes_dir=recipes_dir,
+        reference_dir=tmp_path / "reference",  # unused by these tests, no dir needed
         db_path=tmp_path / "test.db",
         llm_base_url="http://unused",
         llm_model="unused",
@@ -55,3 +56,11 @@ def db_conn(config: Config) -> sqlite3.Connection:
     conn = connect(config.db_path)
     yield conn
     conn.close()
+
+
+@pytest.fixture()
+def user_id(db_conn: sqlite3.Connection) -> int:
+    """A real users.id row — profile/pantry/menus all FK to this, and
+    connect() turns PRAGMA foreign_keys=ON, so tool calls need a real owner."""
+    from aboyeur import auth
+    return auth.get_or_create_user(db_conn, "tester@example.com")

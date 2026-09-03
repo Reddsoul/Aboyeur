@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+from aboyeur.engines.nutrition import fold_plural
+
 _SECTION_KEYWORDS = {
     "protein": ["chicken", "beef", "pork", "lamb", "fish", "shrimp", "prawn", "tofu",
                 "egg", "salmon", "tuna", "turkey", "bacon", "sausage", "duck", "crab",
@@ -62,32 +64,63 @@ def categorize_ingredient(name: str) -> str:
     return "pantry"
 
 
-def build_shopping_list(picks: list[dict], pantry: set[str], dislikes: list[str] | None = None) -> dict:
+def build_shopping_list(
+    picks: list[dict],
+    pantry: set[str],
+    dislikes: list[str] | None = None,
+    canonical: dict[str, dict] | None = None,
+) -> dict:
     """Aggregate ingredients across a menu's recipes, grouped by grocery section.
 
     picks: [{"ingredients": [...]}, ...] — any dict with an "ingredients" list.
-    Pantry items are marked have=True; disliked ingredients are flagged for a sub.
+    canonical: optional {raw_line_lowercased: {"food": str, "grams": float}}
+    from nutrition.parse_ingredients — when given, raw lines aggregate under
+    their canonical food ("irish potato", "boiled potato", "potatoes" all
+    become one "potato" entry with summed grams) instead of one list item per
+    distinct raw string. Without it, plural folding alone still merges
+    "potato"/"potatoes". Pantry items are marked have=True; disliked
+    ingredients are flagged for a sub.
     """
     dislikes = [d.lower().strip() for d in (dislikes or []) if d.strip()]
     pantry = {p.lower().strip() for p in pantry}
+    canonical = canonical or {}
 
     agg: dict[str, dict] = {}
     for r in picks:
+        recipe_foods: set[str] = set()  # count each recipe once per food
         for ing in r["ingredients"]:
-            key = ing.lower().strip()
-            entry = agg.setdefault(key, {"used_in": 0, "section": categorize_ingredient(key)})
-            entry["used_in"] += 1
+            raw = ing.lower().strip()
+            parsed = canonical.get(raw)
+            food = fold_plural((parsed or {}).get("food") or raw)
+            if not food:
+                continue
+            entry = agg.setdefault(food, {
+                "used_in": 0, "grams": 0.0, "grams_known": False,
+                "variants": set(), "section": categorize_ingredient(food),
+            })
+            if raw != food:
+                entry["variants"].add(raw)
+            grams = (parsed or {}).get("grams") or 0.0
+            if grams > 0:
+                entry["grams"] += float(grams)
+                entry["grams_known"] = True
+            if food not in recipe_foods:
+                entry["used_in"] += 1
+                recipe_foods.add(food)
 
     sections: dict[str, list] = {s: [] for s in _SECTIONS}
-    for ing, entry in sorted(agg.items(), key=lambda kv: (-kv[1]["used_in"], kv[0])):
-        have = any(p in ing or ing in p for p in pantry)
-        flagged = any(d in ing or ing in d for d in dislikes)
+    for food, entry in sorted(agg.items(), key=lambda kv: (-kv[1]["used_in"], kv[0])):
+        have = any(p in food or food in p for p in pantry)
+        flagged = any(d in food or food in d for d in dislikes)
         item = {
-            "name": ing,
+            "name": food,
+            "approx_grams": round(entry["grams"]) if entry["grams_known"] else None,
             "used_in_recipes": entry["used_in"],
             "have": have,
             "flag": "sub needed" if flagged else None,
         }
+        if entry["variants"]:
+            item["merged_from"] = sorted(entry["variants"])
         sections.setdefault(entry["section"], []).append(item)
 
     sections = {k: v for k, v in sections.items() if v}

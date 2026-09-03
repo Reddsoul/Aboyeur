@@ -58,6 +58,49 @@ def cmd_index(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_index_reference(args: argparse.Namespace) -> int:
+    from aboyeur.reference_indexer import index_reference_corpus
+
+    config = Config.load()
+    console.print(f"[bold]REFERENCE_DIR[/bold] {config.reference_dir}")
+    console.print(f"[bold]DB_PATH[/bold]       {config.db_path}")
+    console.print(f"[bold]mode[/bold]          {'rebuild (full rechunk)' if args.rebuild else 'incremental'}")
+
+    start = time.monotonic()
+    try:
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("indexing", total=None)
+
+            def on_progress(done: int, total: int) -> None:
+                progress.update(task, total=total, completed=done)
+
+            stats = index_reference_corpus(config, rebuild=args.rebuild, progress_cb=on_progress)
+    except FileNotFoundError as e:
+        console.print(f"[bold red]error:[/bold red] {e}")
+        return 1
+
+    elapsed = time.monotonic() - start
+    console.print()
+    console.print(f"scanned:        {stats.scanned}")
+    console.print(f"inserted files: {stats.inserted_files}")
+    console.print(f"updated files:  {stats.updated_files}")
+    console.print(f"unchanged:      {stats.unchanged_files}")
+    console.print(f"chunks written: {stats.chunks_written}")
+    console.print(f"skipped (no frontmatter): {stats.skipped_no_frontmatter}")
+    if stats.errors:
+        console.print(f"[yellow]{len(stats.errors)} errors (first 10):[/yellow]")
+        for e in stats.errors[:10]:
+            console.print(f"  {e}")
+    console.print(f"took {elapsed:.1f}s")
+    return 0
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     config = Config.load()
     if not config.db_path.exists():
@@ -71,11 +114,22 @@ def cmd_stats(args: argparse.Namespace) -> int:
         "SELECT COUNT(DISTINCT cuisine) FROM recipes WHERE cuisine IS NOT NULL"
     ).fetchone()[0]
     n_embedded = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0]
+    n_ref_chunks = conn.execute(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='nutrition_reference'"
+    ).fetchone()[0]
+    n_ref_chunks = (
+        conn.execute("SELECT COUNT(*) FROM nutrition_reference").fetchone()[0] if n_ref_chunks else 0
+    )
+    n_ref_books = (
+        conn.execute("SELECT COUNT(DISTINCT book) FROM nutrition_reference").fetchone()[0]
+        if n_ref_chunks else 0
+    )
 
     console.print(f"[bold]recipes[/bold]  {n_recipes}")
     console.print(f"[bold]books[/bold]    {n_books}")
     console.print(f"[bold]cuisines[/bold] {n_cuisines}")
     console.print(f"[bold]embedded[/bold] {n_embedded} (vector search not wired yet)")
+    console.print(f"[bold]reference chunks[/bold] {n_ref_chunks} ({n_ref_books} books) — run `aboyeur index-reference` if 0")
 
     console.print()
     console.print("[bold]top 10 books by recipe count[/bold]")
@@ -129,10 +183,19 @@ def cmd_chat(args: argparse.Namespace) -> int:
         console.print(f"[bold red]error:[/bold red] no DB at {config.db_path} — run `aboyeur index` first")
         return 1
 
+    from aboyeur import auth
     from aboyeur.agent import Agent
+    from aboyeur.db import init_db
+    from aboyeur.migrate import SEED_USER_EMAIL, migrate
 
     conn = connect(config.db_path)
-    agent = Agent(conn, config)
+    init_db(conn)
+    migrate(conn)  # idempotent; no-op once already migrated
+    # The CLI is a single local user, not the multi-tenant web path — resolve
+    # (or first-run create) an account by email rather than requiring a
+    # password login. --user overrides the default household owner.
+    user_id = auth.get_or_create_user(conn, args.user or SEED_USER_EMAIL)
+    agent = Agent(conn, config, user_id)
 
     console.print("[bold]Aboyeur[/bold] — your 60k-recipe cookbook, expedited. 'exit' to leave.\n")
     try:
@@ -165,6 +228,34 @@ def cmd_chat(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_create_user(args: argparse.Namespace) -> int:
+    """Provision an investor/tester account — invite-only, no public signup
+    route. Prints the plain password once; nothing else displays or stores it."""
+    import getpass
+
+    from aboyeur import auth
+    from aboyeur.db import init_db
+
+    config = Config.load()
+    conn = connect(config.db_path)
+    init_db(conn)
+
+    password = args.password or getpass.getpass(f"password for {args.email}: ")
+    if not password:
+        console.print("[bold red]error:[/bold red] password cannot be empty")
+        return 1
+    try:
+        user_id = auth.create_user(conn, args.email, password)
+    except auth.AuthError as e:
+        console.print(f"[bold red]error:[/bold red] {e}")
+        return 1
+    finally:
+        conn.close()
+
+    console.print(f"[bold green]created[/bold green] user {user_id} ({args.email})")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aboyeur")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -172,6 +263,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_index = sub.add_parser("index", help="build/update the recipe index from RECIPES_DIR")
     p_index.add_argument("--rebuild", action="store_true", help="full reparse, ignore mtimes")
     p_index.set_defaults(func=cmd_index)
+
+    p_index_ref = sub.add_parser("index-reference", help="build/update the nutrition-reference index from REFERENCE_DIR")
+    p_index_ref.add_argument("--rebuild", action="store_true", help="full rechunk, ignore mtimes")
+    p_index_ref.set_defaults(func=cmd_index_reference)
 
     p_stats = sub.add_parser("stats", help="print corpus/index stats")
     p_stats.set_defaults(func=cmd_stats)
@@ -183,7 +278,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_chat = sub.add_parser("chat", help="conversational REPL")
     p_chat.add_argument("--debug", action="store_true", help="show tool-call trace")
+    p_chat.add_argument("--user", help="household owner's email (default: the seed account)")
     p_chat.set_defaults(func=cmd_chat)
+
+    p_create_user = sub.add_parser("create-user", help="provision an account (invite-only, admin use)")
+    p_create_user.add_argument("email")
+    p_create_user.add_argument("--password", help="omit to be prompted (hidden input)")
+    p_create_user.set_defaults(func=cmd_create_user)
 
     return parser
 

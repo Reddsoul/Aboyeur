@@ -23,7 +23,10 @@ empties it.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+
+from aboyeur.engines.nutrition import fold_plural
 
 W_INGREDIENT_OVERLAP = 1.0
 W_PANTRY_OVERLAP = 2.0
@@ -140,8 +143,31 @@ def main_protein(ingredients: list[str]) -> str | None:
     return None
 
 
+# Staples folded to singular once, so 'egg'/'eggs' style variants match the
+# folded ingredient names below.
+_FOLDED_STAPLES = {fold_plural(s) for s in UNIVERSAL_STAPLES}
+
+
 def meaningful_ingredients(ingredients: list[str]) -> set[str]:
-    return {i.lower() for i in ingredients if i.lower() not in UNIVERSAL_STAPLES}
+    """Lowercased, plural-folded ingredient names minus universal staples —
+    'potatoes' and 'potato' count as the same ingredient for overlap."""
+    folded = (fold_plural(i) for i in ingredients)
+    return {i for i in folded if i and i not in _FOLDED_STAPLES}
+
+
+_TITLE_PAREN_RE = re.compile(r"\([^)]*\)")
+_TITLE_JUNK_RE = re.compile(r"[^a-z0-9 ]+")
+
+
+def norm_title(title: str) -> str:
+    """Casefold + strip parentheticals/punctuation, for duplicate-dish
+    detection: 'VEGETABLE DINNER, EASILY DIGESTED' and 'Vegetable Dinner,
+    Easily Digested (Pulmentarium Ad Ventrem)' normalize identically —
+    the corpus contains such double-indexed recipes, and a menu must never
+    serve the same dish twice under two ids."""
+    s = _TITLE_PAREN_RE.sub(" ", (title or "").lower())
+    s = _TITLE_JUNK_RE.sub(" ", s)
+    return " ".join(s.split())
 
 
 def macro_fit(macros: dict, target_kcal: float, target_macros: dict | None = None) -> float:
@@ -231,6 +257,19 @@ def select_menu(
     base_pool = [c for c in candidates if not is_dessert(c["title"]) and not is_drink(c["title"])]
     if len(base_pool) < total_picks:
         base_pool = list(candidates)  # never starve the pool over a soft rule
+
+    # Drop duplicate dishes (same normalized title, first id wins) so a
+    # double-indexed recipe can't be served twice — same never-starve rule.
+    seen_titles: set[str] = set()
+    deduped = []
+    for c in base_pool:
+        nt = norm_title(c["title"])
+        if nt in seen_titles:
+            continue
+        seen_titles.add(nt)
+        deduped.append(c)
+    if len(deduped) >= total_picks:
+        base_pool = deduped
 
     if cuisine_affinity:
         cuisine_pool = [c for c in base_pool if (c.get("cuisine") or "").lower() in cuisine_affinity]
@@ -391,10 +430,12 @@ def _fill_daily_kcal(
     for p in picks:
         by_day.setdefault(p.day, []).append(p)
 
+    picked_titles = {norm_title(p.title) for p in picks}
     pool = [
         c for c in pool
         if not is_dessert(c["title"]) and not is_drink(c["title"])
         and float(c.get("macros", {}).get("calories") or 0) > 0
+        and norm_title(c["title"]) not in picked_titles
     ]
 
     for day in sorted(by_day):
@@ -433,7 +474,8 @@ def _fill_daily_kcal(
             # overshoot past what leaving it under would cost.
             if abs((day_kcal + best_kcal) - daily_target) >= abs(day_kcal - daily_target):
                 break
-            pool.remove(best)
+            picked_titles.add(norm_title(best["title"]))
+            pool = [c for c in pool if norm_title(c["title"]) not in picked_titles]
             m_ings = meaningful_ingredients(best["ingredients"])
             shared = sorted(m_ings & selected_meaningful)
             day_picks.append(MenuPick(

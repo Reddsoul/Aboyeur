@@ -18,7 +18,25 @@
       "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('stored allergies:', d['allergies']\\); print\\('stored members:', [m['id'] for m in d['household']]\\)\")",
       "Bash(/Users/macmini-m4/.venvs/aboyeur/bin/python -m json.tool)",
       "Bash(curl -s -m 5 -o /dev/null -w \"now: %{http_code}\\\\n\" http://localhost:8000/profile/ui)",
-      "Bash(awk 'NR>=1685 && NR<=1690' logs/uvicorn.log)"
+      "Bash(awk 'NR>=1685 && NR<=1690' logs/uvicorn.log)",
+      "Bash(curl -s -m 5 http://localhost:8000/profile/ui -o /dev/null -w \"profile/ui: HTTP %{http_code}\\\\n\")",
+      "Bash(ps -p 40331 -o pid,command)",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, email FROM users; SELECT COUNT\\(*\\) FROM recipes; SELECT user_id FROM profile;\")",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT recipe_id FROM nutrition WHERE confidence != 'low' LIMIT 6;\")",
+      "Bash(pkill -f \"uvicorn backend.main:app --host 0.0.0.0 --port 8010\")",
+      "Bash(npm --version)",
+      "Bash(npm create *)",
+      "Bash(rmdir src/assets)",
+      "Bash(rm -f public/vite.svg public/icons.svg)",
+      "Bash(npx playwright *)",
+      "Bash(npm ls *)",
+      "Bash(node e2e-smoke.mjs)",
+      "Bash(curl -s -m 5 http://localhost:8000/auth/me -o /dev/null -w \"backend HTTP %{http_code}\\\\n\")",
+      "Bash(node e2e-onboarding.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -m 3 -o /dev/null -w \"backend :8000 -> %{http_code}\\\\n\" http://localhost:8000/auth/me)",
+      "Bash(curl -s -m 3 -o /dev/null -w \"frontend :5173 -> %{http_code}\\\\n\" http://localhost:5173)",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, email FROM users;\")"
     ]
   }
 }

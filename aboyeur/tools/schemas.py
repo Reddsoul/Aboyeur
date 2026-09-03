@@ -1,4 +1,4 @@
-"""OpenAI-style JSON schemas for the 9 tools, task.md §5.
+"""OpenAI-style JSON schemas for the LLM's tools, task.md §5.
 
 Kept separate from the tool implementations: the schema is what the LLM
 sees (names, descriptions, parameter shapes) and is tuned for a mid-size
@@ -256,18 +256,68 @@ TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
-            "name": "get_shopping_list",
+            "name": "get_menu_recipes",
             "description": (
-                "Build the consolidated grocery list for a menu, grouped by store section "
-                "(produce, protein, dairy, pantry, spice, frozen). Pantry items already on "
-                "hand are marked have=true rather than removed, so you can show what's needed "
-                "vs. what's already there. Omit menu_id to use the most recently planned menu."
+                "Fetch EVERY recipe in a planned menu as one markdown document, already "
+                "in day-then-meal order with a heading per slot (day, meal, dish title, "
+                "portion note). Use this for STEP 2 delivery after the user confirms a "
+                "plan — ONE call replaces calling get_recipe once per slot, and the "
+                "ordering/labeling is done for you. Show the returned markdown verbatim; "
+                "do NOT reorder, relabel, or paraphrase it. Omit menu_id to use the most "
+                "recently planned menu."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "menu_id": {"type": "integer", "description": "Omit to use the most recent menu."},
                 },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_shopping_list",
+            "description": (
+                "Build the consolidated grocery list for a menu, grouped by store section "
+                "(produce, protein, dairy, pantry, spice, frozen). Ingredient variants are "
+                "already merged into one canonical item with total approx_grams and a "
+                "used_in_recipes count (e.g. 'potatoes' + 'boiled potato' -> one 'potato' "
+                "entry) — present items as given, don't re-merge or re-split them. Pantry "
+                "items already on hand are marked have=true rather than removed, so you can "
+                "show what's needed vs. what's already there. Omit menu_id to use the most "
+                "recently planned menu."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "menu_id": {"type": "integer", "description": "Omit to use the most recent menu."},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_nutrition_reference",
+            "description": (
+                "Search vintage nutrition-science/diet-theory books (calorie tables, "
+                "vitamin/mineral facts, dietetics, food chemistry — public-domain texts, "
+                "roughly 1800s-1920s) for background explanation. This is NOT the recipe "
+                "library — use search_recipes for dishes. Returns short excerpts with the "
+                "source book title. These are historical texts, not current medical "
+                "guidance: some of what they claim is outdated or since disproven (e.g. "
+                "period calorie-counting fads, discredited theories) — attribute the "
+                "source book by name and flag anything that reads as dated or medical "
+                "advice, don't present it as settled modern nutrition science."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Keywords, e.g. 'vitamin C scurvy' or 'protein requirement'."},
+                    "limit": {"type": "integer", "description": "Max excerpts, capped at 10. Default 5."},
+                },
+                "required": ["query"],
             },
         },
     },
