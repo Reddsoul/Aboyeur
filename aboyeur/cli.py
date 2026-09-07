@@ -199,12 +199,13 @@ def cmd_chat(args: argparse.Namespace) -> int:
 
     from aboyeur import auth
     from aboyeur.agent import Agent
-    from aboyeur.db import init_db
+    from aboyeur.db import init_db, schema_lock
     from aboyeur.migrate import SEED_USER_EMAIL, migrate
 
     conn = connect(config.db_path)
-    init_db(conn)
-    migrate(conn)  # idempotent; no-op once already migrated
+    with schema_lock(config.db_path):
+        init_db(conn)
+        migrate(conn)  # idempotent; no-op once already migrated
     # The CLI is a single local user, not the multi-tenant web path — resolve
     # (or first-run create) an account by email rather than requiring a
     # password login. --user overrides the default household owner.

@@ -8,6 +8,7 @@ import AppShell from './routes/AppShell';
 import Library from './routes/Library';
 import Chat from './routes/Chat';
 import Settings from './routes/Settings';
+import Account from './routes/Account';
 import Clients from './routes/Clients';
 import ClientDetail from './routes/ClientDetail';
 
@@ -73,8 +74,9 @@ export default function App() {
         <Route path="library" element={<Library />} />
         <Route path="clients" element={<Clients />} />
         <Route path="clients/:clientId" element={<ClientDetail />} />
-        {/* Pre-clients deep link: the profile now lives under its client. */}
-        <Route path="profile" element={<Navigate to="/app/clients" replace />} />
+        <Route path="account" element={<Account />} />
+        {/* Pre-clients deep link: a "profile" used to mean the household. */}
+        <Route path="profile" element={<Navigate to="/app/account" replace />} />
         <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to={userId ? home : '/login'} replace />} />

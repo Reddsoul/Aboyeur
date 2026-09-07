@@ -119,6 +119,7 @@ def browse_recipes(
     allergies: list[str] | None = None,
     offset: int = 0,
     limit: int = 24,
+    only_ids: set[int] | None = None,
 ) -> tuple[list[dict], int]:
     """Paginated catalog browsing (the Library UI's default grid) — unlike
     search_recipes, an empty query means "show everything" rather than no
@@ -128,6 +129,12 @@ def browse_recipes(
     total is a pre-allergy-filter SQL count (an upper bound, not exact) —
     the allergen check runs in Python same as search_recipes, since FTS
     can't express "ingredients_json does not contain X".
+
+    only_ids restricts the whole query to a set of recipe ids — how the
+    Library's Favorites section is built. Filtering in SQL rather than
+    fetching a page and keeping the starred ones: over a 75k-recipe corpus
+    the starred ones are almost never in the first page, which looked exactly
+    like favorites not saving.
     """
     limit = min(max(1, limit), 100)
     offset = max(0, offset)
@@ -136,6 +143,11 @@ def browse_recipes(
 
     conditions: list[str] = []
     params: list = []
+    if only_ids is not None:
+        if not only_ids:
+            return [], 0
+        conditions.append(f"r.id IN ({', '.join('?' * len(only_ids))})")
+        params.extend(sorted(only_ids))
     if safe_query is not None:
         conditions.append("recipes_fts MATCH ?")
         params.append(safe_query)

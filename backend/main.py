@@ -551,6 +551,9 @@ class ChatBody(BaseModel):
     # Which client this turn is for. Omitted (CLI-ish callers, older builds)
     # falls back to the account's default client rather than guessing.
     client_id: Optional[int] = None
+    # Which of that client's conversations. Omitted continues their most
+    # recent one, creating the first if they have none.
+    session_id: Optional[int] = None
 
 
 import threading
@@ -558,11 +561,16 @@ import threading
 from dataclasses import replace as _dc_replace
 
 from aboyeur import auth as _aboyeur_auth
+from aboyeur import chat_history as _aboyeur_chat_history
 from aboyeur import clients as _aboyeur_clients
 from aboyeur import llm_settings as _aboyeur_llm_settings
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
-from aboyeur.db import connect as _aboyeur_connect, init_db as _aboyeur_init_db
+from aboyeur.db import (
+    connect as _aboyeur_connect,
+    init_db as _aboyeur_init_db,
+    schema_lock as _aboyeur_schema_lock,
+)
 from aboyeur.migrate import SEED_USER_EMAIL as _SEED_USER_EMAIL, migrate as _aboyeur_migrate
 from aboyeur.tools.profile import (
     get_profile as _aboyeur_get_profile,
@@ -575,8 +583,12 @@ from backend import profile_ui
 # ingest pipeline wired up (never populated) — chat delegates here instead.
 _aboyeur_config = _AboyeurConfig.load()
 _aboyeur_conn = _aboyeur_connect(_aboyeur_config.db_path)
-_aboyeur_init_db(_aboyeur_conn)
-_aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+# Under one cross-process lock: --reload starts a fresh app process per edit,
+# and two of these overlapping can rebuild a table the other has renamed away
+# mid-migration (see aboyeur.db.schema_lock).
+with _aboyeur_schema_lock(_aboyeur_config.db_path):
+    _aboyeur_init_db(_aboyeur_conn)
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once already migrated
 
 # The unauthenticated OpenAI-compat shim (oa_chat_completions, for Odysseus/
 # OpenWebUI) has no login of its own — it always plans for this one seed
@@ -592,12 +604,13 @@ _SEED_USER_ID = _aboyeur_auth.get_or_create_user(_aboyeur_conn, _SEED_USER_EMAIL
 # doesn't make concurrent execute() calls on one connection object safe.
 # With separate connections, different users' turns need no lock between
 # them at all: WAL mode is built for exactly this multi-connection pattern.
-# Keyed by (user_id, client_id), not user_id: a practitioner switching from
-# one client to another must get a different Agent — its own history, its own
-# system prompt, its own scoped tools. Sharing one agent across clients would
-# let last client's plan bleed into the next one's conversation, which is the
-# single thing PRACTITIONER_PLAN.md promises can't happen.
-_aboyeur_session_agents: dict[tuple[int, int], _AboyeurAgent] = {}
+# Keyed by (user_id, client_id, chat_session_id). Two reasons, in order of
+# importance: a practitioner switching clients must get a different Agent, or
+# one client's plan bleeds into the next one's conversation (the single thing
+# PRACTITIONER_PLAN.md promises can't happen); and starting a new conversation
+# with the SAME client must also start a fresh Agent, or "new chat" would keep
+# answering out of the old thread's context.
+_aboyeur_session_agents: dict[tuple[int, int, int], _AboyeurAgent] = {}
 _aboyeur_sessions_lock = threading.Lock()  # guards dict get-or-create, not turn execution
 
 
@@ -634,6 +647,17 @@ def _effective_config(user_id: int) -> Optional[_AboyeurConfig]:
     return None
 
 
+def _stored_history(chat_session_id: int) -> list[dict]:
+    """Seed a fresh Agent with this conversation's recent turns, so picking it
+    back up after a restart (or after working with someone else) continues
+    where it left off instead of starting cold."""
+    conn = _profile_conn()
+    try:
+        return _aboyeur_chat_history.agent_history(conn, chat_session_id)
+    finally:
+        conn.close()
+
+
 def _client_name(client_id: int) -> str:
     conn = _profile_conn()
     try:
@@ -643,20 +667,26 @@ def _client_name(client_id: int) -> str:
     return row["name"] if row is not None else "this client"
 
 
-def _get_session_agent(user_id: int, client_id: int) -> Optional[_AboyeurAgent]:
+def _get_session_agent(user_id: int, client_id: int,
+                       chat_session_id: int) -> Optional[_AboyeurAgent]:
     with _aboyeur_sessions_lock:
-        agent = _aboyeur_session_agents.get((user_id, client_id))
+        key = (user_id, client_id, chat_session_id)
+        agent = _aboyeur_session_agents.get(key)
         if agent is None:
             config = _effective_config(user_id)
             if config is None:
                 return None
-            agent = _AboyeurAgent(_profile_conn(), config, client_id,
-                                  client_name=_client_name(client_id))
-            _aboyeur_session_agents[(user_id, client_id)] = agent
+            agent = _AboyeurAgent(
+                _profile_conn(), config, client_id,
+                history=_stored_history(chat_session_id),
+                client_name=_client_name(client_id),
+            )
+            _aboyeur_session_agents[key] = agent
         return agent
 
 
-def _reset_session_agent(user_id: int, client_id: int, guest: bool = False) -> Optional[_AboyeurAgent]:
+def _reset_session_agent(user_id: int, client_id: int, chat_session_id: int,
+                         guest: bool = False) -> Optional[_AboyeurAgent]:
     config = _effective_config(user_id)
     if config is None:
         _drop_session_agent(user_id, client_id)
@@ -667,20 +697,28 @@ def _reset_session_agent(user_id: int, client_id: int, guest: bool = False) -> O
             guest_profile=_make_guest_profile() if guest else None,
             client_name=_client_name(client_id),
         )
-        _aboyeur_session_agents[(user_id, client_id)] = agent
+        _aboyeur_session_agents[(user_id, client_id, chat_session_id)] = agent
         return agent
 
 
-def _drop_session_agent(user_id: int, client_id: Optional[int] = None) -> None:
-    """Forget cached agents so the next turn rebuilds them. client_id=None
-    drops every client's agent for this account — what an LLM settings change
-    needs, since the new endpoint applies to all of them."""
+def _drop_session_agent(user_id: int, client_id: Optional[int] = None,
+                        chat_session_id: Optional[int] = None) -> None:
+    """Forget cached agents so the next turn rebuilds them.
+
+    Widening scope on purpose: no client_id drops every agent for the account
+    (an LLM settings change applies to all of them); a client_id with no
+    conversation drops all of that client's (a profile edit changes every one
+    of their conversations' system prompt).
+    """
     with _aboyeur_sessions_lock:
         if client_id is None:
-            for key in [k for k in _aboyeur_session_agents if k[0] == user_id]:
-                _aboyeur_session_agents.pop(key, None)
+            keys = [k for k in _aboyeur_session_agents if k[0] == user_id]
+        elif chat_session_id is None:
+            keys = [k for k in _aboyeur_session_agents if k[:2] == (user_id, client_id)]
         else:
-            _aboyeur_session_agents.pop((user_id, client_id), None)
+            keys = [(user_id, client_id, chat_session_id)]
+        for key in keys:
+            _aboyeur_session_agents.pop(key, None)
 
 
 def _require_client(conn: sqlite3.Connection, user_id: int, client_id: Optional[int]) -> int:
@@ -779,9 +817,14 @@ def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
             yield payload
 
 
-def _agent_stream(agent: _AboyeurAgent, message: str):
+def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] = None):
+    """record_for: the conversation this turn belongs to. The reply is saved
+    once the stream finishes (including the error tail), so a half-streamed
+    answer is still there on the next visit."""
+    parts: list[str] = []
     try:
         for tok in _agent_tokens(agent, message):
+            parts.append(tok)
             yield _sse(tok)
     except Exception:
         # Anything raised mid-generator here previously killed the chunked
@@ -790,8 +833,24 @@ def _agent_stream(agent: _AboyeurAgent, message: str):
         # the stream cleanly instead, so the client at least gets a
         # well-formed (if apologetic) response rather than a truncated one.
         logger.exception("agent stream failed mid-response")
-        yield _sse("\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]")
+        tail = "\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]"
+        parts.append(tail)
+        yield _sse(tail)
+    if record_for is not None:
+        _record_message(record_for, "assistant", "".join(parts))
     yield _sse("[DONE]")
+
+
+def _record_message(chat_session_id: int, role: str, content: str) -> None:
+    if not content.strip():
+        return
+    conn = _profile_conn()
+    try:
+        _aboyeur_chat_history.append_message(conn, chat_session_id, role, content)
+    except Exception:  # a transcript write must never break the reply
+        logger.exception("couldn't record %s message for conversation %s", role, chat_session_id)
+    finally:
+        conn.close()
 
 
 # ===========================================================================
@@ -912,32 +971,48 @@ def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_us
     conn = _profile_conn()
     try:
         client_id = _require_client(conn, user_id, body.client_id)
+        chat_session_id = _require_chat_session(conn, client_id, body.session_id)
     finally:
         conn.close()
 
     reply = _profile_command_reply(body.message, request, client_id)
     if reply is not None:
+        _record_message(chat_session_id, "user", body.message)
+        _record_message(chat_session_id, "assistant", reply)
         return StreamingResponse(iter([_sse(reply), _sse("[DONE]")]),
                                  media_type="text/event-stream")
 
     guest = _guest_command(body.message)
     if guest == "OFF":
-        _drop_session_agent(user_id, client_id)
+        _drop_session_agent(user_id, client_id, chat_session_id)
         return StreamingResponse(
             iter([_sse("Guest session ended — back to this client's profile."), _sse("[DONE]")]),
             media_type="text/event-stream")
     if guest is not None:
-        agent = _reset_session_agent(user_id, client_id, guest=True)
+        agent = _reset_session_agent(user_id, client_id, chat_session_id, guest=True)
         if agent is None:
             return _needs_llm_setup_stream()
+        # Guest turns are deliberately not recorded — nothing a guest says is
+        # persisted anywhere, transcript included.
         return StreamingResponse(_agent_stream(agent, guest or _GUEST_DEFAULT_PROMPT),
                                  media_type="text/event-stream")
 
-    agent = _get_session_agent(user_id, client_id)
+    agent = _get_session_agent(user_id, client_id, chat_session_id)
     if agent is None:
         return _needs_llm_setup_stream()
-    return StreamingResponse(_agent_stream(agent, body.message),
+    _record_message(chat_session_id, "user", body.message)
+    return StreamingResponse(_agent_stream(agent, body.message, record_for=chat_session_id),
                              media_type="text/event-stream")
+
+
+def _require_chat_session(conn: sqlite3.Connection, client_id: int,
+                          session_id: Optional[int]) -> int:
+    """A conversation id is only valid for the client that owns it — and that
+    client has already been checked against the account."""
+    try:
+        return _aboyeur_chat_history.resolve_session(conn, client_id, session_id)
+    except _aboyeur_chat_history.UnknownSession:
+        raise HTTPException(404, "no such conversation")
 
 
 def _needs_llm_setup_stream() -> StreamingResponse:
@@ -1164,16 +1239,26 @@ def api_recipe_facets(user_id: int = Depends(get_current_user)):
 def api_recipes(
     query: str = "", cuisine: Optional[str] = None, book: Optional[str] = None,
     offset: int = Query(0, ge=0), limit: int = Query(24, ge=1, le=100),
+    favorites_only: bool = False,
+    client_id: Optional[int] = None,
     user_id: int = Depends(get_current_user),
 ):
+    """The catalog, seen through one client: their allergens are filtered out
+    and their stars are the ones lit.
+
+    favorites_only restricts it to what they've starred — done in SQL, because
+    a starred recipe is rarely inside the first page of a 75k-recipe catalog.
+    """
     conn = _profile_conn()
     try:
-        profile = _aboyeur_get_profile(conn, user_id)
+        resolved = _require_client(conn, user_id, client_id)
+        profile = _aboyeur_get_profile(conn, resolved)
+        favorites = list_favorite_ids(conn, resolved)
         results, total = browse_recipes(
             conn, query=query, cuisine=cuisine, book=book,
             allergies=profile.get("allergies", []), offset=offset, limit=limit,
+            only_ids=favorites if favorites_only else None,
         )
-        favorites = list_favorite_ids(conn, user_id)
         for r in results:
             r["favorite"] = r["id"] in favorites
         return {"results": results, "total": total, "offset": offset, "limit": limit}
@@ -1182,7 +1267,8 @@ def api_recipes(
 
 
 @app.get("/api/recipes/{recipe_id}")
-def api_recipe_detail(recipe_id: int, user_id: int = Depends(get_current_user)):
+def api_recipe_detail(recipe_id: int, client_id: Optional[int] = None,
+                      user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
         recipe = _get_recipe(conn, recipe_id)
@@ -1202,27 +1288,30 @@ def api_recipe_detail(recipe_id: int, user_id: int = Depends(get_current_user)):
             recipe["cuisine"] = row["cuisine"]
             recipe["ingredients"] = json.loads(row["ingredients_json"])
             recipe["tags"] = json.loads(row["tags_json"])
-        recipe["favorite"] = recipe_id in list_favorite_ids(conn, user_id)
+        recipe["favorite"] = recipe_id in list_favorite_ids(
+            conn, _require_client(conn, user_id, client_id))
         return recipe
     finally:
         conn.close()
 
 
 @app.post("/api/recipes/{recipe_id}/favorite")
-def api_favorite_add(recipe_id: int, user_id: int = Depends(get_current_user)):
+def api_favorite_add(recipe_id: int, client_id: Optional[int] = None,
+                     user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        add_favorite(conn, user_id, recipe_id)
+        add_favorite(conn, _require_client(conn, user_id, client_id), recipe_id)
         return {"favorite": True}
     finally:
         conn.close()
 
 
 @app.delete("/api/recipes/{recipe_id}/favorite")
-def api_favorite_remove(recipe_id: int, user_id: int = Depends(get_current_user)):
+def api_favorite_remove(recipe_id: int, client_id: Optional[int] = None,
+                        user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        remove_favorite(conn, user_id, recipe_id)
+        remove_favorite(conn, _require_client(conn, user_id, client_id), recipe_id)
         return {"favorite": False}
     finally:
         conn.close()
@@ -1261,6 +1350,121 @@ def api_menu_shopping_list(menu_id: int, client_id: Optional[int] = None,
         return result
     finally:
         conn.close()
+
+
+# ===========================================================================
+# Account — the practitioner themselves. Distinct from any client record,
+# including their own "Me" client: this is who is logged in, not who is
+# being planned for.
+# ===========================================================================
+
+class AccountPatch(BaseModel):
+    name: Optional[str] = None
+    practice: Optional[str] = None
+    email: Optional[str] = None
+
+
+class PasswordBody(BaseModel):
+    current_password: str
+    new_password: str
+
+
+def _account(conn: sqlite3.Connection, user_id: int) -> dict:
+    row = conn.execute(
+        "SELECT id, email, name, practice, created_at FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
+    if row is None:
+        raise HTTPException(404, "account not found")
+    counts = conn.execute(
+        "SELECT COUNT(*) total, SUM(status = 'active') active FROM clients WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    self_client = conn.execute(
+        "SELECT id, name FROM clients WHERE user_id = ? AND is_self = 1 ORDER BY id LIMIT 1",
+        (user_id,),
+    ).fetchone()
+    return {
+        "id": row["id"],
+        "email": row["email"],
+        "name": row["name"],
+        "practice": row["practice"],
+        "created_at": row["created_at"],
+        "client_count": counts["total"] or 0,
+        "active_client_count": counts["active"] or 0,
+        # The practitioner's own client record — "you, as someone to plan for".
+        "self_client": ({"id": self_client["id"], "name": self_client["name"]}
+                        if self_client is not None else None),
+    }
+
+
+@app.get("/api/account")
+def api_account_get(user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        # Every account has a client for its owner; created here on first read
+        # so the account screen can always link to it.
+        _aboyeur_clients.ensure_self_client(conn, user_id)
+        return _account(conn, user_id)
+    finally:
+        conn.close()
+
+
+@app.patch("/api/account")
+def api_account_update(patch: AccountPatch, user_id: int = Depends(get_current_user)):
+    fields = patch.model_dump(exclude_unset=True)
+    conn = _profile_conn()
+    try:
+        sets, values = [], []
+        for column in ("name", "practice"):
+            if column in fields:
+                value = (fields[column] or "").strip() or None
+                sets.append(f"{column} = ?")
+                values.append(value)
+        if "email" in fields:
+            email = (fields["email"] or "").strip().lower()
+            if not email or "@" not in email:
+                raise HTTPException(400, "that doesn't look like an email address")
+            taken = conn.execute(
+                "SELECT id FROM users WHERE email = ? AND id != ?", (email, user_id)
+            ).fetchone()
+            if taken is not None:
+                raise HTTPException(409, "another account already uses that email")
+            sets.append("email = ?")
+            values.append(email)
+        if sets:
+            values.append(user_id)
+            conn.execute(f"UPDATE users SET {', '.join(sets)} WHERE id = ?", values)
+            conn.commit()
+        return _account(conn, user_id)
+    finally:
+        conn.close()
+
+
+@app.post("/api/account/password")
+def api_account_password(body: PasswordBody, user_id: int = Depends(get_current_user)):
+    if len(body.new_password) < 8:
+        raise HTTPException(400, "use at least 8 characters")
+    conn = _profile_conn()
+    try:
+        row = conn.execute(
+            "SELECT email, password_hash FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, "account not found")
+        # A password-less account (created by the CLI's get_or_create_user)
+        # can set one without proving the old one it never had.
+        if row["password_hash"] and not _aboyeur_auth.verify_password(
+            body.current_password, row["password_hash"]
+        ):
+            raise HTTPException(403, "current password is wrong")
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (_aboyeur_auth.hash_password(body.new_password), user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
 
 
 # ===========================================================================
@@ -1409,6 +1613,95 @@ def api_client_profile_save(client_id: int, desired: dict,
         conn.close()
     _drop_session_agent(user_id, resolved)
     return saved
+
+
+@app.get("/api/clients/{client_id}/messages")
+def api_client_messages(client_id: int, session_id: Optional[int] = None,
+                        user_id: int = Depends(get_current_user)):
+    """One conversation's messages, oldest first. Defaults to this client's
+    most recent conversation — what the chat screen opens on."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        chat_session_id = _require_chat_session(conn, resolved, session_id)
+        return {
+            "session_id": chat_session_id,
+            "messages": _aboyeur_chat_history.list_messages(conn, chat_session_id),
+        }
+    finally:
+        conn.close()
+
+
+class SessionBody(BaseModel):
+    title: Optional[str] = None
+
+
+@app.get("/api/clients/{client_id}/sessions")
+def api_client_sessions(client_id: int, user_id: int = Depends(get_current_user)):
+    """This client's conversations, most recently active first."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        return {"sessions": _aboyeur_chat_history.list_sessions(conn, resolved)}
+    finally:
+        conn.close()
+
+
+@app.post("/api/clients/{client_id}/sessions")
+def api_client_session_create(client_id: int, body: SessionBody = SessionBody(),
+                              user_id: int = Depends(get_current_user)):
+    """Start a new conversation alongside the existing ones — the old ones
+    stay exactly where they were."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        return _aboyeur_chat_history.create_session(conn, resolved, body.title)
+    finally:
+        conn.close()
+
+
+@app.patch("/api/clients/{client_id}/sessions/{session_id}")
+def api_client_session_rename(client_id: int, session_id: int, body: SessionBody,
+                              user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        _require_chat_session(conn, resolved, session_id)
+        return _aboyeur_chat_history.rename_session(conn, resolved, session_id, body.title or "")
+    finally:
+        conn.close()
+
+
+@app.delete("/api/clients/{client_id}/sessions/{session_id}")
+def api_client_session_delete(client_id: int, session_id: int,
+                              user_id: int = Depends(get_current_user)):
+    """Delete one conversation. The client's other conversations, profile and
+    plans are untouched."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        _require_chat_session(conn, resolved, session_id)
+        _aboyeur_chat_history.delete_session(conn, resolved, session_id)
+    finally:
+        conn.close()
+    _drop_session_agent(user_id, resolved, session_id)
+    return {"deleted": session_id}
+
+
+@app.delete("/api/clients/{client_id}/messages")
+def api_client_messages_clear(client_id: int, session_id: Optional[int] = None,
+                              user_id: int = Depends(get_current_user)):
+    """Empty one conversation without deleting it, and drop the live agent
+    that was seeded from it."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        chat_session_id = _require_chat_session(conn, resolved, session_id)
+        removed = _aboyeur_chat_history.clear_messages(conn, chat_session_id)
+    finally:
+        conn.close()
+    _drop_session_agent(user_id, resolved, chat_session_id)
+    return {"cleared": removed, "session_id": chat_session_id}
 
 
 @app.get("/api/clients/{client_id}/plans")

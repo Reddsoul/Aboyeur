@@ -144,6 +144,8 @@ export interface Client {
   phone: string | null;
   notes: string | null;
   status: 'active' | 'archived';
+  /** The practitioner's own record — they plan for themselves too. */
+  is_self: boolean;
   created_at: string;
   updated_at: string;
   /** Roster-card extras, computed server-side. */
@@ -227,13 +229,19 @@ export interface RecipeBrowseResult {
 }
 
 export function browseRecipes(params: {
+  /** Whose catalog view this is: their allergens filter it, their stars light up. */
+  clientId: number;
   query?: string;
   cuisine?: string;
   book?: string;
   offset?: number;
   limit?: number;
+  /** Only what this client has starred — filtered server-side. */
+  favoritesOnly?: boolean;
 }) {
   const qs = new URLSearchParams();
+  qs.set('client_id', String(params.clientId));
+  if (params.favoritesOnly) qs.set('favorites_only', 'true');
   if (params.query) qs.set('query', params.query);
   if (params.cuisine) qs.set('cuisine', params.cuisine);
   if (params.book) qs.set('book', params.book);
@@ -256,12 +264,13 @@ export interface RecipeDetail extends RecipeSummary {
   path: string;
 }
 
-export function getRecipe(id: number) {
-  return request<RecipeDetail>(`/api/recipes/${id}`);
+export function getRecipe(id: number, clientId: number) {
+  return request<RecipeDetail>(`/api/recipes/${id}?client_id=${clientId}`);
 }
 
-export function setFavorite(id: number, favorite: boolean) {
-  return request<{ favorite: boolean }>(`/api/recipes/${id}/favorite`, {
+/** A star is per client — "this suits this person", not a global bookmark. */
+export function setFavorite(id: number, favorite: boolean, clientId: number) {
+  return request<{ favorite: boolean }>(`/api/recipes/${id}/favorite?client_id=${clientId}`, {
     method: favorite ? 'POST' : 'DELETE',
   });
 }
@@ -366,19 +375,119 @@ export function testLlmConnection(body: { base_url?: string; model?: string; api
 }
 
 // ---------------------------------------------------------------------------
+// Chat history — one transcript per client, kept server-side
+// ---------------------------------------------------------------------------
+
+export interface ChatMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+/** One of a client's conversations. They keep as many as they like; starting
+ * a new one never touches the others. */
+export interface ChatSession {
+  id: number;
+  client_id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  last_message_at: string | null;
+  preview: string;
+}
+
+export function listSessions(clientId: number) {
+  return request<{ sessions: ChatSession[] }>(`/api/clients/${clientId}/sessions`).then(
+    (r) => r.sessions,
+  );
+}
+
+export function createSession(clientId: number, title?: string) {
+  return request<ChatSession>(`/api/clients/${clientId}/sessions`, {
+    method: 'POST',
+    body: JSON.stringify({ title: title ?? null }),
+  });
+}
+
+export function renameSession(clientId: number, sessionId: number, title: string) {
+  return request<ChatSession>(`/api/clients/${clientId}/sessions/${sessionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title }),
+  });
+}
+
+export function deleteSession(clientId: number, sessionId: number) {
+  return request<{ deleted: number }>(`/api/clients/${clientId}/sessions/${sessionId}`, {
+    method: 'DELETE',
+  });
+}
+
+/** Omit sessionId to open the conversation this client last used. */
+export function getClientMessages(clientId: number, sessionId?: number) {
+  const qs = sessionId ? `?session_id=${sessionId}` : '';
+  return request<{ session_id: number; messages: ChatMessage[] }>(
+    `/api/clients/${clientId}/messages${qs}`,
+  );
+}
+
+export function clearClientMessages(clientId: number, sessionId: number) {
+  return request<{ cleared: number; session_id: number }>(
+    `/api/clients/${clientId}/messages?session_id=${sessionId}`,
+    { method: 'DELETE' },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Account — the practitioner who is logged in, not anyone they plan for
+// ---------------------------------------------------------------------------
+
+export interface Account {
+  id: number;
+  email: string;
+  name: string | null;
+  practice: string | null;
+  created_at: string;
+  client_count: number;
+  active_client_count: number;
+  /** Their own client record — themselves, as someone to plan for. */
+  self_client: { id: number; name: string } | null;
+}
+
+export function getAccount() {
+  return request<Account>('/api/account');
+}
+
+export function updateAccount(patch: { name?: string; practice?: string; email?: string }) {
+  return request<Account>('/api/account', { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+export function changePassword(body: { current_password: string; new_password: string }) {
+  return request<{ ok: true }>('/api/account/password', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Chat (SSE)
 // ---------------------------------------------------------------------------
 
 /** Streams assistant text chunks from POST /chat. Yields each `data: ...`
  * payload as it arrives; the backend sends a final "[DONE]" sentinel. */
-export async function* streamChat(message: string, clientId: number): AsyncGenerator<string> {
+export async function* streamChat(
+  message: string,
+  clientId: number,
+  sessionId: number,
+): AsyncGenerator<string> {
   const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    // The server keeps one agent per (account, client), so this id decides
-    // whose conversation and whose plans this turn belongs to.
-    body: JSON.stringify({ message, client_id: clientId }),
+    // The server keeps one agent per (account, client, conversation), so these
+    // ids decide whose plans this turn touches and which thread it continues.
+    body: JSON.stringify({ message, client_id: clientId, session_id: sessionId }),
   });
   if (!res.ok || !res.body) {
     throw new ApiError(res.status, res.statusText);

@@ -102,9 +102,11 @@ def test_list_never_shows_another_accounts_clients(
 
 
 def test_default_client_is_created_once_and_reused(db_conn: sqlite3.Connection, user_id: int):
+    """An account with no clients gets one for the practitioner themselves —
+    they plan their own week alongside everyone else's."""
     first = clients.default_client_id(db_conn, user_id)
     assert clients.default_client_id(db_conn, user_id) == first
-    assert clients.get_client(db_conn, user_id, first)["name"] == "My household"
+    assert clients.get_client(db_conn, user_id, first)["name"] == "Me"
     # ...and once a real client exists, the oldest one stays the default.
     clients.create_client(db_conn, user_id, "Later Client")
     assert clients.default_client_id(db_conn, user_id) == first
@@ -223,7 +225,7 @@ def test_migration_folds_each_household_into_its_own_client(tmp_path):
     rows = {r["user_id"]: r for r in conn.execute("SELECT * FROM clients")}
     assert len(rows) == 2
     assert rows[1]["name"] == "Jose"          # named from the primary member
-    assert rows[2]["name"] == "My household"  # ...or the fallback when there is none
+    assert rows[2]["name"] == "Me"            # ...or the account owner's own client
 
     assert conn.execute("SELECT client_id FROM menus WHERE id = 7").fetchone()[0] == rows[1]["id"]
     assert conn.execute("SELECT client_id FROM kits WHERE id = 3").fetchone()[0] == rows[2]["id"]
@@ -298,3 +300,87 @@ def test_old_migration_steps_leave_client_keyed_tables_alone(tmp_path):
     assert conn.execute("SELECT COUNT(*) n FROM profile").fetchone()["n"] == 1
     assert conn.execute("SELECT COUNT(*) n FROM menus").fetchone()["n"] == 1
     assert "client_id" in {c["name"] for c in conn.execute("PRAGMA table_info(profile)")}
+
+
+def test_ensure_self_client_is_idempotent_and_respects_a_rename(
+    db_conn: sqlite3.Connection, user_id: int
+):
+    me = clients.ensure_self_client(db_conn, user_id)
+    assert clients.ensure_self_client(db_conn, user_id) == me
+
+    # Renamed to their actual name: still theirs, still not duplicated.
+    clients.update_client(db_conn, user_id, me, {"name": "Jose"})
+    assert clients.ensure_self_client(db_conn, user_id) == me
+    assert len(clients.list_clients(db_conn, user_id)) == 1
+
+
+def test_self_client_is_isolated_like_any_other(db_conn: sqlite3.Connection, user_id: int):
+    me = clients.ensure_self_client(db_conn, user_id)
+    other = clients.create_client(db_conn, user_id, "Paying Client")["id"]
+    update_profile(db_conn, me, {"add_allergies": ["peanut"]})
+    assert get_profile(db_conn, other)["allergies"] == []
+
+
+def _migrate_in_subprocess(path: str) -> None:
+    """Module level so multiprocessing can pickle it under spawn."""
+    from pathlib import Path
+
+    from aboyeur.db import connect, init_db, schema_lock
+    from aboyeur.migrate import migrate
+
+    db_path = Path(path)
+    conn = connect(db_path)
+    with schema_lock(db_path):
+        init_db(conn)
+        migrate(conn)
+    conn.close()
+
+
+def test_schema_lock_serializes_concurrent_migrations(tmp_path):
+    """Two processes starting at once must not interleave their schema work.
+
+    This is not hypothetical: uvicorn --reload starts a fresh app process on
+    every edit, and an overlap during development destroyed a transcript
+    table — one process's CREATE TABLE IF NOT EXISTS ran while the other had
+    that table renamed away mid-migration.
+    """
+    import multiprocessing as mp
+
+    from aboyeur.db import connect, init_db
+    from aboyeur.migrate import migrate
+
+    db_path = tmp_path / "race.db"
+    conn = connect(db_path)
+    init_db(conn)
+    migrate(conn)
+    from aboyeur import auth, clients
+    user_id = auth.get_or_create_user(conn, "race@example.com")
+    client_id = clients.create_client(conn, user_id, "Ada")["id"]
+    conn.execute(
+        "INSERT INTO chat_sessions (client_id, title, created_at, updated_at) "
+        "VALUES (?, 'keep me', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+        (client_id,),
+    )
+    conn.execute(
+        "INSERT INTO chat_messages (session_id, role, content, created_at) "
+        "VALUES (1, 'user', 'keep this too', '2026-01-01T00:00:00Z')"
+    )
+    conn.commit()
+    conn.close()
+
+    procs = [mp.Process(target=_migrate_in_subprocess, args=(str(db_path),)) for _ in range(4)]
+    for p in procs:
+        p.start()
+    for p in procs:
+        p.join(timeout=60)
+
+    assert all(p.exitcode == 0 for p in procs), [p.exitcode for p in procs]
+    check = connect(db_path)
+    try:
+        assert check.execute("SELECT COUNT(*) n FROM chat_sessions").fetchone()["n"] == 1
+        assert check.execute("SELECT COUNT(*) n FROM chat_messages").fetchone()["n"] == 1
+        assert check.execute(
+            "SELECT COUNT(*) n FROM sqlite_master WHERE name LIKE '%_old'"
+        ).fetchone()["n"] == 0
+    finally:
+        check.close()

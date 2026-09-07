@@ -7,7 +7,9 @@ corpus. No ORM — schema is DDL, queries are plain SQL.
 
 from __future__ import annotations
 
+import fcntl
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 SCHEMA = """
@@ -142,6 +144,10 @@ CREATE TABLE IF NOT EXISTS users (
     id             INTEGER PRIMARY KEY,
     email          TEXT NOT NULL UNIQUE,
     password_hash  TEXT,
+    -- The practitioner's own name and practice, shown on the account screen.
+    -- Distinct from any client record, including their own "Me" client.
+    name           TEXT,
+    practice       TEXT,
     created_at     TEXT NOT NULL
 );
 
@@ -158,6 +164,10 @@ CREATE TABLE IF NOT EXISTS clients (
     phone       TEXT,
     notes       TEXT,
     status      TEXT NOT NULL DEFAULT 'active',   -- active | archived
+    -- The account owner's own record ("Me"). A flag, not a name match: the
+    -- migration names this client after the household's primary member, and
+    -- anyone can rename theirs, so the name can't be the marker.
+    is_self     INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL
 );
@@ -222,13 +232,37 @@ CREATE TABLE IF NOT EXISTS llm_settings (
 );
 
 -- Recipe catalog favorites (the Library UI's star toggle). Recipes stay a
--- single shared read-only corpus across every user — only this join table
--- is per-user.
+-- single shared read-only corpus; this join table is per CLIENT, not per
+-- account — a star means "this suits this person", which is exactly the
+-- judgement that doesn't transfer between two clients.
 CREATE TABLE IF NOT EXISTS favorites (
-    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_id   INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     recipe_id   INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
     created_at  TEXT NOT NULL,
-    PRIMARY KEY (user_id, recipe_id)
+    PRIMARY KEY (client_id, recipe_id)
+);
+
+-- Conversations, and the messages in them. A client has many conversations —
+-- this week's plan, last month's cut, a one-off question — so starting a new
+-- one never means losing the old. Sessions hang off a client and messages
+-- hang off a session, the same one-hop shape clients have off users, which
+-- keeps the isolation story unchanged: a session is reachable only through
+-- its client, and its client only through its account.
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id          INTEGER PRIMARY KEY,
+    client_id   INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    -- NULL until the first user message names it (see chat_history.py).
+    title       TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id          INTEGER PRIMARY KEY,
+    session_id  INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL,            -- user | assistant
+    content     TEXT NOT NULL,
+    created_at  TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS interactions (
@@ -240,6 +274,32 @@ CREATE TABLE IF NOT EXISTS interactions (
     intent   TEXT
 );
 """
+
+
+@contextmanager
+def schema_lock(db_path: Path):
+    """Serialize init_db + migrate across PROCESSES, not just threads.
+
+    uvicorn --reload starts a new app process on every edit, and each one runs
+    init_db() then migrate() on the same file. Two of those overlapping is not
+    hypothetical — it cost a transcript table during development: one process
+    had a table renamed away mid-migration when the other's CREATE TABLE IF
+    NOT EXISTS decided it was missing and made a fresh empty one.
+
+    A BEGIN IMMEDIATE inside migrate() can't cover this, because init_db()
+    uses executescript (which commits, so it can't run inside a transaction).
+    An flock on a sidecar file can: it's held across both calls, released on
+    process exit even if that exit is a crash, and costs nothing when
+    uncontended.
+    """
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = db_path.with_suffix(db_path.suffix + ".schema-lock")
+    with open(lock_path, "w") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 def connect(db_path: Path) -> sqlite3.Connection:

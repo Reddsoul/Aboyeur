@@ -1741,3 +1741,893 @@ INFO:     127.0.0.1:51049 - "GET /api/clients/4 HTTP/1.1" 200 OK
 INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
 INFO:     127.0.0.1:51051 - "POST /chat HTTP/1.1" 200 OK
 INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:51087 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51089 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51093 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51098 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51095 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51100 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51099 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51107 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51109 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51115 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51114 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51131 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51134 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51136 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51137 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51143 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51151 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51150 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51148 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51155 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51157 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51163 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51162 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51170 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51168 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51182 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51180 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51186 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51188 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51192 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51199 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51198 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51200 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51206 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51204 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51211 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51213 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51219 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51217 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51224 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51226 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51248 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51249 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51256 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51261 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51260 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51262 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51270 - "POST /api/recipes/25304/favorite HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51274 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51281 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51279 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51282 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51287 - "GET /api/recipes?offset=0&limit=200 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:51296 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51298 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51304 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51306 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51309 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51307 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51305 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51312 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51320 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51319 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51321 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51324 - "GET /api/recipes?offset=0&limit=200 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:51327 - "GET /api/recipes?cuisine=International&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51330 - "GET /api/recipes?offset=0&limit=200 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:51333 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51336 - "DELETE /api/recipes/25304/favorite HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51340 - "POST /api/recipes/25304/favorite HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51343 - "DELETE /api/recipes/25304/favorite HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27982]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64910]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/favorites.py', 'aboyeur/migrate.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64910]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [64991]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/chat_history.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64991]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65097]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/clients.py', 'aboyeur/migrate.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65097]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65185]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65185]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65341]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65341]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65450]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65450]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65518]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65518]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [65629]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:51404 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51409 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51410 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51408 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51420 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51421 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51426 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51429 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51428 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51430 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51432 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51506 - "GET /api/clients HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51517 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51519 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51521 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51524 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51525 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51527 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51530 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51533 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51536 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51539 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51542 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51545 - "PATCH /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51548 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51551 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51554 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51558 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51562 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51567 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51571 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51568 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51574 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55826 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55824 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55902 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55906 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55912 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55914 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55911 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55915 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55917 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55923 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55921 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55952 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55950 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55957 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55959 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55964 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56031 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56029 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56096 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56246 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56247 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56378 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56376 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56542 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56549 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56550 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56551 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56613 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56611 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     127.0.0.1:56959 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:57428 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57426 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57429 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57427 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 803, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 792, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 234, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - 3 validation errors:\n  {\'type\': \'string_type\', \'loc\': (\'body\', 2, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}\n  {\'type\': \'missing\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-adc9a23dc615b2a3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}\n  {\'type\': \'literal_error\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}\n\n  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/utils.py", line 40, in create_chat_completion\n    POST /v1/chat/completions [{\'type\': \'string_type\', \'loc\': (\'body\', 2, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}, {\'type\': \'missing\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-adc9a23dc615b2a3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}, {\'type\': \'literal_error\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}]. Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+INFO:     127.0.0.1:57555 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57557 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57987 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57989 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57992 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57998 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57997 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57995 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58000 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58004 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58006 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58020 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58025 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58026 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58024 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58144 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58142 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63931 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 803, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 792, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 234, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - 3 validation errors:\n  {\'type\': \'string_type\', \'loc\': (\'body\', 2, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}\n  {\'type\': \'missing\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-adc9a23dc615b2a3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}\n  {\'type\': \'literal_error\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}\n\n  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/utils.py", line 40, in create_chat_completion\n    POST /v1/chat/completions [{\'type\': \'string_type\', \'loc\': (\'body\', 2, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}, {\'type\': \'missing\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-adc9a23dc615b2a3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}, {\'type\': \'literal_error\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}]. Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+INFO:     127.0.0.1:64067 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64069 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64074 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64077 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64075 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64080 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64079 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64086 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64084 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64098 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64099 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64108 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64103 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64107 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64110 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64106 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64113 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64123 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 803, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 792, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 234, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - 3 validation errors:\n  {\'type\': \'string_type\', \'loc\': (\'body\', 2, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}\n  {\'type\': \'missing\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-adc9a23dc615b2a3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}\n  {\'type\': \'literal_error\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}\n\n  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/utils.py", line 40, in create_chat_completion\n    POST /v1/chat/completions [{\'type\': \'string_type\', \'loc\': (\'body\', 2, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}, {\'type\': \'missing\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-adc9a23dc615b2a3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}, {\'type\': \'literal_error\', \'loc\': (\'body\', 2, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}]. Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+INFO:     127.0.0.1:49867 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49869 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49876 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49875 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49874 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49880 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49878 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49883 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     Will watch for changes in these directories: ['/Volumes/General/Coding/Python/Aboyeur/aboyeur', '/Volumes/General/Coding/Python/Aboyeur/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [2877] using WatchFiles
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [2879]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:50196 - "GET /api/clients HTTP/1.1" 401 Unauthorized
+INFO:     100.71.143.90:50203 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:50209 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50219 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50221 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50223 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50226 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50228 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50230 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50233 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50236 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50239 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50242 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50276 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50278 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50280 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50283 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50284 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50286 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50289 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50292 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50295 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50298 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50301 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50304 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50307 - "PATCH /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50310 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50313 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50316 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50321 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50324 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50328 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50333 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50330 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50336 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50357 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50359 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50361 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50364 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50365 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50367 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50376 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50380 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50381 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50382 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50384 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50386 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50390 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50398 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50400 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50402 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50404 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50408 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50407 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50411 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50414 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50453 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50454 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50461 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50457 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50464 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50458 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50465 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50469 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50471 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     127.0.0.1:50478 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50488 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50490 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50495 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50498 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50501 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50499 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50497 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50505 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50507 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50518 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50510 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50517 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50519 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50531 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50530 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50525 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50523 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50537 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50535 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50547 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50548 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50553 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50558 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50554 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50559 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50556 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50563 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50571 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50569 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50576 - "DELETE /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50579 - "DELETE /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50586 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50589 - "DELETE /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50593 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50612 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50616 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50615 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50617 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50622 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50623 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50628 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50629 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET http://100.70.6.1:4000/v1/models "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50632 - "POST /api/llm-settings/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50638 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50639 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50646 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50651 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50652 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50650 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50658 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50656 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50664 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50662 - "GET /api/account HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2879]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [4750]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/chat_history.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4750]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [4882]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/migrate.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4882]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [4956]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4956]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [5039]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5039]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [5110]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5110]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [5170]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:50708 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50707 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50711 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50717 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50713 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50718 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50720 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50723 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50726 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50744 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50741 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50743 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50750 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50751 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5170]
+INFO:     Stopping reloader process [2877]
+INFO:     Will watch for changes in these directories: ['/Volumes/General/Coding/Python/Aboyeur/aboyeur', '/Volumes/General/Coding/Python/Aboyeur/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [5785] using WatchFiles
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [5787]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:50755 - "GET /api/clients HTTP/1.1" 401 Unauthorized
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5787]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [5960]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/migrate.py', 'backend/main.py', 'aboyeur/cli.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5960]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [6005]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [6005]
+INFO:     Stopping reloader process [5785]
+INFO:     Will watch for changes in these directories: ['/Volumes/General/Coding/Python/Aboyeur/aboyeur', '/Volumes/General/Coding/Python/Aboyeur/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [6150] using WatchFiles
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [6152]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:50767 - "GET /api/clients HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50778 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50780 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50782 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50785 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50786 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50788 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50792 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50808 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50810 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50814 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50816 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50818 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50821 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50827 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50826 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50830 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50833 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50836 - "POST /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50839 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50842 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50845 - "GET /api/clients/2/messages?session_id=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50848 - "DELETE /api/clients/2/sessions/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50853 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50855 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50870 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50872 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50875 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50880 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50881 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50877 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50883 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50889 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50887 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50893 - "POST /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50896 - "GET /api/clients/2/messages?session_id=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50907 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50908 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50912 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50917 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50915 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50919 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50916 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50925 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50924 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50937 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50939 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50950 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50943 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50949 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50951 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50957 - "POST /api/recipes/25304/favorite?client_id=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50960 - "POST /api/recipes/25416/favorite?client_id=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50963 - "POST /api/recipes/25527/favorite?client_id=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50966 - "GET /api/recipes?client_id=4&offset=0&limit=200 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:50976 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50977 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50983 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50980 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50986 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50982 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50988 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50994 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50992 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50997 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51000 - "GET /api/recipes?client_id=4&offset=0&limit=200 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:51008 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51006 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51013 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51014 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51020 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51018 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51024 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51026 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51032 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51038 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51036 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51037 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51061 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51065 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51067 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51064 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51081 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51088 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51087 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51089 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51091 - "GET /api/recipes?client_id=2&limit=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51093 - "GET /api/recipes?client_id=2&limit=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51104 - "GET /api/recipes?client_id=2&cuisine=International&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51119 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51120 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51140 - "POST /api/recipes/25341/favorite?client_id=2 HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'backend/main.py', 'aboyeur/tools/search.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [6152]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [7486]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:51236 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51237 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51240 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51243 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51241 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51246 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51248 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51252 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51254 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51276 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51277 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51281 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51285 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51283 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51286 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51288 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51292 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51294 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51314 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51312 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51307 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51313 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51319 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51327 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51328 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51326 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51331 - "GET /api/recipes?client_id=2&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51334 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51340 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51343 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51356 - "GET /api/recipes?client_id=2&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51362 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51360 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51374 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51380 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51382 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51381 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51385 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51393 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51392 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51394 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51403 - "GET /api/recipes?client_id=4&favorites_only=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51405 - "GET /api/recipes?client_id=2&favorites_only=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51421 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51425 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51424 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51427 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51432 - "GET /api/recipes?client_id=2&cuisine=Reference&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51441 - "GET /api/recipes/39143?client_id=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51458 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51460 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51462 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51465 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51466 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51468 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51472 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51480 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51484 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51485 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51486 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51488 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51490 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51493 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51496 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51505 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51502 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51499 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51510 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51515 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51518 - "GET /api/recipes?client_id=2&cuisine=Roman&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51521 - "DELETE /api/recipes/25304/favorite?client_id=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51530 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51534 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51535 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51536 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51538 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51540 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51544 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51546 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51549 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51552 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51555 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51558 - "GET /api/recipes?client_id=2&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51561 - "GET /api/recipes/11788?client_id=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51618 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51620 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51622 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51626 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51625 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51628 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51637 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51640 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51641 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51643 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51645 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51647 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51651 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51653 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51662 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51659 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51656 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51665 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51670 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51673 - "POST /api/recipes/25304/favorite?client_id=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51682 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51686 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51687 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51688 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51690 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51692 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51696 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51698 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51701 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51704 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51712 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51715 - "GET /api/recipes?client_id=2&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK

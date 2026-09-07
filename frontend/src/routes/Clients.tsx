@@ -196,6 +196,7 @@ export default function Clients() {
 
                 <div className="cl-tags">
                   {activeClient?.id === c.id && <span className="cl-tag cl-tag-active">Active</span>}
+                  {c.is_self && <span className="cl-tag">You</span>}
                   {c.status === 'archived' && <span className="cl-tag">Archived</span>}
                   {c.goal && <span className="cl-tag">{c.goal}</span>}
                   {!c.has_profile && <span className="cl-tag">Profile needed</span>}

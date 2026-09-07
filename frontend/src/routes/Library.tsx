@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Library.css';
 import * as api from '../api';
+import { useClients } from '../clients/ClientContext';
 
 const SWATCHES = [
   'linear-gradient(135deg,#ff9f6b,#ff5f6d)',
@@ -32,6 +34,9 @@ const ICONS = {
 };
 
 export default function Library() {
+  // The catalog is shared, but the view of it isn't: allergens are filtered
+  // by the selected client's profile and the stars are that client's.
+  const { activeClient } = useClients();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [section, setSection] = useState<Section>('all');
@@ -53,6 +58,12 @@ export default function Library() {
   }, [query]);
 
   useEffect(() => {
+    if (!activeClient) {
+      setResults([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setSelectedId(null);
     const isFavorites = section === 'favorites';
@@ -63,44 +74,69 @@ export default function Library() {
           ? { book: section.book }
           : {};
     api
-      .browseRecipes({ query: debouncedQuery, ...params, limit: isFavorites ? 200 : 24 })
+      // Favorites are filtered in SQL. Fetching a page and keeping the
+      // starred rows only worked when the catalog was small — over 75k
+      // recipes a star is almost never on the first page, which looked
+      // exactly like favorites not saving.
+      .browseRecipes({
+        clientId: activeClient.id,
+        query: debouncedQuery,
+        ...params,
+        favoritesOnly: isFavorites,
+        limit: isFavorites ? 100 : 24,
+      })
       .then((res) => {
-        const filtered = isFavorites ? res.results.filter((r) => r.favorite) : res.results;
-        setResults(filtered);
-        setTotal(isFavorites ? filtered.length : res.total);
+        setResults(res.results);
+        setTotal(res.total);
       })
       .catch(() => {
         setResults([]);
         setTotal(0);
       })
       .finally(() => setLoading(false));
-  }, [debouncedQuery, section]);
+  }, [debouncedQuery, section, activeClient]);
 
   useEffect(() => {
-    if (selectedId == null) {
+    if (selectedId == null || !activeClient) {
       setSelected(null);
       return;
     }
-    api.getRecipe(selectedId).then(setSelected).catch(() => setSelected(null));
-  }, [selectedId]);
+    api.getRecipe(selectedId, activeClient.id).then(setSelected).catch(() => setSelected(null));
+  }, [selectedId, activeClient]);
 
   const sectionTitle = useMemo(() => {
     if (section === 'all') return 'All Recipes';
-    if (section === 'favorites') return 'Favorites';
+    if (section === 'favorites') return `${activeClient?.name ?? 'Client'}'s favorites`;
     if ('cuisine' in section) return section.cuisine;
     return section.book;
-  }, [section]);
+  }, [section, activeClient]);
 
   async function toggleFavorite(id: number, current: boolean, ev: React.MouseEvent) {
     ev.stopPropagation();
+    if (!activeClient) return;
     const next = !current;
     setResults((rs) => rs.map((r) => (r.id === id ? { ...r, favorite: next } : r)));
     if (selected?.id === id) setSelected({ ...selected, favorite: next });
     try {
-      await api.setFavorite(id, next);
+      await api.setFavorite(id, next, activeClient.id);
     } catch {
       setResults((rs) => rs.map((r) => (r.id === id ? { ...r, favorite: current } : r)));
     }
+  }
+
+  if (!activeClient) {
+    return (
+      <div className="lib-app" style={{ display: 'block', padding: 40 }}>
+        <h2 style={{ fontSize: 18, margin: '0 0 6px' }}>Pick a client first</h2>
+        <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 14px', maxWidth: 460 }}>
+          The library hides recipes a client is allergic to and shows the ones you starred for
+          them, so it needs to know whose shelf you're browsing.
+        </p>
+        <Link to="/app/clients" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 22px', textDecoration: 'none', fontSize: 14 }}>
+          Open Clients
+        </Link>
+      </div>
+    );
   }
 
   return (

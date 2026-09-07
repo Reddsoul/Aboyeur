@@ -114,9 +114,38 @@ def _migrate_menus(conn: sqlite3.Connection, seed_user_id: int) -> None:
     conn.commit()
 
 
+def _add_account_columns(conn: sqlite3.Connection) -> None:
+    """The account screen needs somewhere to put the practitioner's own name.
+    Plain ADD COLUMNs: nullable, no default, nothing to backfill."""
+    if not _table_exists(conn, "users"):
+        return
+    existing = _column_names(conn, "users")
+    for column in ("name", "practice"):
+        if column not in existing:
+            conn.execute(f"ALTER TABLE users ADD COLUMN {column} TEXT")
+
+    _ensure_clients_is_self(conn)
+    conn.commit()
+
+
+def _ensure_clients_is_self(conn: sqlite3.Connection) -> None:
+    """clients.is_self marks the practitioner's own record. On an account that
+    predates the flag it's the client the household was folded into — the
+    oldest one. Callable mid-transaction: the fold itself writes this column,
+    so it has to exist before that runs."""
+    if not _table_exists(conn, "clients") or "is_self" in _column_names(conn, "clients"):
+        return
+    conn.execute("ALTER TABLE clients ADD COLUMN is_self INTEGER NOT NULL DEFAULT 0")
+    conn.execute(
+        "UPDATE clients SET is_self = 1 WHERE id IN "
+        "(SELECT MIN(id) FROM clients GROUP BY user_id)"
+    )
+
+
 def _client_name_for(conn: sqlite3.Connection, user_id: int) -> str:
     """Name the auto-created client after the household's primary member, so
-    an existing user opens the new UI and sees a person, not "Untitled"."""
+    an existing user opens the new UI and sees a person. With no household to
+    read, it's the account owner's own client — "Me"."""
     row = conn.execute(
         "SELECT data_json FROM profile_old WHERE user_id = ?", (user_id,)
     ).fetchone()
@@ -128,7 +157,7 @@ def _client_name_for(conn: sqlite3.Connection, user_id: int) -> str:
                 return label
         except (ValueError, AttributeError, IndexError, TypeError):
             pass  # a malformed profile is not a reason to fail the migration
-    return "My household"
+    return "Me"
 
 
 def _self_client_ids(conn: sqlite3.Connection) -> dict[int, int]:
@@ -137,7 +166,7 @@ def _self_client_ids(conn: sqlite3.Connection) -> dict[int, int]:
     Reads from the *_old tables, so it must run while they still exist.
     """
     user_ids: set[int] = set()
-    for table in ("profile_old", "pantry_old", "menus_old", "kits_old"):
+    for table in ("profile_old", "pantry_old", "menus_old", "kits_old", "favorites_old"):
         if _table_exists(conn, table):
             user_ids |= {r["user_id"] for r in conn.execute(f"SELECT DISTINCT user_id FROM {table}")}
 
@@ -150,9 +179,10 @@ def _self_client_ids(conn: sqlite3.Connection) -> dict[int, int]:
         if existing is not None:
             out[user_id] = existing["id"]
             continue
+        # The folded household is the practitioner's own client (is_self).
         cur = conn.execute(
-            "INSERT INTO clients (user_id, name, status, created_at, updated_at) "
-            "VALUES (?, ?, 'active', ?, ?)",
+            "INSERT INTO clients (user_id, name, status, is_self, created_at, updated_at) "
+            "VALUES (?, ?, 'active', 1, ?, ?)",
             (user_id, _client_name_for(conn, user_id), now, now),
         )
         out[user_id] = cur.lastrowid
@@ -185,7 +215,63 @@ _CLIENT_SCOPED = {
         "REFERENCES clients(id) ON DELETE CASCADE, data_json TEXT NOT NULL, "
         "created_at TEXT NOT NULL)",
     ),
+    # A star says "this recipe suits this person" — a per-client judgement,
+    # so favorites move with the rest rather than staying on the account.
+    "favorites": (
+        ("recipe_id", "created_at"),
+        "CREATE TABLE favorites (client_id INTEGER NOT NULL REFERENCES clients(id) "
+        "ON DELETE CASCADE, recipe_id INTEGER NOT NULL REFERENCES recipes(id) "
+        "ON DELETE CASCADE, created_at TEXT NOT NULL, PRIMARY KEY (client_id, recipe_id))",
+    ),
 }
+
+
+def _migrate_chat_sessions(conn: sqlite3.Connection) -> None:
+    """Give the first round's per-client transcripts a conversation to live in.
+
+    chat_messages started out keyed by client_id — one endless thread per
+    person, which meant "new chat" could only be spelled "delete the old one".
+    Each client's existing messages fold into a single session so nothing is
+    lost, and new conversations sit alongside it.
+    """
+    if not _table_exists(conn, "chat_messages"):
+        return
+    if "client_id" not in _column_names(conn, "chat_messages"):
+        return
+
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS chat_sessions ("
+            "id INTEGER PRIMARY KEY, client_id INTEGER NOT NULL REFERENCES clients(id) "
+            "ON DELETE CASCADE, title TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"
+        )
+        conn.execute("ALTER TABLE chat_messages RENAME TO chat_messages_old")
+        conn.execute(
+            "CREATE TABLE chat_messages (id INTEGER PRIMARY KEY, session_id INTEGER NOT NULL "
+            "REFERENCES chat_sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, "
+            "content TEXT NOT NULL, created_at TEXT NOT NULL)"
+        )
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        for row in conn.execute(
+            "SELECT client_id, MIN(created_at) first_at, MAX(created_at) last_at "
+            "FROM chat_messages_old GROUP BY client_id"
+        ).fetchall():
+            cur = conn.execute(
+                "INSERT INTO chat_sessions (client_id, title, created_at, updated_at) "
+                "VALUES (?, 'Earlier conversation', ?, ?)",
+                (row["client_id"], row["first_at"] or now, row["last_at"] or now),
+            )
+            conn.execute(
+                "INSERT INTO chat_messages (id, session_id, role, content, created_at) "
+                "SELECT id, ?, role, content, created_at FROM chat_messages_old WHERE client_id = ?",
+                (cur.lastrowid, row["client_id"]),
+            )
+        conn.execute("DROP TABLE chat_messages_old")
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def _migrate_to_clients(conn: sqlite3.Connection) -> None:
@@ -201,6 +287,7 @@ def _migrate_to_clients(conn: sqlite3.Connection) -> None:
     """
     conn.execute("BEGIN IMMEDIATE")
     try:
+        _ensure_clients_is_self(conn)
         pending = [
             t for t in _CLIENT_SCOPED
             if _table_exists(conn, t) and "user_id" in _column_names(conn, t)
@@ -248,6 +335,8 @@ def migrate(conn: sqlite3.Connection) -> int:
     _migrate_pantry(conn, seed_user_id)
     _migrate_menus(conn, seed_user_id)
     _migrate_to_clients(conn)
+    _add_account_columns(conn)
+    _migrate_chat_sessions(conn)
     # Deliberately not in db.py's static SCHEMA — see the comment above the
     # menus table there. Safe to run every time: the scoping column is
     # guaranteed to exist by this point, whether the table was just rebuilt
@@ -255,6 +344,11 @@ def migrate(conn: sqlite3.Connection) -> int:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_menus_client ON menus(client_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_kits_client ON kits(client_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_clients_user ON clients(user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_messages_session "
+                 "ON chat_messages(session_id, id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_sessions_client "
+                 "ON chat_sessions(client_id, updated_at)")
+    conn.execute("DROP INDEX IF EXISTS idx_chat_messages_client")
     # The pre-client indexes are dead once the tables are re-keyed; SQLite
     # drops them with the old tables, but an interrupted run could leave one.
     conn.execute("DROP INDEX IF EXISTS idx_menus_user")
@@ -265,12 +359,13 @@ def migrate(conn: sqlite3.Connection) -> int:
 
 def main() -> None:
     from aboyeur.config import Config
-    from aboyeur.db import connect, init_db
+    from aboyeur.db import connect, init_db, schema_lock
 
     config = Config.load()
     conn = connect(config.db_path)
-    init_db(conn)
-    seed_user_id = migrate(conn)
+    with schema_lock(config.db_path):
+        init_db(conn)
+        seed_user_id = migrate(conn)
     print(f"migrated {config.db_path} — seed user: {SEED_USER_EMAIL} (id {seed_user_id})")
 
 

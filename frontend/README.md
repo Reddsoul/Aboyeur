@@ -70,8 +70,13 @@ changes — the derived files are checked in, there's no build step for them.
   allergies, targets), **Plans** (their menus and kits), **Details** (contact,
   notes, archive/delete).
 - `/app/chat` — the agent, streamed over SSE from `POST /chat`, scoped to the
-  client selected in the header.
-- `/app/library` — recipe catalog browse/search + favorites (account-level).
+  client selected in the header. Each client keeps as many conversations as
+  they like; the picker in the chat bar switches between them and "New
+  conversation" starts another without touching the rest.
+- `/app/library` — recipe catalog browse/search. Filtered by the selected
+  client's allergens, and the stars are theirs.
+- `/app/account` — you, the practitioner: name, practice, sign-in email,
+  password, and a link to your own client record.
 - `/app/settings` — LLM settings (account-level).
 
 ### Clients and scope
@@ -79,9 +84,16 @@ changes — the derived files are checked in, there's no build step for them.
 An account is a practitioner; the people they plan for are clients. The header
 switcher decides who chat, the profile editor and every plan apply to —
 `ClientContext` holds it and persists it per browser. Nothing is shared
-between clients: the server keys profile/pantry/menus/kits on `client_id` and
-hands out a separate chat agent per client, so switching clients starts a
-clean conversation rather than carrying one plan into the next.
+between clients: the server keys profile, pantry, menus, kits and favorites on
+`client_id`, and conversations hang off the client with their messages hanging
+off the conversation. Agents are cached per `(account, client, conversation)`,
+so switching clients — or starting a new chat with the same client — begins a
+genuinely fresh thread rather than carrying one plan into the next.
+
+The account owner is a client too — their own record, flagged `is_self` and
+named "Me" by default, so planning your own week works exactly like planning
+anyone else's. The avatar button in the header goes to your **account**; your
+meals live on that client record, one click away from it.
 
 ### LLM settings
 

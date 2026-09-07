@@ -116,7 +116,7 @@ export default function AppShell() {
           </svg>
         </NavLink>
         <NavLink
-          to={activeClient ? `/app/clients/${activeClient.id}` : '/app/clients'}
+          to="/app/account"
           style={{
             width: 32,
             height: 32,
@@ -127,7 +127,7 @@ export default function AppShell() {
             justifyContent: 'center',
             color: 'var(--ink)',
           }}
-          title="Client profile"
+          title="Your account"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />

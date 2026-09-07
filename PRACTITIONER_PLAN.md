@@ -121,6 +121,43 @@ Two bugs worth remembering, both found by running it against the real DB:
   guard now tests for the absence of *both* scoping columns
   (`_is_pre_multitenant`).
 
+## Follow-up round (same day)
+
+Four things the first pass got wrong or left out:
+
+- **The avatar button meant two things.** It opened the active client's
+  workspace, so "profile" was ambiguous — the practitioner's own identity had
+  nowhere to live. There's now an account screen (`/api/account`, name,
+  practice, sign-in email, password) that is explicitly *not* a client.
+- **The practitioner is a client too**, flagged `clients.is_self` and named
+  "Me" by default. A flag rather than a name match: the migration names that
+  client after the household's primary member, and anyone can rename theirs.
+- **Chat history per client** (`chat_messages`, `aboyeur/chat_history.py`).
+  Turns are recorded as they stream, the UI loads the transcript when you
+  switch clients, and a rebuilt agent is seeded from the last 20 turns — so a
+  restart or a switch resumes the conversation instead of starting cold.
+  Guest turns are still never persisted.
+- **Favorites moved to the client.** A star means "this suits this person",
+  which doesn't transfer between clients, so `favorites` re-keys to
+  `client_id` and the Library filters by the selected client's allergens too.
+- **Many conversations per client.** The first cut gave each client one
+  endless transcript, so "new chat" could only be spelled "delete the old
+  one". `chat_sessions` now sits between client and messages; the agent cache
+  keys on `(account, client, conversation)`; a conversation titles itself from
+  its first message. Old per-client transcripts fold into one session each.
+- **Favorites looked like they weren't saving.** They were: the Library's
+  Favorites view fetched a page of the catalog and kept the starred rows,
+  which only works while the catalog is small. Over 75k recipes a star is
+  almost never on the first page. `browse_recipes` now takes `only_ids` and
+  the route a `favorites_only` flag, so the filter runs in SQL.
+- **A cross-process schema lock** (`aboyeur.db.schema_lock`). The
+  BEGIN IMMEDIATE inside the migration wasn't enough: `init_db()` uses
+  `executescript`, which commits, so it can't sit inside a transaction — and
+  with uvicorn `--reload` starting a process per edit, one process's
+  `CREATE TABLE IF NOT EXISTS` ran while another had that table renamed away
+  mid-migration. It cost a transcript table during development. An flock on a
+  sidecar file now covers init_db + migrate at every call site.
+
 ## Explicitly out of scope
 
 - Client-facing logins (clients are records here, not accounts).

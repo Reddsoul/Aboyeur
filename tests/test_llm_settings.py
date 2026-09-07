@@ -286,20 +286,28 @@ def test_each_client_gets_its_own_agent_session(backend_main, api):
     finally:
         conn.close()
 
-    agent_a = backend_main._get_session_agent(user_id, a)
-    agent_b = backend_main._get_session_agent(user_id, b)
+    session_a = api.post(f"/api/clients/{a}/sessions").json()["id"]
+    session_b = api.post(f"/api/clients/{b}/sessions").json()["id"]
+
+    agent_a = backend_main._get_session_agent(user_id, a, session_a)
+    agent_b = backend_main._get_session_agent(user_id, b, session_b)
     assert agent_a is not agent_b
     assert agent_a.client_id == a and agent_b.client_id == b
-    assert backend_main._get_session_agent(user_id, a) is agent_a  # cached per client
+    assert backend_main._get_session_agent(user_id, a, session_a) is agent_a  # cached
 
-    # Editing one client's profile invalidates only that client's agent.
+    # A second conversation with the SAME client is a different agent — that's
+    # what makes "new conversation" actually start fresh.
+    second = api.post(f"/api/clients/{a}/sessions").json()["id"]
+    assert backend_main._get_session_agent(user_id, a, second) is not agent_a
+
+    # Editing one client's profile invalidates that client's agents only.
     backend_main._drop_session_agent(user_id, a)
-    assert backend_main._get_session_agent(user_id, a) is not agent_a
-    assert backend_main._get_session_agent(user_id, b) is agent_b
+    assert backend_main._get_session_agent(user_id, a, session_a) is not agent_a
+    assert backend_main._get_session_agent(user_id, b, session_b) is agent_b
 
-    # An LLM settings change invalidates every client's agent for the account.
+    # An LLM settings change invalidates every agent for the account.
     backend_main._drop_session_agent(user_id)
-    assert backend_main._get_session_agent(user_id, b) is not agent_b
+    assert backend_main._get_session_agent(user_id, b, session_b) is not agent_b
 
 
 def test_chat_without_a_client_id_falls_back_to_the_default_client(backend_main, api):
@@ -312,3 +320,275 @@ def test_chat_without_a_client_id_falls_back_to_the_default_client(backend_main,
         assert len(clients_mod.list_clients(conn, user_id)) == 1
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Chat history, per-client favorites, and the account (vs client) split
+# ---------------------------------------------------------------------------
+
+def test_chat_transcript_is_recorded_and_scoped_per_client(backend_main, api):
+    from aboyeur import chat_history
+
+    _as(backend_main, api, "transcript@example.com")
+    a = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+    b = api.post("/api/clients", json={"name": "Bo"}).json()["id"]
+
+    # /profile is answered without the LLM, so it exercises recording without
+    # needing a model on the other end.
+    api.post("/chat", json={"message": "/profile", "client_id": a})
+
+    body = api.get(f"/api/clients/{a}/messages").json()
+    assert [m["role"] for m in body["messages"]] == ["user", "assistant"]
+    assert body["messages"][0]["content"] == "/profile"
+    assert api.get(f"/api/clients/{b}/messages").json()["messages"] == []
+
+    conn = backend_main._profile_conn()
+    try:
+        # ...and it's what a rebuilt agent would be seeded with.
+        assert [m["role"] for m in chat_history.agent_history(conn, body["session_id"])] == [
+            "user", "assistant",
+        ]
+    finally:
+        conn.close()
+
+    assert api.delete(f"/api/clients/{a}/messages").json()["cleared"] == 2
+    assert api.get(f"/api/clients/{a}/messages").json()["messages"] == []
+
+
+def test_transcripts_are_not_readable_across_accounts(backend_main, api):
+    _as(backend_main, api, "transcript-owner@example.com")
+    mine = api.post("/api/clients", json={"name": "Mine"}).json()["id"]
+    api.post("/chat", json={"message": "/profile", "client_id": mine})
+
+    _as(backend_main, api, "transcript-rival@example.com")
+    assert api.get(f"/api/clients/{mine}/messages").status_code == 404
+    assert api.delete(f"/api/clients/{mine}/messages").status_code == 404
+
+
+def test_favorites_are_per_client(backend_main, api):
+    _as(backend_main, api, "favorites@example.com")
+    a = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+    b = api.post("/api/clients", json={"name": "Bo"}).json()["id"]
+
+    conn = backend_main._profile_conn()
+    try:
+        # This backend fixture runs against a throwaway DB with no corpus
+        # indexed, so favoriting needs a recipe row to point at.
+        conn.execute(
+            "INSERT OR IGNORE INTO recipes (id, path, title, book, cuisine, servings, "
+            "ingredients_json, tags_json, mtime, indexed_at) VALUES "
+            "(1, '/tmp/fixture.md', 'Fixture Stew', 'Fixtures', 'test', 2, '[]', '[]', 0, ?)",
+            ("2026-01-01T00:00:00Z",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    def starred(client_id: int) -> bool:
+        # The grid endpoint, not the detail one: detail reads the recipe file
+        # off disk, and this fixture row has no file behind it.
+        results = api.get(f"/api/recipes?client_id={client_id}").json()["results"]
+        return next(r["favorite"] for r in results if r["id"] == 1)
+
+    assert api.post(f"/api/recipes/1/favorite?client_id={a}").json()["favorite"] is True
+    assert starred(a) is True
+    assert starred(b) is False  # the same recipe, unstarred for the other client
+
+    assert api.delete(f"/api/recipes/1/favorite?client_id={a}").json()["favorite"] is False
+    assert starred(a) is False
+
+
+def test_account_is_the_practitioner_not_a_client(backend_main, api):
+    _as(backend_main, api, "account-owner@example.com")
+
+    account = api.get("/api/account").json()
+    assert account["email"] == "account-owner@example.com"
+    # Reading the account gives the owner their own client record — "Me".
+    assert account["self_client"]["name"] == "Me"
+
+    updated = api.patch("/api/account", json={"name": "Jose", "practice": "Aboyeur Nutrition"}).json()
+    assert updated["name"] == "Jose" and updated["practice"] == "Aboyeur Nutrition"
+    # ...and that rename touched the account, not the client record.
+    assert api.get(f"/api/clients/{account['self_client']['id']}").json()["name"] == "Me"
+
+
+def test_account_email_must_stay_unique(backend_main, api):
+    _as(backend_main, api, "first-owner@example.com")
+    _as(backend_main, api, "second-owner@example.com")
+    assert api.patch("/api/account", json={"email": "first-owner@example.com"}).status_code == 409
+
+
+def test_password_change_requires_the_current_one(backend_main, api):
+    from aboyeur import auth
+
+    user_id = _as(backend_main, api, "pw-change@example.com")
+    conn = backend_main._profile_conn()
+    try:
+        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?",
+                     (auth.hash_password("original-pass"), user_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+    assert api.post("/api/account/password", json={
+        "current_password": "wrong", "new_password": "brand-new-pass"}).status_code == 403
+    assert api.post("/api/account/password", json={
+        "current_password": "original-pass", "new_password": "short"}).status_code == 400
+    assert api.post("/api/account/password", json={
+        "current_password": "original-pass", "new_password": "brand-new-pass"}).status_code == 200
+
+    conn = backend_main._profile_conn()
+    try:
+        assert auth.verify_login(conn, "pw-change@example.com", "brand-new-pass") == user_id
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Many conversations per client — a new chat must not cost you the old one
+# ---------------------------------------------------------------------------
+
+def test_new_conversation_keeps_the_previous_one(backend_main, api):
+    _as(backend_main, api, "conversations@example.com")
+    client_id = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+
+    api.post("/chat", json={"message": "/profile", "client_id": client_id})
+    first = api.get(f"/api/clients/{client_id}/messages").json()["session_id"]
+
+    second = api.post(f"/api/clients/{client_id}/sessions").json()["id"]
+    assert second != first
+    api.post("/chat", json={"message": "/profile", "client_id": client_id, "session_id": second})
+
+    # Both survive, each with its own messages.
+    sessions = api.get(f"/api/clients/{client_id}/sessions").json()["sessions"]
+    assert {s["id"] for s in sessions} == {first, second}
+    assert all(s["message_count"] == 2 for s in sessions)
+    assert len(api.get(f"/api/clients/{client_id}/messages?session_id={first}").json()["messages"]) == 2
+
+    # Deleting one leaves the other alone.
+    api.delete(f"/api/clients/{client_id}/sessions/{second}")
+    remaining = api.get(f"/api/clients/{client_id}/sessions").json()["sessions"]
+    assert [s["id"] for s in remaining] == [first]
+
+
+def test_a_conversation_is_titled_by_its_first_message(backend_main, api):
+    _as(backend_main, api, "titles@example.com")
+    client_id = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+
+    fresh = api.post(f"/api/clients/{client_id}/sessions").json()
+    assert fresh["title"] == "New conversation"
+
+    api.post("/chat", json={"message": "/profile please", "client_id": client_id,
+                            "session_id": fresh["id"]})
+    titled = api.get(f"/api/clients/{client_id}/sessions").json()["sessions"][0]
+    assert titled["title"] == "/profile please"
+    assert titled["preview"]  # the last message, for the list
+
+    renamed = api.patch(f"/api/clients/{client_id}/sessions/{fresh['id']}",
+                        json={"title": "Cut block week 3"}).json()
+    assert renamed["title"] == "Cut block week 3"
+
+
+def test_messages_default_to_the_most_recent_conversation(backend_main, api):
+    _as(backend_main, api, "latest-conversation@example.com")
+    client_id = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+
+    api.post("/chat", json={"message": "/profile", "client_id": client_id})
+    newest = api.post(f"/api/clients/{client_id}/sessions").json()["id"]
+    api.post("/chat", json={"message": "/profile", "client_id": client_id, "session_id": newest})
+
+    # No session_id: the chat screen opens on the one last used.
+    assert api.get(f"/api/clients/{client_id}/messages").json()["session_id"] == newest
+
+
+def test_a_conversation_belongs_to_exactly_one_client(backend_main, api):
+    _as(backend_main, api, "session-scope@example.com")
+    a = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+    b = api.post("/api/clients", json={"name": "Bo"}).json()["id"]
+    a_session = api.post(f"/api/clients/{a}/sessions").json()["id"]
+
+    # Ada's conversation is not reachable through Bo, even on the same account.
+    assert api.get(f"/api/clients/{b}/messages?session_id={a_session}").status_code == 404
+    assert api.delete(f"/api/clients/{b}/sessions/{a_session}").status_code == 404
+    assert api.post("/chat", json={"message": "hi", "client_id": b,
+                                   "session_id": a_session}).status_code == 404
+
+    # ...nor through another account at all.
+    _as(backend_main, api, "session-rival@example.com")
+    assert api.get(f"/api/clients/{a}/sessions").status_code == 404
+
+
+def test_old_per_client_transcripts_fold_into_one_conversation(tmp_path):
+    """The first round keyed messages by client — one endless thread. Those
+    rows must land in a conversation, not vanish."""
+    import sqlite3
+    from aboyeur.migrate import _migrate_chat_sessions
+
+    conn = sqlite3.connect(tmp_path / "old.db")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(
+        """
+        CREATE TABLE clients (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL,
+                              name TEXT NOT NULL, email TEXT, phone TEXT, notes TEXT,
+                              status TEXT NOT NULL DEFAULT 'active', is_self INTEGER NOT NULL DEFAULT 0,
+                              created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+        CREATE TABLE chat_messages (id INTEGER PRIMARY KEY, client_id INTEGER NOT NULL,
+                                    role TEXT NOT NULL, content TEXT NOT NULL,
+                                    created_at TEXT NOT NULL);
+        INSERT INTO clients VALUES (1, 1, 'Ada', NULL, NULL, NULL, 'active', 0, 'x', 'x');
+        INSERT INTO clients VALUES (2, 1, 'Bo', NULL, NULL, NULL, 'active', 0, 'x', 'x');
+        INSERT INTO chat_messages VALUES (1, 1, 'user', 'plan my week', '2026-09-01T00:00:00Z');
+        INSERT INTO chat_messages VALUES (2, 1, 'assistant', 'here you go', '2026-09-01T00:00:01Z');
+        INSERT INTO chat_messages VALUES (3, 2, 'user', 'and mine', '2026-09-02T00:00:00Z');
+        """
+    )
+    conn.commit()
+
+    _migrate_chat_sessions(conn)
+
+    sessions = {r["client_id"]: r["id"] for r in conn.execute("SELECT id, client_id FROM chat_sessions")}
+    assert len(sessions) == 2  # one per client that had messages
+    assert conn.execute("SELECT COUNT(*) n FROM chat_messages WHERE session_id = ?",
+                        (sessions[1],)).fetchone()["n"] == 2
+    assert conn.execute("SELECT COUNT(*) n FROM chat_messages WHERE session_id = ?",
+                        (sessions[2],)).fetchone()["n"] == 1
+    assert "session_id" in {c["name"] for c in conn.execute("PRAGMA table_info(chat_messages)")}
+
+
+def test_favorites_section_finds_stars_outside_the_first_page(backend_main, api):
+    """The Library's Favorites view used to fetch a page of the catalog and
+    keep the starred rows. Over a real corpus a star is almost never on the
+    first page, so favorites looked like they weren't saving."""
+    _as(backend_main, api, "favorites-page@example.com")
+    client_id = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+
+    conn = backend_main._profile_conn()
+    try:
+        for i in range(1, 61):
+            conn.execute(
+                "INSERT OR IGNORE INTO recipes (id, path, title, book, cuisine, servings, "
+                "ingredients_json, tags_json, mtime, indexed_at) VALUES "
+                "(?, ?, ?, 'Fixtures', 'test', 2, '[]', '[]', 0, '2026-01-01T00:00:00Z')",
+                (i, f"/tmp/fixture-{i}.md", f"Recipe {i:03d}"),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    # Star one that sorts well past a default page.
+    api.post(f"/api/recipes/58/favorite?client_id={client_id}")
+
+    page = api.get(f"/api/recipes?client_id={client_id}&limit=24").json()
+    assert 58 not in [r["id"] for r in page["results"]]  # not on page one
+
+    favorites = api.get(f"/api/recipes?client_id={client_id}&favorites_only=true").json()
+    assert [r["id"] for r in favorites["results"]] == [58]
+    assert favorites["total"] == 1
+    assert favorites["results"][0]["favorite"] is True
+
+
+def test_favorites_only_is_empty_for_a_client_with_no_stars(backend_main, api):
+    _as(backend_main, api, "favorites-empty@example.com")
+    client_id = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
+    body = api.get(f"/api/recipes?client_id={client_id}&favorites_only=true").json()
+    assert body["results"] == [] and body["total"] == 0

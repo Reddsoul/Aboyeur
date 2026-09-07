@@ -13,8 +13,12 @@ from __future__ import annotations
 import sqlite3
 import time
 
+SELF_CLIENT_NAME = "Me"
+
 __all__ = [
+    "SELF_CLIENT_NAME",
     "ClientError",
+    "ensure_self_client",
     "UnknownClient",
     "create_client",
     "list_clients",
@@ -52,6 +56,7 @@ def client_row_to_dict(row: sqlite3.Row) -> dict:
         "phone": row["phone"],
         "notes": row["notes"],
         "status": row["status"],
+        "is_self": bool(row["is_self"]),
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
@@ -64,16 +69,17 @@ def create_client(
     email: str | None = None,
     phone: str | None = None,
     notes: str | None = None,
+    is_self: bool = False,
 ) -> dict:
     name = (name or "").strip()
     if not name:
         raise ClientError("a client needs a name")
     now = _now()
     cur = conn.execute(
-        "INSERT INTO clients (user_id, name, email, phone, notes, status, created_at, updated_at) "
-        "VALUES (?, ?, ?, ?, ?, 'active', ?, ?)",
+        "INSERT INTO clients (user_id, name, email, phone, notes, status, is_self, "
+        "created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)",
         (user_id, name, (email or "").strip() or None, (phone or "").strip() or None,
-         (notes or "").strip() or None, now, now),
+         (notes or "").strip() or None, 1 if is_self else 0, now, now),
     )
     conn.commit()
     return get_client(conn, user_id, cur.lastrowid)
@@ -115,9 +121,35 @@ def resolve_client(conn: sqlite3.Connection, user_id: int, client_id: int | None
     return row["id"]
 
 
+def ensure_self_client(conn: sqlite3.Connection, user_id: int) -> int:
+    """The practitioner is a client too — themselves, "Me" by default.
+
+    A nutritionist plans their own week alongside everyone else's, and that
+    plan needs the same isolation as a paying client's, so it's a real client
+    record rather than a special case. Found by the is_self flag, so renaming
+    it to their actual name keeps it theirs.
+    """
+    row = conn.execute(
+        "SELECT id FROM clients WHERE user_id = ? AND is_self = 1 ORDER BY id LIMIT 1",
+        (user_id,),
+    ).fetchone()
+    if row is not None:
+        return row["id"]
+    # An account that predates the flag: its oldest client is the household
+    # the migration folded in, which is this practitioner's own.
+    existing = conn.execute(
+        "SELECT id FROM clients WHERE user_id = ? ORDER BY id LIMIT 1", (user_id,)
+    ).fetchone()
+    if existing is not None:
+        conn.execute("UPDATE clients SET is_self = 1 WHERE id = ?", (existing["id"],))
+        conn.commit()
+        return existing["id"]
+    return create_client(conn, user_id, SELF_CLIENT_NAME, is_self=True)["id"]
+
+
 def default_client_id(conn: sqlite3.Connection, user_id: int) -> int:
-    """This account's fallback subject: its oldest active client, created on
-    demand if the account has none yet."""
+    """This account's fallback subject: its oldest active client, or the
+    account owner's own "Me" client if they have none yet."""
     row = conn.execute(
         "SELECT id FROM clients WHERE user_id = ? AND status = 'active' "
         "ORDER BY id LIMIT 1",
@@ -125,7 +157,7 @@ def default_client_id(conn: sqlite3.Connection, user_id: int) -> int:
     ).fetchone()
     if row is not None:
         return row["id"]
-    return create_client(conn, user_id, "My household")["id"]
+    return ensure_self_client(conn, user_id)
 
 
 def update_client(conn: sqlite3.Connection, user_id: int, client_id: int, patch: dict) -> dict:
