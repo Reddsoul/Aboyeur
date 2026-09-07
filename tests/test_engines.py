@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from aboyeur.engines import allergens, nutrition, optimizer, shopping
+from aboyeur.data import components
+from aboyeur.engines import allergens, kit, nutrition, optimizer, shopping
 
 
 # ---------------------------------------------------------------------------
@@ -655,3 +656,217 @@ def test_build_shopping_list_canonical_map_merges_and_sums_grams():
     assert items["potato"]["approx_grams"] == 270
     assert items["potato"]["used_in_recipes"] == 2
     assert sorted(items["potato"]["merged_from"]) == ["boiled potato", "irish potato"]
+
+
+# ---------------------------------------------------------------------------
+# Macro Kit: the component library
+# ---------------------------------------------------------------------------
+
+def test_component_library_rows_are_well_formed():
+    """A malformed row must fail here, not silently produce a broken kit."""
+    assert len(components.COMPONENTS) >= 60
+    names = [c["name"] for c in components.COMPONENTS]
+    assert len(names) == len(set(names)), "duplicate component names"
+    for c in components.COMPONENTS:
+        where = c.get("name", "<unnamed>")
+        assert c["name"] and c["name"] == c["name"].lower().strip(), where
+        assert c["role"] in components.ROLES, where
+        assert c["usda_query"].strip(), where
+        assert c["diet_ok"], where
+        assert set(c["diet_ok"]) <= set(components.DIET_MODES), where
+        assert 0 < c["min_g"] <= c["default_serving_g"] <= c["max_g"], where
+        assert isinstance(c["tags"], list), where
+
+
+def test_every_role_has_components_for_every_diet():
+    """A vegan asking for a kit must not get an empty protein column."""
+    for diet in components.DIET_MODES:
+        for role in components.ROLES:
+            pool = [c for c in components.COMPONENTS
+                    if c["role"] == role and diet in c["diet_ok"]]
+            assert pool, f"no {role} components for {diet}"
+
+
+def test_curated_macros_overrides_pass_the_usda_sanity_gate():
+    """Hand-entered macros go through the same physical checks a USDA hit
+    does — grams must fit in 100 g, energy must agree with its own Atwater
+    energy — so a typo fails loudly instead of poisoning a kit."""
+    for c in components.COMPONENTS:
+        override = c.get("macros_override")
+        if not override:
+            continue
+        if not any(override[k] for k in ("kcal", "protein_g", "carb_g", "fat_g")):
+            continue  # deliberate zero (herbs, sugar-free syrup)
+        assert nutrition.validated_per_100g(override) is not None, c["name"]
+
+
+# ---------------------------------------------------------------------------
+# Macro Kit: macro strategies
+# ---------------------------------------------------------------------------
+
+def test_endurance_strategy_sets_protein_per_kg_bodyweight():
+    t = nutrition.resolve_macro_targets({"weight_kg": 70}, 2900, "endurance")
+    assert t["protein_g"] == 126.0  # 1.8 g/kg
+    assert "1.8 g/kg" in t["basis"]
+
+
+def test_endurance_drops_to_lower_protein_when_it_crowds_out_carbs():
+    """1.8 g/kg for a 90 kg athlete on 1600 kcal would be 40% of the budget,
+    leaving no room for the carbohydrate an endurance plan exists to supply."""
+    t = nutrition.resolve_macro_targets({"weight_kg": 90}, 1600, "endurance")
+    assert t["protein_g"] == 144.0  # 1.6 g/kg
+    assert "1.6 g/kg" in t["basis"]
+
+
+def test_cut_strategy_sets_protein_per_kg_and_fat_share():
+    t = nutrition.resolve_macro_targets({"weight_kg": 70}, 1250, "cut")
+    assert t["protein_g"] == 154.0  # 2.2 g/kg
+    assert t["fat_g"] == round(0.25 * 1250 / 9, 1)
+
+
+def test_every_strategy_sums_to_daily_kcal_by_atwater():
+    for strategy in nutrition.MACRO_STRATEGIES:
+        for member in ({"weight_kg": 70}, {"weight_kg": 110}, {}):
+            t = nutrition.resolve_macro_targets(member, 2400, strategy)
+            atwater = 4 * t["protein_g"] + 4 * t["carb_g"] + 9 * t["fat_g"]
+            assert abs(atwater - 2400) / 2400 < 0.02, (strategy, member, t)
+            assert min(t["protein_g"], t["carb_g"], t["fat_g"]) >= 0
+
+
+def test_strategies_fall_back_to_calorie_shares_without_bodyweight():
+    """No weight_kg must never mean an invented weight — same rule as the
+    BMR path's refusal to guess an age."""
+    endurance = nutrition.resolve_macro_targets({}, 2400, "endurance")
+    assert endurance["protein_g"] == round(0.25 * 2400 / 4, 1)
+    assert "no bodyweight" in endurance["basis"]
+    cut = nutrition.resolve_macro_targets({}, 2400, "cut")
+    assert cut["protein_g"] == round(0.35 * 2400 / 4, 1)
+
+
+def test_unknown_strategy_falls_back_to_balanced():
+    t = nutrition.resolve_macro_targets({"weight_kg": 70}, 2000, "ketogenic-carnivore")
+    assert t["strategy"] == "balanced"
+    assert t["protein_g"] == round(0.30 * 2000 / 4, 1)
+
+
+def test_balanced_strategy_matches_the_menu_paths_split():
+    """A balanced kit and the menu path must not disagree about the same
+    person's macros."""
+    t = nutrition.resolve_macro_targets({}, 2000, "balanced")
+    menu = nutrition.per_meal_target(2000, 1)
+    for key in ("protein_g", "carb_g", "fat_g"):
+        assert abs(t[key] - menu[key]) < 0.5
+
+
+# ---------------------------------------------------------------------------
+# Macro Kit: roster filtering
+# ---------------------------------------------------------------------------
+
+def test_effective_diet_takes_the_strictest_recognized_mode():
+    assert kit.effective_diet(["keto", "vegetarian"]) == "vegetarian"
+    assert kit.effective_diet(["vegetarian", "vegan"]) == "vegan"
+    assert kit.effective_diet(["low-fodmap"]) == "omnivore"
+    assert kit.effective_diet(None) == "omnivore"
+
+
+def test_filter_components_respects_diet():
+    vegan = {c["name"] for c in kit.filter_components("vegan")}
+    assert "chicken breast" not in vegan
+    assert "0% greek yogurt" not in vegan
+    assert "firm tofu" in vegan
+
+    pescatarian = {c["name"] for c in kit.filter_components("pescatarian")}
+    assert "canned tuna" in pescatarian
+    assert "chicken breast" not in pescatarian
+
+
+def test_filter_components_expands_allergen_categories():
+    """"shellfish" has to lose shrimp, and "dairy" the yogurt column — no
+    component's name contains the category word itself."""
+    names = {c["name"] for c in kit.filter_components("omnivore", allergies=["shellfish"])}
+    assert "shrimp" not in names
+    assert "chicken breast" in names
+
+    dairy_free = {c["name"] for c in kit.filter_components("omnivore", allergies=["dairy"])}
+    assert "0% greek yogurt" not in dairy_free
+    assert "low-fat cottage cheese" not in dairy_free
+
+
+def test_filter_components_honors_explicit_excludes():
+    names = {c["name"] for c in kit.filter_components("omnivore", exclude_foods=["tofu"])}
+    assert "firm tofu" not in names
+    assert "tempeh" in names
+
+
+# ---------------------------------------------------------------------------
+# Macro Kit: the portion solve
+# ---------------------------------------------------------------------------
+
+def _comp(name, role, per100, min_g, max_g):
+    return {
+        "name": name, "role": role, "min_g": min_g, "max_g": max_g,
+        "default_serving_g": min_g,
+        "per_100g": dict(zip(("kcal", "protein_g", "carb_g", "fat_g"), per100)),
+    }
+
+
+_CHICKEN = _comp("chicken breast", "protein", (120, 22.5, 0, 2.6), 80, 300)
+_RICE = _comp("white rice", "carb_base", (365, 7.1, 80, 0.7), 20, 200)
+_BROCCOLI = _comp("broccoli", "veg_volume", (34, 2.8, 7, 0.4), 100, 500)
+_OLIVE_OIL = _comp("olive oil", "fat", (884, 0, 0, 100), 5, 30)
+
+
+def test_solve_bowl_lands_on_every_macro_for_a_reachable_target():
+    target = {"kcal": 700.0, "protein_g": 50.0, "carb_g": 70.0, "fat_g": 23.0}
+    bowl = kit.solve_bowl(target, _CHICKEN, _RICE, _BROCCOLI, _OLIVE_OIL)
+    assert bowl["status"] == "ok"
+    assert bowl["macros_on_target"]
+    assert bowl["blocked_by"] == []
+    for key in ("protein_g", "carb_g", "fat_g"):
+        assert abs(bowl[key] - target[key]) <= 0.1 * target[key], (key, bowl)
+    assert abs(bowl["kcal"] - target["kcal"]) <= 0.05 * target["kcal"]
+    assert {i["name"] for i in bowl["items"]} == {
+        "chicken breast", "white rice", "broccoli", "olive oil"}
+
+
+def test_solve_bowl_reports_the_residual_when_a_band_blocks_the_target():
+    """An unreachable protein target must come back named and quantified,
+    not quietly clipped — same contract as the menu optimizer's under-days."""
+    target = {"kcal": 900.0, "protein_g": 150.0, "carb_g": 40.0, "fat_g": 20.0}
+    bowl = kit.solve_bowl(target, _CHICKEN, _RICE, _BROCCOLI, _OLIVE_OIL)
+    assert "chicken breast" in bowl["blocked_by"]
+    assert bowl["macros_on_target"] is False
+    assert bowl["residual"]["protein_g"] < -20
+    assert bowl["grams_by_role"]["protein"] == _CHICKEN["max_g"]
+
+
+def test_solve_bowl_drops_the_carb_base_when_there_is_no_room_for_it():
+    """At a small calorie target the honest answer is no carb base, not a
+    forced minimum serving that overshoots carbs and starves protein.
+
+    300 g of vegetables already carries more carbohydrate than this target
+    allows, so a minimum serving of rice on top could only be paid for out
+    of the protein — which is the macro the strategy set first.
+    """
+    target = {"kcal": 380.0, "protein_g": 50.0, "carb_g": 12.0, "fat_g": 8.0}
+    bowl = kit.solve_bowl(target, _CHICKEN, _RICE, _BROCCOLI, _OLIVE_OIL)
+    assert bowl["grams_by_role"]["carb_base"] == 0
+    assert "white rice" not in {i["name"] for i in bowl["items"]}
+    assert bowl["status"] == "ok"  # calories still land
+    assert bowl["protein_g"] >= target["protein_g"]  # protein not sacrificed
+    # ...and the carbohydrate overshoot the vegetables force is reported,
+    # not hidden.
+    assert bowl["residual"]["carb_g"] > 0
+    assert bowl["macros_on_target"] is False
+
+
+def test_solve_bowl_drops_the_fat_serving_when_the_protein_covers_it():
+    target = {"kcal": 700.0, "protein_g": 60.0, "carb_g": 80.0, "fat_g": 7.0}
+    bowl = kit.solve_bowl(target, _CHICKEN, _RICE, _BROCCOLI, _OLIVE_OIL)
+    assert bowl["grams_by_role"]["fat"] == 0
+
+
+def test_solve_bowl_anchors_vegetables_rather_than_solving_them():
+    target = {"kcal": 700.0, "protein_g": 50.0, "carb_g": 70.0, "fat_g": 23.0}
+    bowl = kit.solve_bowl(target, _CHICKEN, _RICE, _BROCCOLI, _OLIVE_OIL)
+    assert bowl["grams_by_role"]["veg_volume"] == round(kit.VEG_ANCHOR_G)

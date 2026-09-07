@@ -1,5 +1,8 @@
 .env
-data/
+# Root-anchored: the stale DB copy at ./data. Unanchored `data/` also
+# matched aboyeur/data/ (the Macro Kit component library), silently
+# keeping a real source package out of the repo.
+/data/
 __pycache__/
 *.pyc
 .venv/

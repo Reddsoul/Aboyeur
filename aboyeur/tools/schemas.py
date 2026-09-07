@@ -115,6 +115,17 @@ TOOL_SCHEMAS: list[dict] = [
                             "applies to everyone; for one person use add_member instead."
                         ),
                     },
+                    "set_macro_strategy": {
+                        "type": "string", "enum": ["balanced", "endurance", "cut"],
+                        "description": (
+                            "How to split calories into protein/carb/fat. Set this in the "
+                            "same turn the user states a sport or a body-composition goal: "
+                            "'endurance' for running, cycling, rowing, swimming or race "
+                            "training; 'cut' when they state a fat-loss goal; 'balanced' "
+                            "otherwise (including general lifting). Used by build_macro_kit; "
+                            "it does not change existing menu targets."
+                        ),
+                    },
                     "add_member": {
                         "type": "object",
                         "description": (
@@ -229,6 +240,83 @@ TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "build_macro_kit",
+            "description": (
+                "Build a Macro Kit: a mix-and-match GROCERY TEMPLATE — a short list of "
+                "whole foods per column (protein, carb base, volume vegetables, fat, "
+                "sauce) plus a per-meal gram rule, so the user assembles a bowl and hits "
+                "their macros without following a recipe or counting. "
+                "USE THIS when the user wants foods/groceries they can combine or mix and "
+                "match, 'a combo of groceries to hit my macros', 'what should I buy to hit "
+                "my protein', a training/cutting food list, or meal-prep components. "
+                "DO NOT use plan_menu for that — plan_menu picks specific cookbook recipes "
+                "for specific days, which is a different request. Conversely, if they want "
+                "actual dishes/recipes for the week, use search_recipes + plan_menu, not "
+                "this. Do not call search_recipes first; a kit does not come from the "
+                "recipe library. ONE call returns everything: the columns with per-serving "
+                "macros, the assembly rule (grams per column per meal), example bowls with "
+                "their macros, and the daily total vs target with an ok/under/over status. "
+                "All weights are RAW / as-purchased (dry rice and oats, raw chicken). "
+                "Call get_profile first so weight, diet and allergies are current, and "
+                "update_profile in the same turn if the user just stated a sport, goal or "
+                "bodyweight. Afterwards offer get_shopping_list with the returned kit_id."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "meals_per_day": {
+                        "type": "integer",
+                        "description": (
+                            "Meals the grams are divided across, e.g. 3. Omit to use the "
+                            "member's own meals_per_day, else the household default."
+                        ),
+                    },
+                    "days": {
+                        "type": "integer",
+                        "description": (
+                            "How many days of groceries the shopping list should cover. "
+                            "Default 7. Does not change the assembly rule — a kit is one "
+                            "template, not a day-by-day plan."
+                        ),
+                    },
+                    "emphasis": {
+                        "type": "string", "enum": ["balanced", "endurance", "cut"],
+                        "description": (
+                            "Macro strategy. 'endurance' = carb-forward with protein set "
+                            "per kg bodyweight (running, cycling, rowing, marathon "
+                            "training); 'cut' = high protein, lower calorie, high-volume "
+                            "foods (fat loss); 'balanced' otherwise. Omit to use the "
+                            "profile's macro_strategy."
+                        ),
+                    },
+                    "kit_size": {
+                        "type": "object",
+                        "description": (
+                            "Optional per-column item counts, e.g. {'protein': 4, "
+                            "'carb_base': 2}. Keys are the column names. Defaults are "
+                            "sensible — only pass this if the user asks for more or fewer "
+                            "options."
+                        ),
+                    },
+                    "include_foods": {
+                        "type": "array", "items": {"type": "string"},
+                        "description": "Foods the user specifically asked for, e.g. ['oats', 'salmon'].",
+                    },
+                    "exclude_foods": {
+                        "type": "array", "items": {"type": "string"},
+                        "description": (
+                            "Foods to leave out. Not for allergies — those come from the "
+                            "profile automatically and are already excluded before you see "
+                            "the kit."
+                        ),
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "swap_menu_item",
             "description": (
                 "Replace one meal's recipe in a menu with a different recipe id, and get the "
@@ -286,12 +374,20 @@ TOOL_SCHEMAS: list[dict] = [
                 "entry) — present items as given, don't re-merge or re-split them. Pantry "
                 "items already on hand are marked have=true rather than removed, so you can "
                 "show what's needed vs. what's already there. Omit menu_id to use the most "
-                "recently planned menu."
+                "recently planned menu. This also builds the grocery list for a Macro "
+                "Kit — pass the kit_id build_macro_kit returned (a kit list gives grams "
+                "to buy per food over the kit's day horizon, with meals_covered instead "
+                "of used_in_recipes). With no id at all it uses the most recent menu, "
+                "falling back to the most recent kit."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "menu_id": {"type": "integer", "description": "Omit to use the most recent menu."},
+                    "kit_id": {
+                        "type": "integer",
+                        "description": "A Macro Kit id from build_macro_kit. Omit for a menu.",
+                    },
                 },
             },
         },

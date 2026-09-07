@@ -2,6 +2,7 @@
 native tool-calling live in tools/schemas.py.
 """
 
+from aboyeur.tools.kit import build_macro_kit
 from aboyeur.tools.menu import get_menu_recipes, plan_menu, swap_menu_item
 from aboyeur.tools.nutrition import estimate_nutrition
 from aboyeur.tools.nutrition_reference import search_nutrition_reference
@@ -19,6 +20,7 @@ __all__ = [
     "manage_pantry",
     "estimate_nutrition",
     "plan_menu",
+    "build_macro_kit",
     "swap_menu_item",
     "get_menu_recipes",
     "get_shopping_list",

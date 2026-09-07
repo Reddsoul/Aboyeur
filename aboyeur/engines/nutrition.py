@@ -159,6 +159,130 @@ def household_targets(profile: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Macro strategies (Macro Kit)
+# ---------------------------------------------------------------------------
+
+# Additive to the menu path, not a replacement for it: per_meal_target /
+# household_targets keep their 30/40/30 split and everything reading them
+# (plan_menu, swap_menu_item, the optimizer) is untouched. A strategy only
+# applies where something asks for one — currently build_macro_kit.
+MACRO_STRATEGIES = ("balanced", "endurance", "cut")
+
+# g protein per kg bodyweight. Endurance drops to the lower figure when the
+# higher one would eat too much of the calorie budget to leave room for the
+# carbohydrate an endurance athlete actually trains on.
+_ENDURANCE_PROTEIN_G_PER_KG = 1.8
+_ENDURANCE_PROTEIN_G_PER_KG_LOW = 1.6
+_ENDURANCE_PROTEIN_KCAL_CEILING = 0.30
+_ENDURANCE_CARB_KCAL_SHARE = 0.55
+_ENDURANCE_FAT_KCAL_FLOOR = 0.20
+_CUT_PROTEIN_G_PER_KG = 2.2
+_CUT_FAT_KCAL_SHARE = 0.25
+# Fallback protein shares when no bodyweight is known — nothing here ever
+# guesses a weight to force the g/kg path (same rule as the BMR fallback).
+_ENDURANCE_PROTEIN_KCAL_SHARE = 0.25
+_CUT_PROTEIN_KCAL_SHARE = 0.35
+
+
+def _balance_to_kcal(grams: dict, daily_kcal: float) -> dict:
+    """Force protein/carb/fat grams to sum to daily_kcal by Atwater (4/4/9).
+
+    Overshoot is taken out of carb first, then fat, then protein — carb is
+    the least load-bearing of the three for every strategy here (protein is
+    set from bodyweight, fat has a health floor). An undershoot goes back
+    into carb. Nothing is allowed to go negative.
+    """
+    out = {k: max(0.0, float(v)) for k, v in grams.items()}
+    order = ("carb_g", "fat_g", "protein_g")
+    for _ in range(len(order)):
+        total = sum(out[k] * _KCAL_PER_G[k[:-2]] for k in out)
+        delta = total - float(daily_kcal)
+        if abs(delta) < 0.5:
+            break
+        if delta > 0:
+            for key in order:
+                if out[key] <= 0:
+                    continue
+                cut = min(out[key], delta / _KCAL_PER_G[key[:-2]])
+                out[key] -= cut
+                delta -= cut * _KCAL_PER_G[key[:-2]]
+                if delta < 0.5:
+                    break
+        else:
+            out["carb_g"] += -delta / _KCAL_PER_G["carb"]
+            break
+    return out
+
+
+def resolve_macro_targets(member: dict, daily_kcal: float, strategy: str) -> dict:
+    """Daily {kcal, protein_g, carb_g, fat_g} for one macro strategy.
+
+    "balanced"  -> 30/40/30 of calories (the same split per_meal_target uses,
+                   so a balanced kit and the menu path agree).
+    "endurance" -> protein 1.8 g/kg bodyweight (1.6 g/kg if that would take
+                   more than 30% of calories; 25% of calories when no
+                   weight_kg is known), carbohydrate 55% of calories, fat the
+                   remainder with a 20%-of-calories floor.
+    "cut"       -> protein 2.2 g/kg (35% of calories with no weight_kg), fat
+                   25% of calories, carbohydrate the remainder.
+
+    Grams are non-negative and always sum by Atwater to daily_kcal — when the
+    fixed terms overshoot, carb gives way first, then fat, then protein.
+    Also returns `strategy` and a plain-language `basis` so a kit can state
+    where its numbers came from instead of presenting them as given.
+    """
+    kcal = max(0.0, float(daily_kcal or 0))
+    strategy = (strategy or "balanced").strip().lower()
+    if strategy not in MACRO_STRATEGIES:
+        strategy = "balanced"
+    weight = member.get("weight_kg") if member else None
+    weight = float(weight) if weight else None
+
+    if strategy == "endurance":
+        if weight:
+            per_kg = _ENDURANCE_PROTEIN_G_PER_KG
+            if per_kg * weight * _KCAL_PER_G["protein"] > _ENDURANCE_PROTEIN_KCAL_CEILING * kcal:
+                per_kg = _ENDURANCE_PROTEIN_G_PER_KG_LOW
+            protein = per_kg * weight
+            basis = f"protein {per_kg} g/kg bodyweight, carbohydrate 55% of calories"
+        else:
+            protein = _ENDURANCE_PROTEIN_KCAL_SHARE * kcal / _KCAL_PER_G["protein"]
+            basis = "protein 25% of calories (no bodyweight on file), carbohydrate 55% of calories"
+        carb = _ENDURANCE_CARB_KCAL_SHARE * kcal / _KCAL_PER_G["carb"]
+        remainder = kcal - protein * _KCAL_PER_G["protein"] - carb * _KCAL_PER_G["carb"]
+        fat = max(remainder, _ENDURANCE_FAT_KCAL_FLOOR * kcal) / _KCAL_PER_G["fat"]
+    elif strategy == "cut":
+        if weight:
+            protein = _CUT_PROTEIN_G_PER_KG * weight
+            basis = f"protein {_CUT_PROTEIN_G_PER_KG} g/kg bodyweight, fat 25% of calories"
+        else:
+            protein = _CUT_PROTEIN_KCAL_SHARE * kcal / _KCAL_PER_G["protein"]
+            basis = "protein 35% of calories (no bodyweight on file), fat 25% of calories"
+        fat = _CUT_FAT_KCAL_SHARE * kcal / _KCAL_PER_G["fat"]
+        carb = max(
+            0.0,
+            kcal - protein * _KCAL_PER_G["protein"] - fat * _KCAL_PER_G["fat"],
+        ) / _KCAL_PER_G["carb"]
+    else:
+        protein = _SPLIT["protein"] * kcal / _KCAL_PER_G["protein"]
+        carb = _SPLIT["carb"] * kcal / _KCAL_PER_G["carb"]
+        fat = _SPLIT["fat"] * kcal / _KCAL_PER_G["fat"]
+        basis = "30/40/30 split of calories (protein/carbohydrate/fat)"
+
+    balanced = _balance_to_kcal(
+        {"protein_g": protein, "carb_g": carb, "fat_g": fat}, kcal
+    )
+    return {
+        "strategy": strategy,
+        "basis": basis,
+        "kcal": round(kcal, 1),
+        "protein_g": round(balanced["protein_g"], 1),
+        "carb_g": round(balanced["carb_g"], 1),
+        "fat_g": round(balanced["fat_g"], 1),
+    }
+
+
+# ---------------------------------------------------------------------------
 # USDA lookup (cached in SQLite, best-effort)
 # ---------------------------------------------------------------------------
 
@@ -364,6 +488,24 @@ def _validated_macros(food: dict) -> dict | None:
         return None
     return {"kcal": kcal, "protein_g": protein, "carb_g": carb, "fat_g": fat,
             "status": "success"}
+
+
+def validated_per_100g(macros: dict) -> dict | None:
+    """Run curated per-100 g macros through the same gate a USDA hit gets.
+
+    The Macro Kit's component library carries hand-entered macros for foods
+    USDA can't answer well (leafy greens, condiments, konjac noodles). Those
+    are still data entry, so they go through _validated_macros' physical
+    checks — grams must fit in 100 g, stated energy must agree with its own
+    Atwater energy — rather than being trusted because a human typed them.
+    Returns None on a row that fails, so a typo fails loudly.
+    """
+    return _validated_macros({"foodNutrients": [
+        {"nutrientId": _N_KCAL, "value": float(macros.get("kcal") or 0)},
+        {"nutrientId": _N_PROTEIN, "value": float(macros.get("protein_g") or 0)},
+        {"nutrientId": _N_CARB, "value": float(macros.get("carb_g") or 0)},
+        {"nutrientId": _N_FAT, "value": float(macros.get("fat_g") or 0)},
+    ]})
 
 
 def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str) -> dict:

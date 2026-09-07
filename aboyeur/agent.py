@@ -18,6 +18,7 @@ from aboyeur.config import Config
 from aboyeur.llm import StreamCollector, make_client, stream_chat
 from aboyeur.prompts import build_system_prompt
 from aboyeur.tools import (
+    build_macro_kit,
     estimate_nutrition,
     get_menu_recipes,
     get_profile,
@@ -141,8 +142,22 @@ def _dispatch(
     if name == "get_menu_recipes":
         return get_menu_recipes(conn, user_id, args.get("menu_id"))
 
+    if name == "build_macro_kit":
+        return build_macro_kit(
+            conn, config, user_id,
+            meals_per_day=args.get("meals_per_day"),
+            days=args.get("days", 7),
+            emphasis=args.get("emphasis"),
+            kit_size=args.get("kit_size"),
+            include_foods=args.get("include_foods"),
+            exclude_foods=args.get("exclude_foods"),
+            guest=guest_profile,
+        )
+
     if name == "get_shopping_list":
-        return get_shopping_list(conn, config, user_id, args.get("menu_id"))
+        return get_shopping_list(
+            conn, config, user_id, args.get("menu_id"), kit_id=args.get("kit_id")
+        )
 
     if name == "search_nutrition_reference":
         return {"results": search_nutrition_reference(conn, args["query"], limit=args.get("limit", 5))}

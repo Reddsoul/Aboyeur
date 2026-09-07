@@ -312,3 +312,307 @@ INFO:     Waiting for application startup.
 INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
 INFO:     Application startup complete.
 INFO:     100.71.143.90:57373 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:57727 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:62328 - "GET /v1/models HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/data/__init__.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [43323]
+Python(72104) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72104]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/data/components.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72104]
+Python(72771) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72771]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/nutrition.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72771]
+Python(72993) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [72993]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [72993]
+Python(73785) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73785]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73785]
+Python(73821) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73821]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/migrate.py', 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73821]
+Python(73916) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73916]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73916]
+Python(74091) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74091]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/shopping.py', 'aboyeur/tools/shopping.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74091]
+Python(74413) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74413]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/profile.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74413]
+Python(74495) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74495]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py', 'aboyeur/tools/__init__.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74495]
+Python(74556) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74556]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/schemas.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74556]
+Python(74711) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74711]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74711]
+Python(74796) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74796]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74796]
+Python(74853) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [74853]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/data/components.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74853]
+Python(75602) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [75602]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/data/components.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [75602]
+Python(75677) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [75677]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [75677]
+Python(75851) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [75851]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [75851]
+Python(76182) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [76182]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76182]
+Python(76261) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [76261]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76261]
+Python(76305) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [76305]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/data/components.py', 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76305]
+Python(78180) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [78180]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/data/components.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [78180]
+Python(78406) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [78406]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [78406]
+Python(80907) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [80907]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [80907]
+Python(81624) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [81624]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/kit.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [81624]
+Python(81729) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [81729]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:63288 - "GET /docs HTTP/1.1" 200 OK
+INFO:     100.71.143.90:63316 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:63334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:63328 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:63334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:63334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:64016 - "GET /v1/models HTTP/1.1" 200 OK

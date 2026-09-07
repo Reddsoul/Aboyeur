@@ -177,6 +177,19 @@ CREATE TABLE IF NOT EXISTS menus (
     created_at  TEXT NOT NULL
 );
 
+-- Macro Kits (build_macro_kit): a mix-and-match grocery template — food
+-- columns plus a per-meal gram rule — as opposed to `menus`, which is
+-- specific recipes on specific days. Deliberately its own table: a kit has
+-- no recipe ids, no week, and no draft/confirmed lifecycle, so folding it
+-- into menus would mean a days_json that means two different things.
+-- idx_kits_user lives in aboyeur.migrate alongside idx_menus_user.
+CREATE TABLE IF NOT EXISTS kits (
+    id          INTEGER PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    data_json   TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
+
 -- Recipe catalog favorites (the Library UI's star toggle). Recipes stay a
 -- single shared read-only corpus across every user — only this join table
 -- is per-user.

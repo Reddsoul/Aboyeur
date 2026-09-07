@@ -43,6 +43,10 @@ _SECTION_KEYWORDS = {
 _SECTION_ORDER = ["spice", "protein", "dairy", "produce", "frozen", "pantry"]
 
 _SECTIONS = ["produce", "protein", "dairy", "pantry", "spice", "frozen"]
+# Public alias: the Macro Kit shopping list groups by the same sections in
+# the same order, but aggregates components (already canonical names) rather
+# than raw recipe lines, so it can't reuse build_shopping_list itself.
+SECTIONS = _SECTIONS
 
 # Word-boundary matching, not raw substring: "egg" must not match inside
 # "eggplant", "corn" must not match inside "cornstarch".

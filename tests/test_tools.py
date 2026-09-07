@@ -19,7 +19,9 @@ import pytest
 from aboyeur.config import Config
 from aboyeur.db import connect
 from aboyeur.engines import nutrition as nutrition_engine
+from aboyeur.engines import shopping as shopping_engine
 from aboyeur.tools import (
+    build_macro_kit,
     estimate_nutrition,
     get_menu_recipes,
     get_profile,
@@ -691,3 +693,339 @@ def test_menu_lookup_by_id_rejects_other_users_menu(
     # user_id explicitly asking for other's menu_id must not see it.
     assert "error" in get_menu_recipes(db_conn, user_id, theirs["menu_id"])
     assert "error" in get_shopping_list(db_conn, config, user_id, theirs["menu_id"])
+
+
+# ---------------------------------------------------------------------------
+# build_macro_kit
+#
+# Every kit test takes the `component_macros` fixture (tests/conftest.py):
+# config.usda_api_key is None here, so without it every component would
+# resolve to zero macros and a portion solve against zeros proves nothing.
+# ---------------------------------------------------------------------------
+
+def _runner(db_conn: sqlite3.Connection, user_id: int, **overrides) -> None:
+    member = {"id": "jo", "label": "Jo", "weight_kg": 70, "daily_kcal": 2900}
+    member.update(overrides)
+    update_profile(db_conn, user_id, {"add_member": member, "set_meals_per_day": 3})
+
+
+def test_build_macro_kit_returns_columns_rule_and_bowls(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id, emphasis="endurance")
+
+    assert kit["kit_id"] > 0
+    assert kit["emphasis"] == "endurance"
+    assert kit["targets"]["strategy"] == "endurance"
+    assert "1.8 g/kg" in kit["targets"]["basis"]
+
+    for role in ("protein", "carb_base", "veg_volume", "fat", "sauce"):
+        assert kit["columns"][role], f"{role} column is empty"
+    for item in kit["columns"]["protein"]:
+        assert item["kcal"] > 0 and item["protein_g"] > 0
+        assert item["confidence"] in ("high", "medium")
+
+    grams = kit["assembly_rule"]["per_meal_grams"]
+    assert grams["protein"] > 0 and grams["veg_volume"] > 0
+    assert "raw" in kit["assembly_rule"]["text"]
+
+    assert 2 <= len(kit["example_bowls"]) <= 3
+    for bowl in kit["example_bowls"]:
+        assert bowl["items"] and bowl["kcal"] > 0
+        assert 0 <= bowl["fit"] <= 1
+
+
+def test_build_macro_kit_daily_totals_hit_the_strategy_target(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id, emphasis="endurance")
+
+    totals = kit["daily_totals"]
+    assert totals["status"] == "ok"
+    assert totals["macros_on_target"] is True
+    assert abs(totals["kcal"] - totals["target_kcal"]) <= 0.1 * totals["target_kcal"]
+    # 1.8 g/kg for a 70 kg runner, within the solver's macro tolerance.
+    assert abs(totals["protein_g"] - 126) <= 0.2 * 126
+
+
+def test_build_macro_kit_defaults_emphasis_from_the_profile_strategy(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    update_profile(db_conn, user_id, {"set_macro_strategy": "endurance"})
+    kit = build_macro_kit(db_conn, config, user_id)  # no emphasis argument
+    assert kit["emphasis"] == "endurance"
+    assert kit["targets"]["strategy"] == "endurance"
+
+
+def test_build_macro_kit_excludes_allergens_and_respects_diet(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    update_profile(db_conn, user_id, {
+        "add_allergies": ["shellfish"], "set_diet_modes": ["vegetarian"],
+    })
+    kit = build_macro_kit(db_conn, config, user_id)
+
+    names = {i["name"] for col in kit["columns"].values() for i in col}
+    assert "shrimp" not in names
+    assert "chicken breast" not in names  # vegetarian
+    assert kit["columns"]["protein"], "vegetarian protein column must not be empty"
+    assert kit["diet"] == "vegetarian"
+
+
+def test_build_macro_kit_drops_disliked_foods(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    update_profile(db_conn, user_id, {"add_dislikes": ["tofu"]})
+    kit = build_macro_kit(db_conn, config, user_id, exclude_foods=["white rice"])
+    names = {i["name"] for col in kit["columns"].values() for i in col}
+    assert "firm tofu" not in names
+    assert "white rice" not in names
+
+
+def test_build_macro_kit_persists_and_reloads_the_kit(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    from aboyeur.tools.kit import load_kit
+
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id)
+    loaded_id, loaded = load_kit(db_conn, user_id, None)  # most recent
+    assert loaded_id == kit["kit_id"]
+    assert loaded["assembly_rule"] == kit["assembly_rule"]
+
+
+def test_build_macro_kit_flags_components_whose_macros_never_resolved(
+    db_conn: sqlite3.Connection, config: Config, user_id: int
+):
+    """No USDA key (the test default) means nothing resolves. The kit must
+    still come back, with its confidence flags and a note saying so — the
+    same degrade-don't-crash contract estimate_nutrition has."""
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id)
+    assert kit["low_confidence_components"]
+    assert any("didn't resolve" in n for n in kit["notes"])
+    assert kit["columns"]["protein"], "a column must never be emptied entirely"
+
+
+# ---------------------------------------------------------------------------
+# Golden: an emphasis="cut" kit lands in the Built With Science envelope
+# ---------------------------------------------------------------------------
+
+# The five bowls from the "30-Day Filling Diet" PDF, as (kcal, protein, carb,
+# fat) per serving. Reference points only — the PDF is a copyrighted 2024
+# document and is deliberately NOT indexed into nutrition_reference (that
+# corpus is public-domain 1800s-1920s text, and the prompt flags its hits as
+# dated; a modern commercial PDF breaks both).
+_BWS_BOWLS = [
+    (428, 66, 22, 9),   # Greek chicken bowl
+    (484, 42, 58, 11),  # Rainbow power breakfast bowl
+    (407, 58, 34, 6),   # Tuna kimchi salad bowl
+    (521, 72, 35, 13),  # Chicken konjac yakisoba
+    (410, 52, 52, 2),   # Jello yogurt bowl
+]
+
+
+def test_cut_kit_bowls_land_in_the_bws_envelope(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    """A 70 kg member cutting from 2000 kcal maintenance lands on ~1250
+    kcal/day; over 3 meals that is the same envelope the reference bowls
+    occupy — ~400-520 kcal, 45-72 g protein, no more than ~13 g fat."""
+    kcal_lo, kcal_hi = min(b[0] for b in _BWS_BOWLS), max(b[0] for b in _BWS_BOWLS)
+    fat_max = max(b[3] for b in _BWS_BOWLS)
+
+    update_profile(db_conn, user_id, {
+        "add_member": {"id": "jo", "sex": "f", "weight_kg": 70,
+                       "daily_kcal": 2000, "goal": "lose"},
+        "set_meals_per_day": 3,
+    })
+    kit = build_macro_kit(db_conn, config, user_id, emphasis="cut")
+
+    per_meal = kit["targets"]["per_meal"]
+    assert kcal_lo <= per_meal["kcal"] <= kcal_hi
+
+    in_envelope = 0
+    for bowl in kit["example_bowls"]:
+        assert kcal_lo * 0.95 <= bowl["kcal"] <= kcal_hi * 1.05, bowl
+        assert 45 <= bowl["protein_g"] <= 72, bowl
+        if bowl["fat_g"] <= fat_max + 1:
+            in_envelope += 1
+        else:
+            # The reference list has no red meat; a leaner-than-average beef
+            # still carries more fat than 13 g at a cut portion. That's a
+            # real result, and the bowl has to admit it rather than sit in
+            # the list looking like the others.
+            assert bowl["macros_on_target"] is False, bowl
+    assert in_envelope >= 2, kit["example_bowls"]
+
+    # The kit's own recommendation — the assembly rule, and the daily math
+    # that follows from it — is the one that has to land.
+    assert kit["daily_totals"]["status"] == "ok"
+    assert kit["daily_totals"]["macros_on_target"] is True
+    assert kit["assembly_rule"]["tips"], "a cut kit carries the satiety strategies"
+
+
+def test_non_cut_kits_carry_no_satiety_tips(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id, emphasis="endurance")
+    assert kit["assembly_rule"]["tips"] == []
+
+
+# ---------------------------------------------------------------------------
+# Kit shopping list
+# ---------------------------------------------------------------------------
+
+def _kit_items(result: dict) -> dict:
+    return {it["name"]: it for s in result["sections"].values() for it in s}
+
+
+def test_kit_shopping_list_assigns_sections_and_grams(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id, days=7)
+    result = get_shopping_list(db_conn, config, user_id, kit_id=kit["kit_id"])
+
+    assert result["source"] == "kit"
+    assert result["kit_id"] == kit["kit_id"]
+    assert set(result["sections"]) <= set(shopping_engine.SECTIONS)
+    items = _kit_items(result)
+    assert items, "kit shopping list must not be empty"
+    for item in items.values():
+        assert item["approx_grams"] > 0
+        assert item["meals_covered"] > 0
+    # Every column the kit offers should be buyable, sauces included.
+    kit_names = {i["name"] for col in kit["columns"].values() for i in col}
+    assert set(items) == kit_names
+
+
+def test_kit_shopping_list_quantities_scale_with_days_and_meals(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    week = build_macro_kit(db_conn, config, user_id, days=7, meals_per_day=3)
+    fortnight = build_macro_kit(db_conn, config, user_id, days=14, meals_per_day=3)
+
+    a = _kit_items(get_shopping_list(db_conn, config, user_id, kit_id=week["kit_id"]))
+    b = _kit_items(get_shopping_list(db_conn, config, user_id, kit_id=fortnight["kit_id"]))
+    name = next(iter(a))
+    assert b[name]["approx_grams"] == pytest.approx(a[name]["approx_grams"] * 2, rel=0.02)
+
+    one_meal = build_macro_kit(db_conn, config, user_id, days=7, meals_per_day=1)
+    c = _kit_items(get_shopping_list(db_conn, config, user_id, kit_id=one_meal["kit_id"]))
+    # Fewer meals a day means fewer total meals to shop for, even though each
+    # one is bigger.
+    assert sum(i["meals_covered"] for i in c.values()) < sum(
+        i["meals_covered"] for i in a.values())
+
+
+def test_kit_shopping_list_marks_pantry_items(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id)
+    first = kit["columns"]["protein"][0]["name"]
+    manage_pantry(db_conn, user_id, "add", [first])
+    result = get_shopping_list(db_conn, config, user_id, kit_id=kit["kit_id"])
+    assert _kit_items(result)[first]["have"] is True
+
+
+def test_shopping_list_falls_back_to_a_kit_when_there_is_no_menu(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id)
+    result = get_shopping_list(db_conn, config, user_id)  # no id at all
+    assert result["source"] == "kit"
+    assert result["kit_id"] == kit["kit_id"]
+
+
+def test_shopping_list_resolves_a_kit_id_passed_as_menu_id(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    """The model conflates the two ids; owning the row is what matters."""
+    _runner(db_conn, user_id)
+    kit = build_macro_kit(db_conn, config, user_id)
+    result = get_shopping_list(db_conn, config, user_id, menu_id=kit["kit_id"])
+    assert result["source"] == "kit"
+
+
+def test_menu_shopping_list_is_unchanged_by_the_kit_path(
+    db_conn: sqlite3.Connection, config: Config, user_id: int
+):
+    """A menu list must keep its own shape — used_in_recipes, no kit keys."""
+    plan = plan_menu(db_conn, config, user_id, candidate_ids=_all_ids(db_conn), days=2)
+    result = get_shopping_list(db_conn, config, user_id, menu_id=plan["menu_id"])
+    assert "source" not in result
+    items = [it for s in result["sections"].values() for it in s]
+    assert items and all("used_in_recipes" in it for it in items)
+
+
+# ---------------------------------------------------------------------------
+# Kits are per-user, like every other household table
+# ---------------------------------------------------------------------------
+
+def test_kit_default_lookup_never_crosses_users(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    from aboyeur.tools.kit import load_kit
+
+    other = _other_user(db_conn)
+    _runner(db_conn, user_id)
+    _runner(db_conn, other)
+
+    mine = build_macro_kit(db_conn, config, user_id)
+    build_macro_kit(db_conn, config, other)  # other's kit is newer
+
+    assert load_kit(db_conn, user_id, None)[0] == mine["kit_id"]
+    assert get_shopping_list(db_conn, config, user_id)["kit_id"] == mine["kit_id"]
+
+
+def test_kit_lookup_by_id_rejects_another_users_kit(
+    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+):
+    from aboyeur.tools.kit import load_kit
+
+    other = _other_user(db_conn)
+    _runner(db_conn, other)
+    theirs = build_macro_kit(db_conn, config, other)
+
+    assert load_kit(db_conn, user_id, theirs["kit_id"]) is None
+    assert "error" in get_shopping_list(db_conn, config, user_id, kit_id=theirs["kit_id"])
+    assert "error" in get_shopping_list(db_conn, config, user_id, menu_id=theirs["kit_id"])
+
+
+# ---------------------------------------------------------------------------
+# set_macro_strategy
+# ---------------------------------------------------------------------------
+
+def test_set_macro_strategy_adds_strategy_macros_without_touching_menu_targets(
+    db_conn: sqlite3.Connection, user_id: int
+):
+    update_profile(db_conn, user_id, {
+        "add_member": {"id": "jo", "weight_kg": 70, "daily_kcal": 2900},
+    })
+    before = get_profile(db_conn, user_id)["targets"]["jo"]
+    assert "strategy_daily_macros" not in before
+
+    after = update_profile(db_conn, user_id, {"set_macro_strategy": "endurance"})
+    entry = after["targets"]["jo"]
+    assert after["macro_strategy"] == "endurance"
+    assert entry["strategy_daily_macros"]["protein_g"] == 126.0
+    # The menu path's own numbers must be byte-identical.
+    assert entry["per_meal"] == before["per_meal"]
+    assert entry["daily_macros"] == before["daily_macros"]
+
+
+def test_set_macro_strategy_ignores_an_unknown_strategy(
+    db_conn: sqlite3.Connection, user_id: int
+):
+    profile = update_profile(db_conn, user_id, {"set_macro_strategy": "carnivore"})
+    assert "macro_strategy" not in profile

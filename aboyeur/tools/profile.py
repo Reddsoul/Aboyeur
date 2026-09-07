@@ -65,9 +65,26 @@ def _save_raw(conn: sqlite3.Connection, user_id: int, profile: dict, guest: dict
 
 
 def get_profile(conn: sqlite3.Connection, user_id: int, guest: dict | None = None) -> dict:
-    """Household, computed per-member BMR/TDEE targets, restrictions, preferences."""
+    """Household, computed per-member BMR/TDEE targets, restrictions, preferences.
+
+    When a macro strategy is set (update_profile's set_macro_strategy, used
+    by the Macro Kit), each member also gets `strategy_daily_macros` — that
+    strategy's daily protein/carb/fat grams. Additive: `targets`' existing
+    per_meal / daily_macros keep the 30/40/30 split the menu path reads, and
+    the field is absent entirely until a strategy is chosen.
+    """
     profile = _load_raw(conn, user_id, guest)
-    return {**profile, "targets": nutrition.household_targets(profile)}
+    targets = nutrition.household_targets(profile)
+    strategy = profile.get("macro_strategy")
+    if strategy:
+        for member in profile.get("household", []):
+            entry = targets.get(member["id"])
+            if entry is None:
+                continue
+            entry["strategy_daily_macros"] = nutrition.resolve_macro_targets(
+                member, entry["daily_kcal"], strategy
+            )
+    return {**profile, "targets": targets}
 
 
 def update_profile(
@@ -79,6 +96,7 @@ def update_profile(
     add_likes, remove_likes (all list[str]) — add/remove semantics, not replace.
     set_diet_modes, set_cuisine_affinity (list[str]) — replace.
     set_meals_per_day (int) — replace, household-wide default.
+    set_macro_strategy ("balanced"|"endurance"|"cut") — replace, household-wide.
     add_member (dict with "id") — upsert by id, merged onto any existing
     member with that id (fields you omit are kept, not wiped) — so a
     single-field patch like {"id": "sam", "meals_per_day": 1} to put just
@@ -115,6 +133,13 @@ def update_profile(
         profile["cuisine_affinity"] = list(patch["set_cuisine_affinity"])
     if "set_meals_per_day" in patch:
         profile["meals_per_day"] = int(patch["set_meals_per_day"])
+    if "set_macro_strategy" in patch:
+        # Household-wide for now (Phase 1): a kit is built for one member,
+        # but nothing yet asks two members to be on different strategies,
+        # and a per-member field nobody sets is a field that rots.
+        strategy = str(patch["set_macro_strategy"]).lower().strip()
+        if strategy in nutrition.MACRO_STRATEGIES:
+            profile["macro_strategy"] = strategy
     if "set_units" in patch:
         units = str(patch["set_units"]).lower().strip()
         if units in ("metric", "imperial"):

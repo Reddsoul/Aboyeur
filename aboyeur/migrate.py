@@ -112,6 +112,10 @@ def migrate(conn: sqlite3.Connection) -> int:
     # to exist by this point, whether the table was just rebuilt above or
     # was already fresh.
     conn.execute("CREATE INDEX IF NOT EXISTS idx_menus_user ON menus(user_id)")
+    # kits is a post-multi-tenant table — it never exists in the old shape,
+    # so its index would be safe in db.py's SCHEMA too. It lives here anyway
+    # so every user-scoping index is created in one place.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_kits_user ON kits(user_id)")
     conn.commit()
     return seed_user_id
 
