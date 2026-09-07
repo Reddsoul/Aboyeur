@@ -1,6 +1,14 @@
 // Thin fetch wrapper over backend/main.py's routes. Every call sends the
 // httpOnly session cookie (credentials: 'include') — Vite's dev proxy keeps
 // browser and API on one origin so that just works, no CORS config needed.
+//
+// VITE_API_BASE lets a build point at another origin (default: same-origin,
+// which is how DEPLOYMENT.md serves dist/ — one Caddy, uvicorn behind it).
+// Note a cross-origin deploy needs more than this: a SameSite=Lax cookie
+// isn't sent on cross-site XHR, so that setup also needs bearer auth +
+// CORS on the backend (see FRONTEND_PLAN.md).
+
+export const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
 
 export class ApiError extends Error {
   status: number;
@@ -11,7 +19,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     ...init,
@@ -63,7 +71,32 @@ export interface HouseholdMember {
   activity?: string | null;
   goal?: string | null;
   goal_weight_kg?: number | null;
+  /** Per-person override of the household default (1 = OMAD). */
   meals_per_day?: number | null;
+  /** Hand-set daily calories; overrides the computed BMR/TDEE number. */
+  daily_kcal?: number | null;
+}
+
+export interface Macros {
+  kcal: number;
+  protein_g: number;
+  carb_g: number;
+  fat_g: number;
+}
+
+/** Server-computed, never user-entered — see engines/nutrition.household_targets. */
+export interface MemberTarget {
+  label: string;
+  goal: string;
+  goal_weight_kg: number | null;
+  goal_adjust_kcal: number;
+  maintenance_kcal: number;
+  daily_kcal: number;
+  /** 'bmr' once sex/age/height/weight are all set, else 'fallback'. */
+  source: 'bmr' | 'fallback';
+  per_meal: Macros;
+  daily_macros: Macros;
+  strategy_daily_macros?: Macros & { strategy: string; basis: string };
 }
 
 export interface Profile {
@@ -75,14 +108,14 @@ export interface Profile {
   diet_modes: string[];
   meals_per_day: number;
   units: 'metric' | 'imperial';
-  targets: Record<string, unknown>;
+  targets: Record<string, MemberTarget>;
 }
 
-export function getProfile() {
-  return request<Profile>('/profile/data');
+export function getProfile(clientId: number) {
+  return request<Profile>(`/api/clients/${clientId}/profile`);
 }
 
-export function saveProfile(desired: {
+export function saveProfile(clientId: number, desired: {
   household: HouseholdMember[];
   allergies: string[];
   dislikes: string[];
@@ -92,10 +125,83 @@ export function saveProfile(desired: {
   meals_per_day: number;
   units: string;
 }) {
-  return request<Profile>('/profile/save', {
+  return request<Profile>(`/api/clients/${clientId}/profile`, {
     method: 'POST',
     body: JSON.stringify(desired),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Clients — the people this practitioner plans for. Every per-person call
+// above and below hangs off one of these ids; the server 404s any id that
+// isn't on this account's book.
+// ---------------------------------------------------------------------------
+
+export interface Client {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  status: 'active' | 'archived';
+  created_at: string;
+  updated_at: string;
+  /** Roster-card extras, computed server-side. */
+  household_size: number;
+  goal: string | null;
+  daily_kcal: number | null;
+  allergies: string[];
+  menu_count: number;
+  kit_count: number;
+  last_plan_at: string | null;
+  has_profile: boolean;
+}
+
+export function listClients(includeArchived = false) {
+  return request<{ clients: Client[] }>(
+    `/api/clients${includeArchived ? '?include_archived=true' : ''}`,
+  ).then((r) => r.clients);
+}
+
+export function createClient(body: { name: string; email?: string; phone?: string; notes?: string }) {
+  return request<Client>('/api/clients', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function getClient(id: number) {
+  return request<Client>(`/api/clients/${id}`);
+}
+
+export function updateClient(id: number, patch: Partial<Pick<Client, 'name' | 'email' | 'phone' | 'notes' | 'status'>>) {
+  return request<Client>(`/api/clients/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+/** Archive by default — their plans and profile survive. `purge` is forever. */
+export function removeClient(id: number, purge = false) {
+  return request<Client | { deleted: number }>(`/api/clients/${id}${purge ? '?purge=true' : ''}`, {
+    method: 'DELETE',
+  });
+}
+
+export interface MenuSummary {
+  id: number;
+  week_of: string;
+  status: string;
+  created_at: string;
+  days: number;
+  meals: number;
+}
+
+export interface KitSummary {
+  id: number;
+  created_at: string;
+  days: number | null;
+  meals_per_day: number | null;
+  strategy: string | null;
+  component_count: number;
+}
+
+export function getClientPlans(id: number) {
+  return request<{ menus: MenuSummary[]; kits: KitSummary[] }>(`/api/clients/${id}/plans`);
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +300,7 @@ export interface MenuPlan {
 }
 
 export function planMenu(body: {
+  client_id: number;
   candidate_ids: number[];
   days: number;
   meals_per_day?: number;
@@ -219,8 +326,43 @@ export interface ShoppingList {
   to_buy: number;
 }
 
-export function getShoppingList(menuId: number) {
-  return request<ShoppingList>(`/api/menu/${menuId}/shopping-list`);
+export function getShoppingList(menuId: number, clientId: number) {
+  return request<ShoppingList>(`/api/menu/${menuId}/shopping-list?client_id=${clientId}`);
+}
+
+// ---------------------------------------------------------------------------
+// LLM settings (per-user endpoint + key; the key is write-only — the server
+// never sends it back, so `configured` is all the UI gets to know about it)
+// ---------------------------------------------------------------------------
+
+export interface LlmSettings {
+  base_url: string;
+  model: string;
+  configured: boolean;
+}
+
+export function getLlmSettings() {
+  return request<LlmSettings>('/api/llm-settings');
+}
+
+export function saveLlmSettings(body: { base_url: string; model: string; api_key?: string }) {
+  return request<LlmSettings>('/api/llm-settings', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export interface LlmTestResult {
+  ok: boolean;
+  detail: string;
+}
+
+/** Probes an endpoint without saving it. Omit fields to test what's stored. */
+export function testLlmConnection(body: { base_url?: string; model?: string; api_key?: string }) {
+  return request<LlmTestResult>('/api/llm-settings/test', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -229,12 +371,14 @@ export function getShoppingList(menuId: number) {
 
 /** Streams assistant text chunks from POST /chat. Yields each `data: ...`
  * payload as it arrives; the backend sends a final "[DONE]" sentinel. */
-export async function* streamChat(message: string): AsyncGenerator<string> {
-  const res = await fetch('/chat', {
+export async function* streamChat(message: string, clientId: number): AsyncGenerator<string> {
+  const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    // The server keeps one agent per (account, client), so this id decides
+    // whose conversation and whose plans this turn belongs to.
+    body: JSON.stringify({ message, client_id: clientId }),
   });
   if (!res.ok || !res.body) {
     throw new ApiError(res.status, res.statusText);

@@ -177,6 +177,20 @@ def cmd_search(args: argparse.Namespace) -> int:
     return 0
 
 
+def _resolve_cli_client(conn, user_id: int, name: str | None) -> dict:
+    """Pick the client this CLI session plans for: --client by name (exact,
+    case-insensitive), else the account's default."""
+    from aboyeur import clients as clients_mod
+
+    if name:
+        for client in clients_mod.list_clients(conn, user_id, include_archived=True):
+            if client["name"].strip().lower() == name.strip().lower():
+                return client
+        known = ", ".join(c["name"] for c in clients_mod.list_clients(conn, user_id)) or "none yet"
+        raise SystemExit(f"no client named {name!r} for this account. Known clients: {known}")
+    return clients_mod.get_client(conn, user_id, clients_mod.default_client_id(conn, user_id))
+
+
 def cmd_chat(args: argparse.Namespace) -> int:
     config = Config.load()
     if not config.db_path.exists():
@@ -195,7 +209,12 @@ def cmd_chat(args: argparse.Namespace) -> int:
     # (or first-run create) an account by email rather than requiring a
     # password login. --user overrides the default household owner.
     user_id = auth.get_or_create_user(conn, args.user or SEED_USER_EMAIL)
-    agent = Agent(conn, config, user_id)
+    # The CLI has no client picker, so it plans for the account's default
+    # client (its oldest active one, created on first use). --client picks a
+    # different one by name.
+    client = _resolve_cli_client(conn, user_id, getattr(args, "client", None))
+    agent = Agent(conn, config, client["id"], client_name=client["name"])
+    console.print(f"[dim]planning for:[/dim] [bold]{client['name']}[/bold]")
 
     console.print("[bold]Aboyeur[/bold] — your 60k-recipe cookbook, expedited. 'exit' to leave.\n")
     try:
@@ -278,7 +297,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_chat = sub.add_parser("chat", help="conversational REPL")
     p_chat.add_argument("--debug", action="store_true", help="show tool-call trace")
-    p_chat.add_argument("--user", help="household owner's email (default: the seed account)")
+    p_chat.add_argument("--user", help="practitioner account's email (default: the seed account)")
+    p_chat.add_argument("--client", help="which client to plan for by name (default: the account's first client)")
     p_chat.set_defaults(func=cmd_chat)
 
     p_create_user = sub.add_parser("create-user", help="provision an account (invite-only, admin use)")

@@ -22,6 +22,7 @@ def config(tmp_path: Path) -> Config:
         db_path=tmp_path / "test.db",
         llm_base_url="http://unused",
         llm_model="unused",
+        llm_api_key=None,
         usda_api_key=None,
         embedding_model="unused",
     )
@@ -135,6 +136,7 @@ def test_check_recipes_dir_missing_raises():
         db_path=Path("/tmp/unused.db"),
         llm_base_url="http://unused",
         llm_model="unused",
+        llm_api_key=None,
         usda_api_key=None,
         embedding_model="unused",
     )

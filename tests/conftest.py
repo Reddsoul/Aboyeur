@@ -37,6 +37,7 @@ def config(tmp_path: Path, _fixtures_local: Path) -> Config:
         db_path=tmp_path / "test.db",
         llm_base_url="http://unused",
         llm_model="unused",
+        llm_api_key=None,
         usda_api_key=None,  # no real network calls in tests
         embedding_model="unused",
     )
@@ -60,10 +61,19 @@ def db_conn(config: Config) -> sqlite3.Connection:
 
 @pytest.fixture()
 def user_id(db_conn: sqlite3.Connection) -> int:
-    """A real users.id row — profile/pantry/menus all FK to this, and
-    connect() turns PRAGMA foreign_keys=ON, so tool calls need a real owner."""
+    """A real users.id row — the practitioner account. Owns clients,
+    llm_settings and favorites; no per-person data hangs off it directly."""
     from aboyeur import auth
     return auth.get_or_create_user(db_conn, "tester@example.com")
+
+
+@pytest.fixture()
+def client_id(db_conn: sqlite3.Connection, user_id: int) -> int:
+    """The subject key every per-person tool takes: profile, pantry, menus
+    and kits all FK to a client, and connect() turns PRAGMA foreign_keys=ON,
+    so tool calls need a real one."""
+    from aboyeur import clients
+    return clients.create_client(db_conn, user_id, "Test Client")["id"]
 
 
 # ---------------------------------------------------------------------------

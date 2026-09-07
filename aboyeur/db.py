@@ -145,18 +145,37 @@ CREATE TABLE IF NOT EXISTS users (
     created_at     TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS pantry (
+-- The people a practitioner plans for. THE subject key: profile, pantry,
+-- menus and kits all hang off a client, never off the account directly, so
+-- one client's data is unreachable from another's by construction (see
+-- PRACTITIONER_PLAN.md). Account-level state — llm_settings, favorites —
+-- stays on users.
+CREATE TABLE IF NOT EXISTS clients (
+    id          INTEGER PRIMARY KEY,
     user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    email       TEXT,
+    phone       TEXT,
+    notes       TEXT,
+    status      TEXT NOT NULL DEFAULT 'active',   -- active | archived
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pantry (
+    client_id   INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     item        TEXT NOT NULL,
     qty         TEXT,
     added_at    TEXT NOT NULL,
     expires_at  TEXT,
-    PRIMARY KEY (user_id, item)
+    PRIMARY KEY (client_id, item)
 );
 
--- One row per user (was a single CHECK(id=1) row pre-multi-tenant).
+-- One row per client (was one per user, and before that a single
+-- CHECK(id=1) row). aboyeur.migrate folds each account's old household into
+-- a client of its own.
 CREATE TABLE IF NOT EXISTS profile (
-    user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    client_id   INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
     data_json   TEXT NOT NULL,
     updated_at  TEXT NOT NULL
 );
@@ -170,7 +189,7 @@ CREATE TABLE IF NOT EXISTS profile (
 -- whether the table was just rebuilt or was already fresh.
 CREATE TABLE IF NOT EXISTS menus (
     id          INTEGER PRIMARY KEY,
-    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_id   INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     week_of     TEXT NOT NULL,
     days_json   TEXT NOT NULL,
     status      TEXT NOT NULL DEFAULT 'draft',
@@ -185,9 +204,21 @@ CREATE TABLE IF NOT EXISTS menus (
 -- idx_kits_user lives in aboyeur.migrate alongside idx_menus_user.
 CREATE TABLE IF NOT EXISTS kits (
     id          INTEGER PRIMARY KEY,
-    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_id   INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     data_json   TEXT NOT NULL,
     created_at  TEXT NOT NULL
+);
+
+-- Per-user LLM endpoint + credentials, entered in the web Settings screen.
+-- api_key_encrypted is a Fernet token (aboyeur/crypto.py) — never plaintext.
+-- Post-multi-tenant like `kits`, so CREATE TABLE IF NOT EXISTS here is the
+-- whole migration; aboyeur/migrate.py has nothing to fold.
+CREATE TABLE IF NOT EXISTS llm_settings (
+    user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    base_url          TEXT NOT NULL,
+    model             TEXT NOT NULL,
+    api_key_encrypted TEXT NOT NULL,
+    updated_at        TEXT NOT NULL
 );
 
 -- Recipe catalog favorites (the Library UI's star toggle). Recipes stay a

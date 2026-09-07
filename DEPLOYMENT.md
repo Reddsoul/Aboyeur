@@ -121,14 +121,37 @@ LLM_MODEL=hard
 EMBEDDING_MODEL=nomic-embed-text
 USDA_API_KEY=<copy from your local .env>
 JWT_SECRET=<generate a NEW one for prod — don't reuse the local dev one>
+LLM_SETTINGS_KEY=<generate a NEW one for prod — see below>
 EOF
 ```
 
-Generate a fresh secret:
+Generate a fresh JWT secret:
 
 ```bash
 python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
+
+Generate the LLM-settings encryption key:
+
+```bash
+uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+`LLM_BASE_URL` / `LLM_MODEL` are now only a *fallback* — every web account
+sets its own endpoint, model and API key in Settings, and those are what the
+agent runs with. The env pair still covers the CLI and the OpenWebUI shim,
+which have no logged-in user of their own.
+
+Leave `COOKIE_SECURE` unset here. It defaults to true, which is what you want
+behind Caddy's HTTPS; it exists only so local `http://localhost` dev can hold a
+session (Safari refuses Secure cookies over plain http).
+
+`LLM_SETTINGS_KEY` is what those per-user keys are encrypted with in the DB.
+Set it explicitly: with it unset the key is derived from `JWT_SECRET`, so
+rotating `JWT_SECRET` would silently make every stored LLM key undecryptable.
+Rotating `LLM_SETTINGS_KEY` itself has the same effect by design — stored keys
+are orphaned and each user re-enters theirs in Settings (the server treats an
+undecryptable row as "not configured" rather than erroring).
 
 ### Run the migration once
 
@@ -137,9 +160,15 @@ cd /opt/aboyeur
 uv run python -m aboyeur.migrate
 ```
 
-Idempotent and safe — the DB you copied over is already migrated (it's the
-same file your local multi-tenant setup already ran against), so this is
-just a sanity check, not a real migration on first run.
+Idempotent and safe. It now runs two migrations in order: single-household →
+multi-tenant, then multi-tenant → practitioner (per-person tables re-keyed
+from `user_id` to `client_id`, with each account's existing household folded
+into its first client, named after the primary member).
+
+Run it with the app **stopped**. The client step takes a `BEGIN IMMEDIATE`
+write lock precisely because two processes starting at once — uvicorn's
+`--reload` calls `migrate()` on every restart — would otherwise interleave
+their table renames into a half-migrated database.
 
 **Before going live**, decide what to do with the `investor1@example.com` /
 `testpass123` test account that's sitting in that copied database — it's

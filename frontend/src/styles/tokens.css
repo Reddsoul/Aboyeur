@@ -98,3 +98,25 @@ a {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* --- brand mark -------------------------------------------------------- */
+/* The logo is black line art on transparency, so it needs a light plate under
+   it. A fixed near-white plate in both themes keeps the mark reading as a
+   badge instead of inverting into a different-looking logo at night. */
+.brand-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+.brand-mark {
+  display: block;
+  object-fit: contain;
+  user-select: none;
+}
+.login-mark {
+  margin: 0 auto 4px;
+}

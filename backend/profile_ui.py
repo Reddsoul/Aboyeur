@@ -60,11 +60,11 @@ def _norm_list(values) -> list[str]:
     return sorted({str(v).lower().strip() for v in (values or []) if str(v).strip()})
 
 
-def save_profile(conn: sqlite3.Connection, user_id: int, desired: dict) -> dict:
+def save_profile(conn: sqlite3.Connection, client_id: int, desired: dict) -> dict:
     """Diff the form's full desired state against the stored profile and apply
     it through update_profile's patch semantics. Returns the saved profile
     (with recomputed targets) for the form to re-render."""
-    current = get_profile(conn, user_id)
+    current = get_profile(conn, client_id)
 
     patch: dict = {}
     for field in ("allergies", "dislikes", "likes"):
@@ -81,17 +81,17 @@ def save_profile(conn: sqlite3.Connection, user_id: int, desired: dict) -> dict:
     patch["set_meals_per_day"] = max(1, int(desired.get("meals_per_day") or 3))
     if desired.get("units") in ("metric", "imperial"):
         patch["set_units"] = desired["units"]
-    update_profile(conn, user_id, patch)
+    update_profile(conn, client_id, patch)
 
     members = [m for m in (_clean_member(r) for r in desired.get("household") or []) if m]
     # Wholesale replace: remove everyone, re-add the form's rows. add_member's
     # merge semantics would resurrect fields the user deliberately blanked.
-    for m in get_profile(conn, user_id).get("household", []):
-        update_profile(conn, user_id, {"remove_member": m["id"]})
+    for m in get_profile(conn, client_id).get("household", []):
+        update_profile(conn, client_id, {"remove_member": m["id"]})
     if members:
-        update_profile(conn, user_id, {"add_member": members})
+        update_profile(conn, client_id, {"add_member": members})
 
-    return get_profile(conn, user_id)
+    return get_profile(conn, client_id)
 
 
 def _fmt_height(cm: float, imperial: bool) -> str:

@@ -6,7 +6,7 @@ macros. That is a different deliverable from plan_menu's "these recipes on
 these days", and it stays a different tool, a different table, and a
 different engine on purpose — see engines/kit.py.
 
-Persistence mirrors tools/menu.py exactly, including the user_id filter on
+Persistence mirrors tools/menu.py exactly, including the client_id filter on
 BOTH the by-id and the default-to-most-recent branch. The unscoped
 "most recent row" query is precisely the shape that leaked menus across
 accounts twice before (see HANDOFF); load_kit is public and shared rather
@@ -29,32 +29,32 @@ DEFAULT_MEALS_PER_DAY = 3
 DEFAULT_DAYS = 7
 
 
-def _save_kit(conn: sqlite3.Connection, user_id: int, kit: dict) -> int:
+def _save_kit(conn: sqlite3.Connection, client_id: int, kit: dict) -> int:
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     cur = conn.execute(
-        "INSERT INTO kits (user_id, data_json, created_at) VALUES (?, ?, ?)",
-        (user_id, json.dumps(kit), now),
+        "INSERT INTO kits (client_id, data_json, created_at) VALUES (?, ?, ?)",
+        (client_id, json.dumps(kit), now),
     )
     conn.commit()
     return cur.lastrowid
 
 
 def load_kit(
-    conn: sqlite3.Connection, user_id: int, kit_id: int | None
+    conn: sqlite3.Connection, client_id: int, kit_id: int | None
 ) -> tuple[int, dict] | None:
     """(kit_id, kit) for this user, or None. kit_id=None -> their latest.
 
-    Both branches filter on user_id. Omitting it on the "latest" branch is
+    Both branches filter on client_id. Omitting it on the "latest" branch is
     the exact cross-tenant leak this codebase has already shipped twice.
     """
     if kit_id is not None:
         row = conn.execute(
-            "SELECT id, data_json FROM kits WHERE id = ? AND user_id = ?", (kit_id, user_id)
+            "SELECT id, data_json FROM kits WHERE id = ? AND client_id = ?", (kit_id, client_id)
         ).fetchone()
     else:
         row = conn.execute(
-            "SELECT id, data_json FROM kits WHERE user_id = ? ORDER BY id DESC LIMIT 1",
-            (user_id,),
+            "SELECT id, data_json FROM kits WHERE client_id = ? ORDER BY id DESC LIMIT 1",
+            (client_id,),
         ).fetchone()
     if row is None:
         return None
@@ -75,7 +75,7 @@ def _primary_member(profile: dict) -> dict:
 def build_macro_kit(
     conn: sqlite3.Connection,
     config: Config,
-    user_id: int,
+    client_id: int,
     meals_per_day: int | None = None,
     days: int = DEFAULT_DAYS,
     emphasis: str | None = None,
@@ -91,7 +91,7 @@ def build_macro_kit(
     else "balanced"). days is the shopping-list horizon only — a kit is one
     template, not a rotation, so it doesn't change the assembly rule.
     """
-    profile = get_profile(conn, user_id, guest=guest)
+    profile = get_profile(conn, client_id, guest=guest)
     member = _primary_member(profile)
 
     meals = int(meals_per_day or member.get("meals_per_day")
@@ -134,5 +134,5 @@ def build_macro_kit(
             "default. Add height/weight/age/sex for a real one."
         )
 
-    kit_id = _save_kit(conn, user_id, kit)
+    kit_id = _save_kit(conn, client_id, kit)
     return {"kit_id": kit_id, **kit}

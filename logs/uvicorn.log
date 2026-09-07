@@ -616,3 +616,1128 @@ INFO:     100.71.143.90:63334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
 INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
 INFO:     100.71.143.90:63334 - "POST /v1/chat/completions HTTP/1.1" 200 OK
 INFO:     100.71.143.90:64016 - "GET /v1/models HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/crypto.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [81729]
+Python(212) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [212]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/config.py', 'aboyeur/engines/nutrition.py', 'aboyeur/llm.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [212]
+Python(278) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [278]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [278]
+Python(403) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [403]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/llm_settings.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [403]
+Python(540) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [540]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [540]
+Python(720) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [720]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [720]
+Python(844) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:JWT_SECRET not set — using an insecure default. Set it in .env before deploying anywhere real; every issued session is forgeable without it.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [844]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:64385 - "GET /api/llm-settings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64391 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64393 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET http://100.70.6.1:4000/v1/models "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64395 - "POST /api/llm-settings/test HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET http://100.70.6.1:4000/v1/models "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64398 - "POST /api/llm-settings/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64404 - "POST /chat HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     127.0.0.1:64406 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64408 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64410 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64413 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64415 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:  WatchFiles detected changes in 'aboyeur/config.py', 'aboyeur/__init__.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [844]
+Python(3160) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [3160]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:64430 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64432 - "GET /api/llm-settings HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     127.0.0.1:64434 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64449 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64451 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64453 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64455 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64457 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64459 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64462 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64465 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET http://100.70.6.1:4000/v1/models "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64468 - "POST /api/llm-settings/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64472 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64475 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64478 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64481 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64484 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64487 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64500 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64502 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64504 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64506 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64508 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64510 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64513 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.438354 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.981710 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 737, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 730, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 223, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 229, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.InternalServerError: Error code: 500 - {'error': {'message': 'litellm.InternalServerError: InternalServerError: OpenAIException - Connection error.. Received Model Group=coder\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '500'}}
+INFO:     127.0.0.1:64519 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64521 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64530 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64532 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64534 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64536 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64538 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64540 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64543 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64561 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64563 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64565 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64567 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64569 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64571 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64574 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64587 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64589 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64591 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64593 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64595 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64597 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64600 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64603 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64609 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64611 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64642 - "GET /api/llm-settings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64667 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64669 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64675 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64677 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64679 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64693 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64694 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64697 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64700 - "GET /api/llm-settings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64704 - "GET /api/llm-settings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64706 - "GET /api/llm-settings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64712 - "PUT /api/llm-settings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64715 - "POST /api/llm-settings/test HTTP/1.1" 401 Unauthorized
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3160]
+Python(6480) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [6480]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:64744 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64746 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64748 - "POST /auth/login HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [6480]
+Python(6803) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [6803]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:64754 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64758 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64761 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64766 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64767 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64771 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64773 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64777 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64779 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64785 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64783 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64799 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64810 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64805 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64811 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64809 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64818 - "GET /api/recipes?book=660_Curries&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64821 - "GET /api/recipes?book=Modern_cookery_for_private_families&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64824 - "GET /api/recipes?book=The_International_Jewish_Cook_Book_1600_Recipes_According_to_the_Jewish_Dietary_&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64827 - "GET /api/recipes?book=A_guide_to_modern_cookery&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64830 - "GET /api/recipes?cuisine=International&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64833 - "GET /api/recipes/20814 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64837 - "GET /api/recipes?cuisine=American&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64840 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64843 - "GET /api/recipes/46988 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64847 - "GET /api/recipes/25304 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64850 - "GET /api/recipes/25411 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64853 - "GET /api/recipes?cuisine=Indian&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64856 - "GET /api/recipes/796 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64861 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64863 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64869 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64874 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64873 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64875 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64881 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64882 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64896 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64894 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64901 - "GET /api/llm-settings HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     127.0.0.1:64909 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64955 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64962 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64963 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64961 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64966 - "GET /api/recipes?cuisine=American&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64969 - "GET /api/recipes?cuisine=French&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64972 - "GET /api/recipes?cuisine=Jewish&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64975 - "GET /api/recipes?cuisine=Indian&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64978 - "GET /api/recipes?cuisine=Chinese&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64981 - "GET /api/recipes/37297 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64989 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64991 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64998 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64996 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65089 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65091 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65093 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65096 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65097 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65099 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65102 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65105 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65108 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65125 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65127 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65129 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65132 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65133 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65135 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65138 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65144 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65147 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65150 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65153 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65156 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65165 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65169 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65170 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65171 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65173 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65175 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65189 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65191 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65194 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65195 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65199 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65198 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65202 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65205 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65216 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65218 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65220 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65224 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65223 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65226 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65229 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65235 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65238 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65241 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65244 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65259 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65261 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65263 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65266 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65267 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65269 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65272 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65278 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65281 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65284 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65287 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65304 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65305 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65309 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65310 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65312 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65313 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65318 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65319 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65324 - "POST /profile/save HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65327 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65355 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65357 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65364 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65361 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65365 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65363 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65371 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65369 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65382 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65384 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65386 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65389 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65390 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65392 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65395 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65404 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65406 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65408 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65412 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65411 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65414 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65417 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65432 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65434 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65436 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65439 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65440 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65442 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65445 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65455 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65457 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65459 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65463 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65462 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65465 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65468 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65491 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65493 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65495 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65498 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65499 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65501 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65504 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65514 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65516 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65518 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65522 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65521 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65524 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65527 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49248 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49249 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49256 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49257 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49255 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49254 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49264 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49263 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49520 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49516 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49521 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49519 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49525 - "GET /profile/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49527 - "GET /profile/data HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [6803]
+Python(25264) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [25264]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/clients.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25264]
+Python(25400) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [25400]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/migrate.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25400]
+Python(25575) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [25575]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/tools/kit.py', 'aboyeur/tools/profile.py', 'aboyeur/tools/pantry.py', 'aboyeur/tools/menu.py', 'aboyeur/tools/shopping.py', 'backend/profile_ui.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25575]
+Python(25640) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-55:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 575, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 215, in migrate
+    _migrate_profile(conn, seed_user_id)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 53, in _migrate_profile
+    old = conn.execute("SELECT data_json, updated_at FROM profile_old WHERE id = 1").fetchone()
+          ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: id
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+Python(25700) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-56:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 575, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'aboyeur/prompts.py', 'aboyeur/agent.py'. Reloading...
+Python(25791) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-57:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 575, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'aboyeur/cli.py'. Reloading...
+Python(25896) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-58:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 575, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'aboyeur/cli.py'. Reloading...
+Python(25930) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-59:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 575, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+Python(26407) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-60:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 576, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+Python(26512) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-61:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 579, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+Python(26564) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-62:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 579, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+Python(26614) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-63:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 579, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+Python(26796) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+Process SpawnProcess-64:
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 77, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 81, in serve
+    await self._serve(sockets)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/server.py", line 88, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 494, in load
+    self.loaded_app = self.load_app()
+                      ~~~~~~~~~~~~~^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/config.py", line 428, in load_app
+    return import_from_string(self.app)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1406, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 579, in <module>
+    _aboyeur_migrate(_aboyeur_conn)  # idempotent; no-op once the DB is already multi-tenant
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 218, in migrate
+    _migrate_to_clients(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/migrate.py", line 189, in _migrate_to_clients
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: there is already another table or index with this name: profile_old
+INFO:     Stopping reloader process [33634]
+INFO:     Will watch for changes in these directories: ['/Volumes/General/Coding/Python/Aboyeur/aboyeur', '/Volumes/General/Coding/Python/Aboyeur/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [27980] using WatchFiles
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [27982]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     127.0.0.1:49653 - "GET /api/clients HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:49671 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49672 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49679 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49680 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49676 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49674 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49686 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49687 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49702 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49718 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49719 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49724 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49726 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49725 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49727 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49731 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49733 - "GET /api/clients/undefined/profile HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:49747 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49749 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49753 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49759 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49761 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49758 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49769 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49770 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49778 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49779 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49784 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49787 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49786 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49788 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49790 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49815 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:49817 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:49819 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49822 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49823 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49825 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49828 - "POST /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49831 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49834 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49839 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49840 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49843 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49846 - "POST /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49850 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49852 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49855 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49858 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49861 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49910 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49912 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49921 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49917 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49923 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49920 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49918 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49926 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49934 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49933 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49935 - "GET /api/recipes?offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49942 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49944 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49950 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49949 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49956 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49954 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49961 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49963 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49967 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49969 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49981 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49978 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49975 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49984 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49990 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49992 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49993 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50004 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50008 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50007 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50010 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50016 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50014 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50022 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50021 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50027 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50033 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50032 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50034 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50041 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50043 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51007 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51009 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51011 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51013 - "GET /api/clients/4/plans HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51015 - "GET /api/clients/1 HTTP/1.1" 404 Not Found
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     127.0.0.1:51017 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51029 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51031 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51035 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51034 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:51040 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51047 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51048 - "GET /api/clients/4/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51049 - "GET /api/clients/4 HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:51051 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"

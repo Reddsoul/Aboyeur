@@ -9,13 +9,24 @@ and the non-obvious things that'll save you time.
 
 ## Status
 
-- [x] **Multi-tenant backend** — real accounts, auth, every household table
-      (profile/pantry/menus/favorites) scoped per user. Tested with real
-      isolation checks, not just reasoning.
-- [x] **Real React frontend** — login, 9-step onboarding, recipe catalog,
-      streaming chat. Driven through an actual headless browser against the
+- [x] **Practitioner mode** — an account is a nutritionist/PT, and the people
+      they plan for are `clients`. Profile, pantry, menus and kits are keyed
+      by `client_id`, not by account, so one client's plan is unreachable
+      from another's (`aboyeur/clients.py`'s `resolve_client` is the only
+      door, and the chat agent is cached per `(user, client)`). See
+      `PRACTITIONER_PLAN.md`.
+- [x] **Multi-tenant backend** — real accounts, auth, per-account
+      llm_settings and favorites. Tested with real isolation checks, not just
+      reasoning.
+- [x] **Per-user LLM config** — each account brings its own OpenAI-compatible
+      endpoint/model/key, entered in Settings and stored Fernet-encrypted
+      (`aboyeur/crypto.py`, `aboyeur/llm_settings.py`). Env `LLM_*` is now
+      only the fallback for the CLI and the OpenWebUI shim.
+- [x] **Real React frontend** — login, first-run wizard + tour, client
+      roster, per-client workspace (profile / plans / details), recipe
+      catalog, streaming chat scoped to the selected client. Driven through an actual headless browser against the
       real backend, not just built and assumed working.
-- [x] **189 backend tests passing** (`uv run pytest tests/ -q` — needs
+- [x] **228 backend tests passing** (`uv run pytest tests/ -q` — needs
       `uv sync --extra dev` first for `pytest` itself).
 - [ ] **Deployed anywhere.** Everything above runs locally only. Full
       runbook is `DEPLOYMENT.md` — needs Jose's cloud/domain/Tailscale

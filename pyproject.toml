@@ -11,6 +11,8 @@ dependencies = [
     "python-dotenv>=1.0",
     "bcrypt>=4.0",
     "pyjwt>=2.8",
+    # Fernet, for encrypting per-user LLM API keys at rest (aboyeur/crypto.py).
+    "cryptography>=42",
     # backend/main.py's runtime deps — previously installed ad hoc into the
     # venv (never declared here), so a plain `uv sync` silently uninstalled
     # them. Kept loose to match what was already running; see

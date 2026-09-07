@@ -119,49 +119,49 @@ def test_get_recipe_scale_multiplier_only(db_conn: sqlite3.Connection):
 # get_profile / update_profile
 # ---------------------------------------------------------------------------
 
-def test_get_profile_default_is_empty_but_shaped(db_conn: sqlite3.Connection, user_id: int):
-    profile = get_profile(db_conn, user_id)
+def test_get_profile_default_is_empty_but_shaped(db_conn: sqlite3.Connection, client_id: int):
+    profile = get_profile(db_conn, client_id)
     assert profile["allergies"] == []
     assert profile["targets"] == {}
 
 
-def test_update_profile_allergy_roundtrip(db_conn: sqlite3.Connection, user_id: int):
-    update_profile(db_conn, user_id, {"add_allergies": ["Peanut", "shellfish"]})
-    profile = get_profile(db_conn, user_id)
+def test_update_profile_allergy_roundtrip(db_conn: sqlite3.Connection, client_id: int):
+    update_profile(db_conn, client_id, {"add_allergies": ["Peanut", "shellfish"]})
+    profile = get_profile(db_conn, client_id)
     assert profile["allergies"] == ["peanut", "shellfish"]
 
-    update_profile(db_conn, user_id, {"remove_allergies": ["peanut"]})
-    profile = get_profile(db_conn, user_id)
+    update_profile(db_conn, client_id, {"remove_allergies": ["peanut"]})
+    profile = get_profile(db_conn, client_id)
     assert profile["allergies"] == ["shellfish"]
 
 
-def test_update_profile_add_member_computes_targets(db_conn: sqlite3.Connection, user_id: int):
-    update_profile(db_conn, user_id, {"add_member": {
+def test_update_profile_add_member_computes_targets(db_conn: sqlite3.Connection, client_id: int):
+    update_profile(db_conn, client_id, {"add_member": {
         "id": "adult_1", "label": "Jose", "sex": "m", "age": 30,
         "height_cm": 178, "weight_kg": 80, "activity": "moderate",
     }})
-    profile = get_profile(db_conn, user_id)
+    profile = get_profile(db_conn, client_id)
     assert "adult_1" in profile["targets"]
     assert profile["targets"]["adult_1"]["source"] == "bmr"
 
 
-def test_update_profile_unrelated_field_never_touches_allergies(db_conn: sqlite3.Connection, user_id: int):
-    update_profile(db_conn, user_id, {"add_allergies": ["peanut"]})
-    update_profile(db_conn, user_id, {"set_meals_per_day": 4})
-    profile = get_profile(db_conn, user_id)
+def test_update_profile_unrelated_field_never_touches_allergies(db_conn: sqlite3.Connection, client_id: int):
+    update_profile(db_conn, client_id, {"add_allergies": ["peanut"]})
+    update_profile(db_conn, client_id, {"set_meals_per_day": 4})
+    profile = get_profile(db_conn, client_id)
     assert profile["allergies"] == ["peanut"]
     assert profile["meals_per_day"] == 4
 
 
-def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connection, user_id: int):
-    update_profile(db_conn, user_id, {"add_member": {
+def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connection, client_id: int):
+    update_profile(db_conn, client_id, {"add_member": {
         "id": "adult_1", "label": "Jose", "sex": "m", "age": 30,
         "height_cm": 178, "weight_kg": 80, "activity": "moderate",
     }})
     # Later patch only sets meals_per_day for this one person — anthropometrics
     # must survive, otherwise the BMR target silently degrades to the fallback.
-    update_profile(db_conn, user_id, {"add_member": {"id": "adult_1", "meals_per_day": 1}})
-    profile = get_profile(db_conn, user_id)
+    update_profile(db_conn, client_id, {"add_member": {"id": "adult_1", "meals_per_day": 1}})
+    profile = get_profile(db_conn, client_id)
     member = next(m for m in profile["household"] if m["id"] == "adult_1")
     assert member["meals_per_day"] == 1
     assert member["height_cm"] == 178
@@ -169,45 +169,45 @@ def test_update_profile_add_member_merges_not_replaces(db_conn: sqlite3.Connecti
     assert profile["targets"]["adult_1"]["source"] == "bmr"
 
 
-def test_update_profile_add_member_accepts_list(db_conn: sqlite3.Connection, user_id: int):
+def test_update_profile_add_member_accepts_list(db_conn: sqlite3.Connection, client_id: int):
     # The local model sometimes sends add_member as a list despite the schema
     # saying object — this used to raise TypeError and kill the stream.
-    update_profile(db_conn, user_id, {"add_member": [
+    update_profile(db_conn, client_id, {"add_member": [
         {"id": "adult_1", "label": "Jose"},
         {"id": "kid_1", "label": "Sam", "meals_per_day": 1},
     ]})
-    profile = get_profile(db_conn, user_id)
+    profile = get_profile(db_conn, client_id)
     assert {m["id"] for m in profile["household"]} == {"adult_1", "kid_1"}
 
 
-def test_update_profile_add_member_rejects_non_dict(db_conn: sqlite3.Connection, user_id: int):
+def test_update_profile_add_member_rejects_non_dict(db_conn: sqlite3.Connection, client_id: int):
     with pytest.raises(ValueError, match="add_member"):
-        update_profile(db_conn, user_id, {"add_member": "adult_1"})
+        update_profile(db_conn, client_id, {"add_member": "adult_1"})
     with pytest.raises(ValueError, match="add_member"):
-        update_profile(db_conn, user_id, {"add_member": {"label": "no id"}})
+        update_profile(db_conn, client_id, {"add_member": {"label": "no id"}})
 
 
 # ---------------------------------------------------------------------------
 # manage_pantry
 # ---------------------------------------------------------------------------
 
-def test_manage_pantry_add_list_remove_clear(db_conn: sqlite3.Connection, user_id: int):
-    manage_pantry(db_conn, user_id, "add", ["ginger", "soy sauce"])
-    state = manage_pantry(db_conn, user_id, "list")
+def test_manage_pantry_add_list_remove_clear(db_conn: sqlite3.Connection, client_id: int):
+    manage_pantry(db_conn, client_id, "add", ["ginger", "soy sauce"])
+    state = manage_pantry(db_conn, client_id, "list")
     assert {i["item"] for i in state} == {"ginger", "soy sauce"}
 
-    manage_pantry(db_conn, user_id, "remove", ["ginger"])
-    state = manage_pantry(db_conn, user_id, "list")
+    manage_pantry(db_conn, client_id, "remove", ["ginger"])
+    state = manage_pantry(db_conn, client_id, "list")
     assert {i["item"] for i in state} == {"soy sauce"}
 
-    manage_pantry(db_conn, user_id, "clear")
-    assert manage_pantry(db_conn, user_id, "list") == []
+    manage_pantry(db_conn, client_id, "clear")
+    assert manage_pantry(db_conn, client_id, "list") == []
 
 
-def test_manage_pantry_unknown_action_raises(db_conn: sqlite3.Connection, user_id: int):
+def test_manage_pantry_unknown_action_raises(db_conn: sqlite3.Connection, client_id: int):
     import pytest
     with pytest.raises(ValueError):
-        manage_pantry(db_conn, user_id, "bogus")
+        manage_pantry(db_conn, client_id, "bogus")
 
 
 # ---------------------------------------------------------------------------
@@ -409,9 +409,9 @@ def test_indexer_restores_nutrition_from_frontmatter(
 # plan_menu / swap_menu_item
 # ---------------------------------------------------------------------------
 
-def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     assert len(plan["days"]) == 3
     assert "overlap_score" in plan
     assert "macro_fit_avg" in plan
@@ -419,10 +419,10 @@ def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: C
 
 
 def test_plan_menu_reports_macro_targets_and_ingredient_summary(
-    db_conn: sqlite3.Connection, config: Config, user_id: int,
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
 ):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     # Macro targets, not just calories.
     assert set(plan["daily_target_macros"]) == {"protein_g", "carb_g", "fat_g"}
     for day in plan["daily_totals"]:
@@ -435,49 +435,49 @@ def test_plan_menu_reports_macro_targets_and_ingredient_summary(
         assert entry["recipes"] >= 2
 
 
-def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     row = db_conn.execute("SELECT status FROM menus WHERE id = ?", (plan["menu_id"],)).fetchone()
     assert row is not None
     assert row["status"] == "draft"
 
 
-def test_plan_menu_never_repeats_a_recipe(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_plan_menu_never_repeats_a_recipe(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=5)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=5)
     recipe_ids = [d["recipe_id"] for d in plan["days"]]
     assert len(recipe_ids) == len(set(recipe_ids))
 
 
-def test_swap_menu_item_replaces_the_right_day(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_swap_menu_item_replaces_the_right_day(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
 
-    swapped = swap_menu_item(db_conn, config, user_id, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
+    swapped = swap_menu_item(db_conn, config, client_id, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
     assert swapped["days"][0]["recipe_id"] == replacement
     assert swapped["days"][0]["pick_reason"] == "manual swap"
 
 
-def test_swap_menu_item_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_swap_menu_item_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
 
-    swapped = swap_menu_item(db_conn, config, user_id, day=1, replacement_id=replacement)  # no menu_id
+    swapped = swap_menu_item(db_conn, config, client_id, day=1, replacement_id=replacement)  # no menu_id
     assert swapped["menu_id"] == plan["menu_id"]
     assert swapped["days"][0]["recipe_id"] == replacement
 
 
-def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
-    swap_menu_item(db_conn, config, user_id, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
+    swap_menu_item(db_conn, config, client_id, day=1, replacement_id=replacement, menu_id=plan["menu_id"])
 
     row = db_conn.execute("SELECT days_json FROM menus WHERE id = ?", (plan["menu_id"],)).fetchone()
     stored = json.loads(row["days_json"])
@@ -485,14 +485,14 @@ def test_swap_menu_item_persists_the_update(db_conn: sqlite3.Connection, config:
 
 
 def test_plan_menu_meals_per_day_grouped_into_day_and_meal_in_one_call(
-    db_conn: sqlite3.Connection, config: Config, user_id: int,
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
 ):
     # The actual fix for a real incident: plan_menu used to be called once
     # PER MEAL by the LLM (N sequential LLM round trips) — a 6-day x 3-meal
     # request burned all 60 tool-call rounds over ~10 minutes with zero
     # output. It must now produce every meal for every day from ONE call.
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2, meals_per_day=3)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2, meals_per_day=3)
     assert len(plan["days"]) == 6
     assert plan["meals_per_day"] == 3
     days_seen = sorted({d["day"] for d in plan["days"]})
@@ -505,15 +505,15 @@ def test_plan_menu_meals_per_day_grouped_into_day_and_meal_in_one_call(
 
 
 def test_swap_menu_item_targets_specific_meal_when_meals_per_day_over_1(
-    db_conn: sqlite3.Connection, config: Config, user_id: int,
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
 ):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2, meals_per_day=2)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2, meals_per_day=2)
     used = {d["recipe_id"] for d in plan["days"]}
     replacement = next(i for i in ids if i not in used)
 
     swapped = swap_menu_item(
-        db_conn, config, user_id, day=1, replacement_id=replacement, meal=2, menu_id=plan["menu_id"]
+        db_conn, config, client_id, day=1, replacement_id=replacement, meal=2, menu_id=plan["menu_id"]
     )
     target = next(d for d in swapped["days"] if d["day"] == 1 and d["meal"] == 2)
     assert target["recipe_id"] == replacement
@@ -523,15 +523,15 @@ def test_swap_menu_item_targets_specific_meal_when_meals_per_day_over_1(
     assert other["recipe_id"] != replacement
 
 
-def test_swap_menu_item_unknown_day_errors(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_swap_menu_item_unknown_day_errors(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
-    result = swap_menu_item(db_conn, config, user_id, day=99, replacement_id=ids[0], menu_id=plan["menu_id"])
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2)
+    result = swap_menu_item(db_conn, config, client_id, day=99, replacement_id=ids[0], menu_id=plan["menu_id"])
     assert "error" in result
 
 
-def test_swap_menu_item_no_menu_exists_errors(db_conn: sqlite3.Connection, config: Config, user_id: int):
-    result = swap_menu_item(db_conn, config, user_id, day=1, replacement_id=1)
+def test_swap_menu_item_no_menu_exists_errors(db_conn: sqlite3.Connection, config: Config, client_id: int):
+    result = swap_menu_item(db_conn, config, client_id, day=1, replacement_id=1)
     assert "error" in result
 
 
@@ -539,41 +539,41 @@ def test_swap_menu_item_no_menu_exists_errors(db_conn: sqlite3.Connection, confi
 # get_shopping_list
 # ---------------------------------------------------------------------------
 
-def test_get_shopping_list_from_menu_id(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_get_shopping_list_from_menu_id(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
-    shopping_list = get_shopping_list(db_conn, config, user_id, plan["menu_id"])
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
+    shopping_list = get_shopping_list(db_conn, config, client_id, plan["menu_id"])
     assert shopping_list["total_items"] > 0
     assert shopping_list["to_buy"] <= shopping_list["total_items"]
 
 
-def test_get_shopping_list_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_get_shopping_list_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
-    shopping_list = get_shopping_list(db_conn, config, user_id)  # no menu_id
+    plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
+    shopping_list = get_shopping_list(db_conn, config, client_id)  # no menu_id
     assert shopping_list["total_items"] > 0
 
 
-def test_get_shopping_list_pantry_have_flag(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_get_shopping_list_pantry_have_flag(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2)
     all_ings = {
         ing for d in plan["days"] for ing in json.loads(
             db_conn.execute("SELECT ingredients_json FROM recipes WHERE id = ?",
                              (d["recipe_id"],)).fetchone()["ingredients_json"]
         )
     }
-    manage_pantry(db_conn, user_id, "add", list(all_ings)[:1])
-    shopping_list = get_shopping_list(db_conn, config, user_id, plan["menu_id"])
+    manage_pantry(db_conn, client_id, "add", list(all_ings)[:1])
+    shopping_list = get_shopping_list(db_conn, config, client_id, plan["menu_id"])
     haves = [it["have"] for s in shopping_list["sections"].values() for it in s]
     assert any(haves)
 
 
-def test_get_shopping_list_merges_canonical_variants(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_get_shopping_list_merges_canonical_variants(db_conn: sqlite3.Connection, config: Config, client_id: int):
     """Cached parses collapse raw variants ('boiled potato', 'potatoes') into
     one canonical entry with summed grams — the potato-six-ways bug."""
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2)
     per_recipe_lines = [
         [ing.lower().strip() for ing in json.loads(
             db_conn.execute("SELECT ingredients_json FROM recipes WHERE id = ?",
@@ -590,7 +590,7 @@ def test_get_shopping_list_merges_canonical_variants(db_conn: sqlite3.Connection
             "VALUES (?, 'potato', 100.0, '2026-01-01T00:00:00Z')", (raw,))
     db_conn.commit()
 
-    shopping_list = get_shopping_list(db_conn, config, user_id, plan["menu_id"])
+    shopping_list = get_shopping_list(db_conn, config, client_id, plan["menu_id"])
     items = [it for s in shopping_list["sections"].values() for it in s]
     assert len(items) == 1
     item = items[0]
@@ -606,10 +606,10 @@ def test_get_shopping_list_merges_canonical_variants(db_conn: sqlite3.Connection
 # get_menu_recipes — deterministic STEP-2 delivery
 # ---------------------------------------------------------------------------
 
-def test_get_menu_recipes_orders_and_labels_days(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_get_menu_recipes_orders_and_labels_days(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=3)
-    result = get_menu_recipes(db_conn, user_id, plan["menu_id"])
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
+    result = get_menu_recipes(db_conn, client_id, plan["menu_id"])
     assert result["menu_id"] == plan["menu_id"]
     assert result["slot_count"] == len(plan["days"])
     md = result["markdown"]
@@ -620,79 +620,83 @@ def test_get_menu_recipes_orders_and_labels_days(db_conn: sqlite3.Connection, co
         assert d["title"] in md
 
 
-def test_get_menu_recipes_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, user_id: int):
+def test_get_menu_recipes_defaults_to_most_recent_menu(db_conn: sqlite3.Connection, config: Config, client_id: int):
     ids = _all_ids(db_conn)
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
-    result = get_menu_recipes(db_conn, user_id)  # no menu_id
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2)
+    result = get_menu_recipes(db_conn, client_id)  # no menu_id
     assert result["menu_id"] == plan["menu_id"]
 
 
-def test_get_menu_recipes_no_menu_errors(db_conn: sqlite3.Connection, user_id: int):
-    assert "error" in get_menu_recipes(db_conn, user_id, 9999)
+def test_get_menu_recipes_no_menu_errors(db_conn: sqlite3.Connection, client_id: int):
+    assert "error" in get_menu_recipes(db_conn, client_id, 9999)
 
 
 # ---------------------------------------------------------------------------
 # Multi-tenancy — every per-household table (profile, pantry, menus) must be
-# scoped by user_id. These exist because _load_menu's default-to-most-recent
+# scoped by client_id. These exist because _load_menu's default-to-most-recent
 # path (used by swap_menu_item/get_menu_recipes/get_shopping_list whenever
 # menu_id is omitted) had no owner filter until this pass — harmless with one
 # household, a real cross-tenant leak the moment a second account exists.
 # ---------------------------------------------------------------------------
 
-def _other_user(db_conn: sqlite3.Connection) -> int:
-    from aboyeur import auth
-    return auth.get_or_create_user(db_conn, "other-tenant@example.com")
+def _other_client(db_conn: sqlite3.Connection) -> int:
+    """A second client of the SAME practitioner. Deliberately not a second
+    account: two clients on one practitioner's book is the case where a leak
+    would actually happen, and the one PRACTITIONER_PLAN.md promises against."""
+    from aboyeur import auth, clients
+    user_id = auth.get_or_create_user(db_conn, "tester@example.com")
+    return clients.create_client(db_conn, user_id, "Other Client")["id"]
 
 
-def test_profile_is_isolated_per_user(db_conn: sqlite3.Connection, user_id: int):
-    other = _other_user(db_conn)
-    update_profile(db_conn, user_id, {"add_allergies": ["peanut"]})
+def test_profile_is_isolated_per_client(db_conn: sqlite3.Connection, client_id: int):
+    other = _other_client(db_conn)
+    update_profile(db_conn, client_id, {"add_allergies": ["peanut"]})
     update_profile(db_conn, other, {"add_allergies": ["shellfish"]})
 
-    assert get_profile(db_conn, user_id)["allergies"] == ["peanut"]
+    assert get_profile(db_conn, client_id)["allergies"] == ["peanut"]
     assert get_profile(db_conn, other)["allergies"] == ["shellfish"]
 
 
-def test_pantry_is_isolated_per_user(db_conn: sqlite3.Connection, user_id: int):
-    other = _other_user(db_conn)
-    manage_pantry(db_conn, user_id, "add", ["ginger"])
+def test_pantry_is_isolated_per_client(db_conn: sqlite3.Connection, client_id: int):
+    other = _other_client(db_conn)
+    manage_pantry(db_conn, client_id, "add", ["ginger"])
     manage_pantry(db_conn, other, "add", ["basil"])
 
-    mine = {p["item"] for p in manage_pantry(db_conn, user_id, "list")}
+    mine = {p["item"] for p in manage_pantry(db_conn, client_id, "list")}
     theirs = {p["item"] for p in manage_pantry(db_conn, other, "list")}
     assert mine == {"ginger"}
     assert theirs == {"basil"}
 
 
-def test_menu_default_lookup_never_crosses_users(
-    db_conn: sqlite3.Connection, config: Config, user_id: int
+def test_menu_default_lookup_never_crosses_clients(
+    db_conn: sqlite3.Connection, config: Config, client_id: int
 ):
     """The specific bug: omitting menu_id must resolve to *this user's* most
     recent menu, never another account's, even when theirs is newer."""
-    other = _other_user(db_conn)
+    other = _other_client(db_conn)
     ids = _all_ids(db_conn)
 
-    mine = plan_menu(db_conn, config, user_id, candidate_ids=ids, days=2)
+    mine = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2)
     plan_menu(db_conn, config, other, candidate_ids=ids, days=2)  # other's newer menu
 
-    # No menu_id passed — must resolve to user_id's own plan, not other's.
-    result = get_menu_recipes(db_conn, user_id)
+    # No menu_id passed — must resolve to client_id's own plan, not other's.
+    result = get_menu_recipes(db_conn, client_id)
     assert result["menu_id"] == mine["menu_id"]
 
-    shopping = get_shopping_list(db_conn, config, user_id)
+    shopping = get_shopping_list(db_conn, config, client_id)
     assert shopping.get("error") is None or "sections" in shopping
 
 
-def test_menu_lookup_by_id_rejects_other_users_menu(
-    db_conn: sqlite3.Connection, config: Config, user_id: int
+def test_menu_lookup_by_id_rejects_other_clients_menu(
+    db_conn: sqlite3.Connection, config: Config, client_id: int
 ):
-    other = _other_user(db_conn)
+    other = _other_client(db_conn)
     ids = _all_ids(db_conn)
     theirs = plan_menu(db_conn, config, other, candidate_ids=ids, days=2)
 
-    # user_id explicitly asking for other's menu_id must not see it.
-    assert "error" in get_menu_recipes(db_conn, user_id, theirs["menu_id"])
-    assert "error" in get_shopping_list(db_conn, config, user_id, theirs["menu_id"])
+    # client_id explicitly asking for other's menu_id must not see it.
+    assert "error" in get_menu_recipes(db_conn, client_id, theirs["menu_id"])
+    assert "error" in get_shopping_list(db_conn, config, client_id, theirs["menu_id"])
 
 
 # ---------------------------------------------------------------------------
@@ -703,17 +707,17 @@ def test_menu_lookup_by_id_rejects_other_users_menu(
 # resolve to zero macros and a portion solve against zeros proves nothing.
 # ---------------------------------------------------------------------------
 
-def _runner(db_conn: sqlite3.Connection, user_id: int, **overrides) -> None:
+def _runner(db_conn: sqlite3.Connection, client_id: int, **overrides) -> None:
     member = {"id": "jo", "label": "Jo", "weight_kg": 70, "daily_kcal": 2900}
     member.update(overrides)
-    update_profile(db_conn, user_id, {"add_member": member, "set_meals_per_day": 3})
+    update_profile(db_conn, client_id, {"add_member": member, "set_meals_per_day": 3})
 
 
 def test_build_macro_kit_returns_columns_rule_and_bowls(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id, emphasis="endurance")
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id, emphasis="endurance")
 
     assert kit["kit_id"] > 0
     assert kit["emphasis"] == "endurance"
@@ -737,10 +741,10 @@ def test_build_macro_kit_returns_columns_rule_and_bowls(
 
 
 def test_build_macro_kit_daily_totals_hit_the_strategy_target(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id, emphasis="endurance")
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id, emphasis="endurance")
 
     totals = kit["daily_totals"]
     assert totals["status"] == "ok"
@@ -751,23 +755,23 @@ def test_build_macro_kit_daily_totals_hit_the_strategy_target(
 
 
 def test_build_macro_kit_defaults_emphasis_from_the_profile_strategy(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    update_profile(db_conn, user_id, {"set_macro_strategy": "endurance"})
-    kit = build_macro_kit(db_conn, config, user_id)  # no emphasis argument
+    _runner(db_conn, client_id)
+    update_profile(db_conn, client_id, {"set_macro_strategy": "endurance"})
+    kit = build_macro_kit(db_conn, config, client_id)  # no emphasis argument
     assert kit["emphasis"] == "endurance"
     assert kit["targets"]["strategy"] == "endurance"
 
 
 def test_build_macro_kit_excludes_allergens_and_respects_diet(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    update_profile(db_conn, user_id, {
+    _runner(db_conn, client_id)
+    update_profile(db_conn, client_id, {
         "add_allergies": ["shellfish"], "set_diet_modes": ["vegetarian"],
     })
-    kit = build_macro_kit(db_conn, config, user_id)
+    kit = build_macro_kit(db_conn, config, client_id)
 
     names = {i["name"] for col in kit["columns"].values() for i in col}
     assert "shrimp" not in names
@@ -777,36 +781,36 @@ def test_build_macro_kit_excludes_allergens_and_respects_diet(
 
 
 def test_build_macro_kit_drops_disliked_foods(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    update_profile(db_conn, user_id, {"add_dislikes": ["tofu"]})
-    kit = build_macro_kit(db_conn, config, user_id, exclude_foods=["white rice"])
+    _runner(db_conn, client_id)
+    update_profile(db_conn, client_id, {"add_dislikes": ["tofu"]})
+    kit = build_macro_kit(db_conn, config, client_id, exclude_foods=["white rice"])
     names = {i["name"] for col in kit["columns"].values() for i in col}
     assert "firm tofu" not in names
     assert "white rice" not in names
 
 
 def test_build_macro_kit_persists_and_reloads_the_kit(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
     from aboyeur.tools.kit import load_kit
 
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id)
-    loaded_id, loaded = load_kit(db_conn, user_id, None)  # most recent
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id)
+    loaded_id, loaded = load_kit(db_conn, client_id, None)  # most recent
     assert loaded_id == kit["kit_id"]
     assert loaded["assembly_rule"] == kit["assembly_rule"]
 
 
 def test_build_macro_kit_flags_components_whose_macros_never_resolved(
-    db_conn: sqlite3.Connection, config: Config, user_id: int
+    db_conn: sqlite3.Connection, config: Config, client_id: int
 ):
     """No USDA key (the test default) means nothing resolves. The kit must
     still come back, with its confidence flags and a note saying so — the
     same degrade-don't-crash contract estimate_nutrition has."""
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id)
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id)
     assert kit["low_confidence_components"]
     assert any("didn't resolve" in n for n in kit["notes"])
     assert kit["columns"]["protein"], "a column must never be emptied entirely"
@@ -831,7 +835,7 @@ _BWS_BOWLS = [
 
 
 def test_cut_kit_bowls_land_in_the_bws_envelope(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
     """A 70 kg member cutting from 2000 kcal maintenance lands on ~1250
     kcal/day; over 3 meals that is the same envelope the reference bowls
@@ -839,12 +843,12 @@ def test_cut_kit_bowls_land_in_the_bws_envelope(
     kcal_lo, kcal_hi = min(b[0] for b in _BWS_BOWLS), max(b[0] for b in _BWS_BOWLS)
     fat_max = max(b[3] for b in _BWS_BOWLS)
 
-    update_profile(db_conn, user_id, {
+    update_profile(db_conn, client_id, {
         "add_member": {"id": "jo", "sex": "f", "weight_kg": 70,
                        "daily_kcal": 2000, "goal": "lose"},
         "set_meals_per_day": 3,
     })
-    kit = build_macro_kit(db_conn, config, user_id, emphasis="cut")
+    kit = build_macro_kit(db_conn, config, client_id, emphasis="cut")
 
     per_meal = kit["targets"]["per_meal"]
     assert kcal_lo <= per_meal["kcal"] <= kcal_hi
@@ -871,10 +875,10 @@ def test_cut_kit_bowls_land_in_the_bws_envelope(
 
 
 def test_non_cut_kits_carry_no_satiety_tips(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id, emphasis="endurance")
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id, emphasis="endurance")
     assert kit["assembly_rule"]["tips"] == []
 
 
@@ -887,11 +891,11 @@ def _kit_items(result: dict) -> dict:
 
 
 def test_kit_shopping_list_assigns_sections_and_grams(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id, days=7)
-    result = get_shopping_list(db_conn, config, user_id, kit_id=kit["kit_id"])
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id, days=7)
+    result = get_shopping_list(db_conn, config, client_id, kit_id=kit["kit_id"])
 
     assert result["source"] == "kit"
     assert result["kit_id"] == kit["kit_id"]
@@ -907,19 +911,19 @@ def test_kit_shopping_list_assigns_sections_and_grams(
 
 
 def test_kit_shopping_list_quantities_scale_with_days_and_meals(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    week = build_macro_kit(db_conn, config, user_id, days=7, meals_per_day=3)
-    fortnight = build_macro_kit(db_conn, config, user_id, days=14, meals_per_day=3)
+    _runner(db_conn, client_id)
+    week = build_macro_kit(db_conn, config, client_id, days=7, meals_per_day=3)
+    fortnight = build_macro_kit(db_conn, config, client_id, days=14, meals_per_day=3)
 
-    a = _kit_items(get_shopping_list(db_conn, config, user_id, kit_id=week["kit_id"]))
-    b = _kit_items(get_shopping_list(db_conn, config, user_id, kit_id=fortnight["kit_id"]))
+    a = _kit_items(get_shopping_list(db_conn, config, client_id, kit_id=week["kit_id"]))
+    b = _kit_items(get_shopping_list(db_conn, config, client_id, kit_id=fortnight["kit_id"]))
     name = next(iter(a))
     assert b[name]["approx_grams"] == pytest.approx(a[name]["approx_grams"] * 2, rel=0.02)
 
-    one_meal = build_macro_kit(db_conn, config, user_id, days=7, meals_per_day=1)
-    c = _kit_items(get_shopping_list(db_conn, config, user_id, kit_id=one_meal["kit_id"]))
+    one_meal = build_macro_kit(db_conn, config, client_id, days=7, meals_per_day=1)
+    c = _kit_items(get_shopping_list(db_conn, config, client_id, kit_id=one_meal["kit_id"]))
     # Fewer meals a day means fewer total meals to shop for, even though each
     # one is bigger.
     assert sum(i["meals_covered"] for i in c.values()) < sum(
@@ -927,42 +931,42 @@ def test_kit_shopping_list_quantities_scale_with_days_and_meals(
 
 
 def test_kit_shopping_list_marks_pantry_items(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id)
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id)
     first = kit["columns"]["protein"][0]["name"]
-    manage_pantry(db_conn, user_id, "add", [first])
-    result = get_shopping_list(db_conn, config, user_id, kit_id=kit["kit_id"])
+    manage_pantry(db_conn, client_id, "add", [first])
+    result = get_shopping_list(db_conn, config, client_id, kit_id=kit["kit_id"])
     assert _kit_items(result)[first]["have"] is True
 
 
 def test_shopping_list_falls_back_to_a_kit_when_there_is_no_menu(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id)
-    result = get_shopping_list(db_conn, config, user_id)  # no id at all
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id)
+    result = get_shopping_list(db_conn, config, client_id)  # no id at all
     assert result["source"] == "kit"
     assert result["kit_id"] == kit["kit_id"]
 
 
 def test_shopping_list_resolves_a_kit_id_passed_as_menu_id(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
     """The model conflates the two ids; owning the row is what matters."""
-    _runner(db_conn, user_id)
-    kit = build_macro_kit(db_conn, config, user_id)
-    result = get_shopping_list(db_conn, config, user_id, menu_id=kit["kit_id"])
+    _runner(db_conn, client_id)
+    kit = build_macro_kit(db_conn, config, client_id)
+    result = get_shopping_list(db_conn, config, client_id, menu_id=kit["kit_id"])
     assert result["source"] == "kit"
 
 
 def test_menu_shopping_list_is_unchanged_by_the_kit_path(
-    db_conn: sqlite3.Connection, config: Config, user_id: int
+    db_conn: sqlite3.Connection, config: Config, client_id: int
 ):
     """A menu list must keep its own shape — used_in_recipes, no kit keys."""
-    plan = plan_menu(db_conn, config, user_id, candidate_ids=_all_ids(db_conn), days=2)
-    result = get_shopping_list(db_conn, config, user_id, menu_id=plan["menu_id"])
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=_all_ids(db_conn), days=2)
+    result = get_shopping_list(db_conn, config, client_id, menu_id=plan["menu_id"])
     assert "source" not in result
     items = [it for s in result["sections"].values() for it in s]
     assert items and all("used_in_recipes" in it for it in items)
@@ -972,34 +976,34 @@ def test_menu_shopping_list_is_unchanged_by_the_kit_path(
 # Kits are per-user, like every other household table
 # ---------------------------------------------------------------------------
 
-def test_kit_default_lookup_never_crosses_users(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+def test_kit_default_lookup_never_crosses_clients(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
     from aboyeur.tools.kit import load_kit
 
-    other = _other_user(db_conn)
-    _runner(db_conn, user_id)
+    other = _other_client(db_conn)
+    _runner(db_conn, client_id)
     _runner(db_conn, other)
 
-    mine = build_macro_kit(db_conn, config, user_id)
+    mine = build_macro_kit(db_conn, config, client_id)
     build_macro_kit(db_conn, config, other)  # other's kit is newer
 
-    assert load_kit(db_conn, user_id, None)[0] == mine["kit_id"]
-    assert get_shopping_list(db_conn, config, user_id)["kit_id"] == mine["kit_id"]
+    assert load_kit(db_conn, client_id, None)[0] == mine["kit_id"]
+    assert get_shopping_list(db_conn, config, client_id)["kit_id"] == mine["kit_id"]
 
 
-def test_kit_lookup_by_id_rejects_another_users_kit(
-    db_conn: sqlite3.Connection, config: Config, user_id: int, component_macros
+def test_kit_lookup_by_id_rejects_another_clients_kit(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, component_macros
 ):
     from aboyeur.tools.kit import load_kit
 
-    other = _other_user(db_conn)
+    other = _other_client(db_conn)
     _runner(db_conn, other)
     theirs = build_macro_kit(db_conn, config, other)
 
-    assert load_kit(db_conn, user_id, theirs["kit_id"]) is None
-    assert "error" in get_shopping_list(db_conn, config, user_id, kit_id=theirs["kit_id"])
-    assert "error" in get_shopping_list(db_conn, config, user_id, menu_id=theirs["kit_id"])
+    assert load_kit(db_conn, client_id, theirs["kit_id"]) is None
+    assert "error" in get_shopping_list(db_conn, config, client_id, kit_id=theirs["kit_id"])
+    assert "error" in get_shopping_list(db_conn, config, client_id, menu_id=theirs["kit_id"])
 
 
 # ---------------------------------------------------------------------------
@@ -1007,15 +1011,15 @@ def test_kit_lookup_by_id_rejects_another_users_kit(
 # ---------------------------------------------------------------------------
 
 def test_set_macro_strategy_adds_strategy_macros_without_touching_menu_targets(
-    db_conn: sqlite3.Connection, user_id: int
+    db_conn: sqlite3.Connection, client_id: int
 ):
-    update_profile(db_conn, user_id, {
+    update_profile(db_conn, client_id, {
         "add_member": {"id": "jo", "weight_kg": 70, "daily_kcal": 2900},
     })
-    before = get_profile(db_conn, user_id)["targets"]["jo"]
+    before = get_profile(db_conn, client_id)["targets"]["jo"]
     assert "strategy_daily_macros" not in before
 
-    after = update_profile(db_conn, user_id, {"set_macro_strategy": "endurance"})
+    after = update_profile(db_conn, client_id, {"set_macro_strategy": "endurance"})
     entry = after["targets"]["jo"]
     assert after["macro_strategy"] == "endurance"
     assert entry["strategy_daily_macros"]["protein_g"] == 126.0
@@ -1025,7 +1029,7 @@ def test_set_macro_strategy_adds_strategy_macros_without_touching_menu_targets(
 
 
 def test_set_macro_strategy_ignores_an_unknown_strategy(
-    db_conn: sqlite3.Connection, user_id: int
+    db_conn: sqlite3.Connection, client_id: int
 ):
-    profile = update_profile(db_conn, user_id, {"set_macro_strategy": "carnivore"})
+    profile = update_profile(db_conn, client_id, {"set_macro_strategy": "carnivore"})
     assert "macro_strategy" not in profile

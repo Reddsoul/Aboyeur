@@ -18,7 +18,9 @@ from aboyeur.config import Config
 
 
 def make_client(config: Config) -> OpenAI:
-    return OpenAI(base_url=config.llm_base_url, api_key="unused")
+    # "unused" keeps a keyless self-hosted LiteLLM working; a real key
+    # arrives via the user's stored LLM settings or LLM_API_KEY.
+    return OpenAI(base_url=config.llm_base_url, api_key=config.llm_api_key or "unused")
 
 
 def stream_chat(

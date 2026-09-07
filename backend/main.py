@@ -6,6 +6,7 @@ Imports use the `backend.` package (PYTHONPATH=/app in Docker).
 import hashlib
 import json
 import logging
+import os
 import shutil
 import sqlite3
 import time
@@ -547,11 +548,18 @@ def recipes_correct(body: RecipeCorrect):
 
 class ChatBody(BaseModel):
     message: str
+    # Which client this turn is for. Omitted (CLI-ish callers, older builds)
+    # falls back to the account's default client rather than guessing.
+    client_id: Optional[int] = None
 
 
 import threading
 
+from dataclasses import replace as _dc_replace
+
 from aboyeur import auth as _aboyeur_auth
+from aboyeur import clients as _aboyeur_clients
+from aboyeur import llm_settings as _aboyeur_llm_settings
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
 from aboyeur.db import connect as _aboyeur_connect, init_db as _aboyeur_init_db
@@ -584,27 +592,104 @@ _SEED_USER_ID = _aboyeur_auth.get_or_create_user(_aboyeur_conn, _SEED_USER_EMAIL
 # doesn't make concurrent execute() calls on one connection object safe.
 # With separate connections, different users' turns need no lock between
 # them at all: WAL mode is built for exactly this multi-connection pattern.
-_aboyeur_session_agents: dict[int, _AboyeurAgent] = {}
+# Keyed by (user_id, client_id), not user_id: a practitioner switching from
+# one client to another must get a different Agent — its own history, its own
+# system prompt, its own scoped tools. Sharing one agent across clients would
+# let last client's plan bleed into the next one's conversation, which is the
+# single thing PRACTITIONER_PLAN.md promises can't happen.
+_aboyeur_session_agents: dict[tuple[int, int], _AboyeurAgent] = {}
 _aboyeur_sessions_lock = threading.Lock()  # guards dict get-or-create, not turn execution
 
 
-def _get_session_agent(user_id: int) -> _AboyeurAgent:
+# Each account brings its own LLM endpoint + key (the Settings screen, stored
+# encrypted by aboyeur/llm_settings.py). Env LLM_* is only a fallback, and
+# only for the two paths that have no logged-in user of their own: the CLI
+# and the OpenWebUI shim's seed household.
+NEEDS_LLM_SETUP_MESSAGE = (
+    "Set up your AI model in Settings before chatting — Aboyeur needs an LLM "
+    "endpoint and key to answer."
+)
+
+
+def _effective_config(user_id: int) -> Optional[_AboyeurConfig]:
+    """The Config this user's agent/tools should run with.
+
+    None means "this user has no LLM configured" — the caller shows the setup
+    nudge rather than building an agent that would fail on its first round trip.
+    """
+    conn = _profile_conn()
+    try:
+        stored = _aboyeur_llm_settings.get_llm_settings(conn, user_id)
+    finally:
+        conn.close()
+    if stored is not None:
+        return _dc_replace(
+            _aboyeur_config,
+            llm_base_url=stored["base_url"],
+            llm_model=stored["model"],
+            llm_api_key=stored["api_key"],
+        )
+    if user_id == _SEED_USER_ID:
+        return _aboyeur_config
+    return None
+
+
+def _client_name(client_id: int) -> str:
+    conn = _profile_conn()
+    try:
+        row = conn.execute("SELECT name FROM clients WHERE id = ?", (client_id,)).fetchone()
+    finally:
+        conn.close()
+    return row["name"] if row is not None else "this client"
+
+
+def _get_session_agent(user_id: int, client_id: int) -> Optional[_AboyeurAgent]:
     with _aboyeur_sessions_lock:
-        agent = _aboyeur_session_agents.get(user_id)
+        agent = _aboyeur_session_agents.get((user_id, client_id))
         if agent is None:
-            agent = _AboyeurAgent(_profile_conn(), _aboyeur_config, user_id)
-            _aboyeur_session_agents[user_id] = agent
+            config = _effective_config(user_id)
+            if config is None:
+                return None
+            agent = _AboyeurAgent(_profile_conn(), config, client_id,
+                                  client_name=_client_name(client_id))
+            _aboyeur_session_agents[(user_id, client_id)] = agent
         return agent
 
 
-def _reset_session_agent(user_id: int, guest: bool = False) -> _AboyeurAgent:
+def _reset_session_agent(user_id: int, client_id: int, guest: bool = False) -> Optional[_AboyeurAgent]:
+    config = _effective_config(user_id)
+    if config is None:
+        _drop_session_agent(user_id, client_id)
+        return None
     with _aboyeur_sessions_lock:
         agent = _AboyeurAgent(
-            _profile_conn(), _aboyeur_config, user_id,
+            _profile_conn(), config, client_id,
             guest_profile=_make_guest_profile() if guest else None,
+            client_name=_client_name(client_id),
         )
-        _aboyeur_session_agents[user_id] = agent
+        _aboyeur_session_agents[(user_id, client_id)] = agent
         return agent
+
+
+def _drop_session_agent(user_id: int, client_id: Optional[int] = None) -> None:
+    """Forget cached agents so the next turn rebuilds them. client_id=None
+    drops every client's agent for this account — what an LLM settings change
+    needs, since the new endpoint applies to all of them."""
+    with _aboyeur_sessions_lock:
+        if client_id is None:
+            for key in [k for k in _aboyeur_session_agents if k[0] == user_id]:
+                _aboyeur_session_agents.pop(key, None)
+        else:
+            _aboyeur_session_agents.pop((user_id, client_id), None)
+
+
+def _require_client(conn: sqlite3.Connection, user_id: int, client_id: Optional[int]) -> int:
+    """Every client-scoped route goes through here. A client id belonging to
+    another account is a 404, never a read."""
+    try:
+        return _aboyeur_clients.resolve_client(conn, user_id, client_id)
+    except _aboyeur_clients.UnknownClient:
+        raise HTTPException(404, "no such client")
 
 
 # ===========================================================================
@@ -613,6 +698,16 @@ def _reset_session_agent(user_id: int, guest: bool = False) -> _AboyeurAgent:
 # ===========================================================================
 
 _SESSION_COOKIE = "aboyeur_session"
+
+# Secure cookies are refused by Safari over plain http — including
+# http://localhost, where Chrome makes an exception. Default on (the deploy is
+# HTTPS behind Caddy); set COOKIE_SECURE=false in a local .env so `npm run dev`
+# on http://localhost:5173 can hold a session.
+_COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "true").strip().lower() not in {
+    "0", "false", "no", "off",
+}
+if not _COOKIE_SECURE:
+    logger.warning("COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.")
 
 
 def get_current_user(request: Request) -> int:
@@ -641,7 +736,7 @@ def auth_login(body: LoginBody, response: Response):
         conn.close()
     token = _aboyeur_auth.issue_token(user_id)
     response.set_cookie(
-        _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=True,
+        _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=_COOKIE_SECURE,
         max_age=_aboyeur_auth.JWT_TTL_SECONDS,
     )
     return {"user_id": user_id}
@@ -649,7 +744,9 @@ def auth_login(body: LoginBody, response: Response):
 
 @app.post("/auth/logout")
 def auth_logout(response: Response):
-    response.delete_cookie(_SESSION_COOKIE)
+    # Attributes must match the ones it was set with or the browser keeps it.
+    response.delete_cookie(_SESSION_COOKIE, httponly=True, samesite="lax",
+                           secure=_COOKIE_SECURE)
     return {"ok": True}
 
 
@@ -723,24 +820,31 @@ def _profile_conn() -> sqlite3.Connection:
 
 
 @app.get("/profile/data")
-def profile_data(user_id: int = Depends(get_current_user)):
+def profile_data(client_id: Optional[int] = None, user_id: int = Depends(get_current_user)):
+    """The account's default client unless one is named — keeps the standalone
+    /profile/ui page and older frontends working after the client split."""
     conn = _profile_conn()
     try:
-        return _aboyeur_get_profile(conn, user_id)
+        return _aboyeur_get_profile(conn, _require_client(conn, user_id, client_id))
     finally:
         conn.close()
 
 
 @app.post("/profile/save")
-def profile_save(desired: dict, user_id: int = Depends(get_current_user)):
+def profile_save(desired: dict, client_id: Optional[int] = None,
+                 user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        return profile_ui.save_profile(conn, user_id, desired)
+        resolved = _require_client(conn, user_id, client_id)
+        saved = profile_ui.save_profile(conn, resolved, desired)
     finally:
         conn.close()
+    # Targets and restrictions changed — the agent's system prompt is stale.
+    _drop_session_agent(user_id, resolved)
+    return saved
 
 
-def _profile_command_reply(message: str, request: Request, user_id: int) -> Optional[str]:
+def _profile_command_reply(message: str, request: Request, client_id: int) -> Optional[str]:
     """Deterministic /profile handler — the command never touches the LLM."""
     if not message.strip().lower().startswith("/profile"):
         return None
@@ -748,7 +852,7 @@ def _profile_command_reply(message: str, request: Request, user_id: int) -> Opti
     edit_url = f"http://{host}/profile/ui"
     conn = _profile_conn()
     try:
-        profile = _aboyeur_get_profile(conn, user_id)
+        profile = _aboyeur_get_profile(conn, client_id)
     finally:
         conn.close()
     return profile_ui.profile_markdown(profile, edit_url)
@@ -805,25 +909,45 @@ def _guest_command(message: str) -> Optional[str]:
 
 @app.post("/chat")
 def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_user)):
-    reply = _profile_command_reply(body.message, request, user_id)
+    conn = _profile_conn()
+    try:
+        client_id = _require_client(conn, user_id, body.client_id)
+    finally:
+        conn.close()
+
+    reply = _profile_command_reply(body.message, request, client_id)
     if reply is not None:
         return StreamingResponse(iter([_sse(reply), _sse("[DONE]")]),
                                  media_type="text/event-stream")
 
     guest = _guest_command(body.message)
     if guest == "OFF":
-        _reset_session_agent(user_id)
+        _drop_session_agent(user_id, client_id)
         return StreamingResponse(
-            iter([_sse("Guest session ended — back to the household profile."), _sse("[DONE]")]),
+            iter([_sse("Guest session ended — back to this client's profile."), _sse("[DONE]")]),
             media_type="text/event-stream")
     if guest is not None:
-        agent = _reset_session_agent(user_id, guest=True)
+        agent = _reset_session_agent(user_id, client_id, guest=True)
+        if agent is None:
+            return _needs_llm_setup_stream()
         return StreamingResponse(_agent_stream(agent, guest or _GUEST_DEFAULT_PROMPT),
                                  media_type="text/event-stream")
 
-    agent = _get_session_agent(user_id)
+    agent = _get_session_agent(user_id, client_id)
+    if agent is None:
+        return _needs_llm_setup_stream()
     return StreamingResponse(_agent_stream(agent, body.message),
                              media_type="text/event-stream")
+
+
+def _needs_llm_setup_stream() -> StreamingResponse:
+    # A 200 with one assistant message, not a 4xx: the Chat screen renders it
+    # as a normal bubble, and the SSE contract (text chunks then [DONE]) stays
+    # identical for every caller.
+    return StreamingResponse(
+        iter([_sse(NEEDS_LLM_SETUP_MESSAGE), _sse("[DONE]")]),
+        media_type="text/event-stream",
+    )
 
 
 # ===========================================================================
@@ -904,7 +1028,12 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
         raise HTTPException(400, "no user message")
     message = user_msgs[-1].content
 
-    reply = _profile_command_reply(message, request, _SEED_USER_ID)
+    conn = _profile_conn()
+    try:
+        shim_client_id = _aboyeur_clients.default_client_id(conn, _SEED_USER_ID)
+    finally:
+        conn.close()
+    reply = _profile_command_reply(message, request, shim_client_id)
     if reply is not None:
         if body.stream:
             return StreamingResponse(_oa_static_stream(reply),
@@ -968,8 +1097,15 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
     # _SEED_USER_ID comment above). Stateless per request (per this
     # function's own docstring), so a fresh connection per call is the
     # natural fit — no connection is shared across concurrent callers here.
+    # The shim has no client picker either — it plans for the seed account's
+    # default client, the same one the CLI uses.
+    conn = _profile_conn()
+    try:
+        seed_client_id = _aboyeur_clients.default_client_id(conn, _SEED_USER_ID)
+    finally:
+        conn.close()
     agent = _AboyeurAgent(
-        _profile_conn(), _aboyeur_config, _SEED_USER_ID, history=history,
+        _profile_conn(), _aboyeur_config, seed_client_id, history=history,
         guest_profile=guest_profile,
     )
 
@@ -1093,6 +1229,7 @@ def api_favorite_remove(recipe_id: int, user_id: int = Depends(get_current_user)
 
 
 class MenuPlanBody(BaseModel):
+    client_id: Optional[int] = None
     candidate_ids: list[int]
     days: int
     meals_per_day: int = 1
@@ -1103,8 +1240,9 @@ class MenuPlanBody(BaseModel):
 def api_menu_plan(body: MenuPlanBody, user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
+        client_id = _require_client(conn, user_id, body.client_id)
         return _plan_menu(
-            conn, _aboyeur_config, user_id, body.candidate_ids, body.days,
+            conn, _aboyeur_config, client_id, body.candidate_ids, body.days,
             meals_per_day=body.meals_per_day, constraints=body.constraints,
         )
     finally:
@@ -1112,15 +1250,314 @@ def api_menu_plan(body: MenuPlanBody, user_id: int = Depends(get_current_user)):
 
 
 @app.get("/api/menu/{menu_id}/shopping-list")
-def api_menu_shopping_list(menu_id: int, user_id: int = Depends(get_current_user)):
+def api_menu_shopping_list(menu_id: int, client_id: Optional[int] = None,
+                           user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        result = _get_shopping_list(conn, _aboyeur_config, user_id, menu_id)
+        resolved = _require_client(conn, user_id, client_id)
+        result = _get_shopping_list(conn, _aboyeur_config, resolved, menu_id)
         if "error" in result:
             raise HTTPException(404, result["error"])
         return result
     finally:
         conn.close()
+
+
+# ===========================================================================
+# Clients — the people this practitioner plans for, and the scope key for
+# every per-person route above. _require_client is the only door: a client id
+# from another account 404s here rather than reaching a query.
+# ===========================================================================
+
+class ClientBody(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ClientPatch(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+
+def _client_summary(conn: sqlite3.Connection, client: dict) -> dict:
+    """Roster-card extras: what the practitioner needs to tell two clients
+    apart at a glance, without opening either."""
+    profile = _aboyeur_get_profile(conn, client["id"])
+    household = profile.get("household") or []
+    targets = profile.get("targets") or {}
+    primary = household[0] if household else None
+    target = targets.get(primary["id"]) if primary else None
+    plans = conn.execute(
+        "SELECT (SELECT COUNT(*) FROM menus WHERE client_id = ?) AS menus, "
+        "(SELECT COUNT(*) FROM kits WHERE client_id = ?) AS kits, "
+        "(SELECT MAX(created_at) FROM menus WHERE client_id = ?) AS last_menu, "
+        "(SELECT MAX(created_at) FROM kits WHERE client_id = ?) AS last_kit",
+        (client["id"],) * 4,
+    ).fetchone()
+    last = max([d for d in (plans["last_menu"], plans["last_kit"]) if d], default=None)
+    return {
+        **client,
+        "household_size": len(household),
+        "goal": (target or {}).get("goal"),
+        "daily_kcal": (target or {}).get("daily_kcal"),
+        "allergies": profile.get("allergies") or [],
+        "menu_count": plans["menus"],
+        "kit_count": plans["kits"],
+        "last_plan_at": last,
+        "has_profile": bool(household),
+    }
+
+
+@app.get("/api/clients")
+def api_clients_list(include_archived: bool = False, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        return {
+            "clients": [
+                _client_summary(conn, c)
+                for c in _aboyeur_clients.list_clients(conn, user_id, include_archived)
+            ]
+        }
+    finally:
+        conn.close()
+
+
+@app.post("/api/clients")
+def api_clients_create(body: ClientBody, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        client = _aboyeur_clients.create_client(
+            conn, user_id, body.name, body.email, body.phone, body.notes,
+        )
+        return _client_summary(conn, client)
+    except _aboyeur_clients.ClientError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        conn.close()
+
+
+@app.get("/api/clients/{client_id}")
+def api_client_get(client_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        return _client_summary(conn, _aboyeur_clients.get_client(conn, user_id, resolved))
+    finally:
+        conn.close()
+
+
+@app.patch("/api/clients/{client_id}")
+def api_client_update(client_id: int, patch: ClientPatch,
+                      user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        updated = _aboyeur_clients.update_client(
+            conn, user_id, resolved, patch.model_dump(exclude_unset=True),
+        )
+        summary = _client_summary(conn, updated)
+    except _aboyeur_clients.ClientError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        conn.close()
+    # The name is in the agent's system prompt, so a rename invalidates it.
+    _drop_session_agent(user_id, resolved)
+    return summary
+
+
+@app.delete("/api/clients/{client_id}")
+def api_client_delete(client_id: int, purge: bool = False,
+                      user_id: int = Depends(get_current_user)):
+    """Archive by default; `?purge=true` hard-deletes the client and cascades
+    to their profile, pantry, menus and kits."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        if purge:
+            _aboyeur_clients.delete_client(conn, user_id, resolved)
+            result = {"deleted": resolved}
+        else:
+            result = _aboyeur_clients.archive_client(conn, user_id, resolved)
+    finally:
+        conn.close()
+    _drop_session_agent(user_id, resolved)
+    return result
+
+
+@app.get("/api/clients/{client_id}/profile")
+def api_client_profile(client_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_get_profile(conn, _require_client(conn, user_id, client_id))
+    finally:
+        conn.close()
+
+
+@app.post("/api/clients/{client_id}/profile")
+def api_client_profile_save(client_id: int, desired: dict,
+                            user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        saved = profile_ui.save_profile(conn, resolved, desired)
+    finally:
+        conn.close()
+    _drop_session_agent(user_id, resolved)
+    return saved
+
+
+@app.get("/api/clients/{client_id}/plans")
+def api_client_plans(client_id: int, user_id: int = Depends(get_current_user)):
+    """This client's menus and kits. Scoped by client_id alone — there is no
+    query here that could return another client's plan."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        menus = [
+            {
+                "id": r["id"],
+                "week_of": r["week_of"],
+                "status": r["status"],
+                "created_at": r["created_at"],
+                "days": len({d.get("day") for d in json.loads(r["days_json"])}),
+                "meals": len(json.loads(r["days_json"])),
+            }
+            for r in conn.execute(
+                "SELECT id, week_of, status, created_at, days_json FROM menus "
+                "WHERE client_id = ? ORDER BY created_at DESC, id DESC",
+                (resolved,),
+            )
+        ]
+        kits = []
+        for r in conn.execute(
+            "SELECT id, data_json, created_at FROM kits WHERE client_id = ? "
+            "ORDER BY created_at DESC, id DESC",
+            (resolved,),
+        ):
+            data = json.loads(r["data_json"])
+            kits.append({
+                "id": r["id"],
+                "created_at": r["created_at"],
+                "days": data.get("days"),
+                "meals_per_day": data.get("meals_per_day"),
+                "strategy": data.get("strategy"),
+                "component_count": len(data.get("components") or []),
+            })
+        return {"menus": menus, "kits": kits}
+    finally:
+        conn.close()
+
+
+# ===========================================================================
+# Per-user LLM settings — the web Settings screen. The key is stored Fernet-
+# encrypted and never sent back to the browser; only {base_url, model,
+# configured} ever leaves the server.
+# ===========================================================================
+
+class LlmSettingsBody(BaseModel):
+    base_url: str
+    model: str
+    # Omitted/blank on an edit = keep the stored key (see save_llm_settings).
+    api_key: Optional[str] = None
+
+
+@app.get("/api/llm-settings")
+def api_llm_settings_get(user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_llm_settings.get_llm_settings_public(conn, user_id)
+    finally:
+        conn.close()
+
+
+@app.put("/api/llm-settings")
+def api_llm_settings_put(body: LlmSettingsBody, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        public = _aboyeur_llm_settings.save_llm_settings(
+            conn, user_id, body.base_url, body.model, body.api_key,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        conn.close()
+    # Drop every cached agent for this account so the next turn — for any
+    # client — is built against the new endpoint.
+    _drop_session_agent(user_id)
+    return public
+
+
+class LlmTestBody(BaseModel):
+    base_url: Optional[str] = None
+    model: Optional[str] = None
+    api_key: Optional[str] = None
+
+
+@app.post("/api/llm-settings/test")
+def api_llm_settings_test(body: LlmTestBody, user_id: int = Depends(get_current_user)):
+    """Probe an endpoint before saving it. Never echoes the key back.
+
+    An authenticated user can point this at any URL the server can reach —
+    an SSRF surface accepted for an invite-only self-hosted app (see
+    FRONTEND_PLAN.md's risks). Tighten with an IP allow-list if that changes.
+    """
+    base_url = (body.base_url or "").strip().rstrip("/")
+    model = (body.model or "").strip()
+    api_key = (body.api_key or "").strip()
+
+    if not base_url or not model or not api_key:
+        conn = _profile_conn()
+        try:
+            stored = _aboyeur_llm_settings.get_llm_settings(conn, user_id)
+        finally:
+            conn.close()
+        if stored is not None:
+            base_url = base_url or stored["base_url"]
+            model = model or stored["model"]
+            api_key = api_key or stored["api_key"]
+    if not base_url or not model:
+        raise HTTPException(400, "base_url and model are required")
+
+    from openai import OpenAI as _OpenAI
+
+    client = _OpenAI(base_url=base_url, api_key=api_key or "unused",
+                     timeout=10, max_retries=0)
+    try:
+        models = [m.id for m in client.models.list().data]
+    except Exception as e:
+        # Not every OpenAI-compatible server implements /models — fall back to
+        # the thing we actually care about: can this model answer at all.
+        try:
+            client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1,
+            )
+        except Exception as e2:
+            logger.info("LLM test failed for user %s: %s / %s", user_id, e, e2)
+            return {"ok": False, "detail": _llm_error_detail(e2)}
+        return {"ok": True, "detail": f"Connected — {model} answered."}
+
+    if models and model not in models:
+        return {
+            "ok": False,
+            "detail": f"Endpoint reachable, but it doesn't serve \"{model}\". "
+                      f"Available: {', '.join(models[:8])}"
+                      + (" …" if len(models) > 8 else ""),
+        }
+    return {"ok": True, "detail": f"Connected — {model} is available."}
+
+
+def _llm_error_detail(exc: Exception) -> str:
+    """A one-line, key-free reason for the Settings screen."""
+    detail = str(exc).strip() or exc.__class__.__name__
+    detail = detail.split("\n")[0]
+    return detail[:300]
 
 
 # ===========================================================================

@@ -354,7 +354,8 @@ def _llm_parse_lines(config: Config, lines: list[str]) -> list[dict] | None:
     from openai import OpenAI  # local import: keep engine importable without config
 
     try:
-        client = OpenAI(base_url=config.llm_base_url, api_key="unused",
+        client = OpenAI(base_url=config.llm_base_url,
+                        api_key=config.llm_api_key or "unused",
                         timeout=60, max_retries=1)
         resp = client.chat.completions.create(
             model=config.llm_model,

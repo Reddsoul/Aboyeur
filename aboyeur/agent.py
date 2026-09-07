@@ -89,15 +89,15 @@ def _tool_result_text(name: str, result: dict) -> str:
 def _dispatch(
     conn: sqlite3.Connection,
     config: Config,
-    user_id: int,
+    client_id: int,
     guest_profile: dict | None,
     name: str,
     args: dict,
 ) -> dict:
     if name == "search_recipes":
-        profile = get_profile(conn, user_id, guest=guest_profile)
+        profile = get_profile(conn, client_id, guest=guest_profile)
         pantry_rows = conn.execute(
-            "SELECT item FROM pantry WHERE user_id = ?", (user_id,)
+            "SELECT item FROM pantry WHERE client_id = ?", (client_id,)
         ).fetchall()
         pantry = [r["item"] for r in pantry_rows]
         results = search_recipes(
@@ -115,36 +115,36 @@ def _dispatch(
         return get_recipe(conn, args["id"], scale_to_servings=args.get("scale_to_servings"))
 
     if name == "get_profile":
-        return get_profile(conn, user_id, guest=guest_profile)
+        return get_profile(conn, client_id, guest=guest_profile)
 
     if name == "update_profile":
-        return update_profile(conn, user_id, args, guest=guest_profile)
+        return update_profile(conn, client_id, args, guest=guest_profile)
 
     if name == "manage_pantry":
-        return {"pantry": manage_pantry(conn, user_id, args["action"], args.get("items"))}
+        return {"pantry": manage_pantry(conn, client_id, args["action"], args.get("items"))}
 
     if name == "estimate_nutrition":
         return estimate_nutrition(conn, config, args["recipe_ids"])
 
     if name == "plan_menu":
         return plan_menu(
-            conn, config, user_id, args["candidate_ids"], args["days"],
+            conn, config, client_id, args["candidate_ids"], args["days"],
             meals_per_day=args.get("meals_per_day", 1),
             constraints=args.get("constraints"),
         )
 
     if name == "swap_menu_item":
         return swap_menu_item(
-            conn, config, user_id, args["day"], args["replacement_id"],
+            conn, config, client_id, args["day"], args["replacement_id"],
             menu_id=args.get("menu_id"), meal=args.get("meal", 1),
         )
 
     if name == "get_menu_recipes":
-        return get_menu_recipes(conn, user_id, args.get("menu_id"))
+        return get_menu_recipes(conn, client_id, args.get("menu_id"))
 
     if name == "build_macro_kit":
         return build_macro_kit(
-            conn, config, user_id,
+            conn, config, client_id,
             meals_per_day=args.get("meals_per_day"),
             days=args.get("days", 7),
             emphasis=args.get("emphasis"),
@@ -156,7 +156,7 @@ def _dispatch(
 
     if name == "get_shopping_list":
         return get_shopping_list(
-            conn, config, user_id, args.get("menu_id"), kit_id=args.get("kit_id")
+            conn, config, client_id, args.get("menu_id"), kit_id=args.get("kit_id")
         )
 
     if name == "search_nutrition_reference":
@@ -170,11 +170,12 @@ class Agent:
         self,
         conn: sqlite3.Connection,
         config: Config,
-        user_id: int,
+        client_id: int,
         history: list[dict] | None = None,
         guest_profile: dict | None = None,
+        client_name: str | None = None,
     ):
-        """user_id: whose profile/pantry/menus this agent's tool calls read
+        """client_id: whose profile/pantry/menus this agent's tool calls read
         and write. Never trust a caller-supplied value for this — it must
         come from an authenticated session (see backend/main.py's
         get_current_user), not a request body field.
@@ -195,11 +196,14 @@ class Agent:
         """
         self.conn = conn
         self.config = config
-        self.user_id = user_id
+        self.client_id = client_id
+        self.client_name = client_name
         self.guest_profile = guest_profile
         self.client = make_client(config)
         system = build_system_prompt(
-            get_profile(conn, user_id, guest=guest_profile), guest=guest_profile is not None
+            get_profile(conn, client_id, guest=guest_profile),
+            guest=guest_profile is not None,
+            client_name=client_name,
         )
         self.messages: list[dict] = [{"role": "system", "content": system}]
         if history:
@@ -209,8 +213,9 @@ class Agent:
         self.messages[0] = {
             "role": "system",
             "content": build_system_prompt(
-                get_profile(self.conn, self.user_id, guest=self.guest_profile),
+                get_profile(self.conn, self.client_id, guest=self.guest_profile),
                 guest=self.guest_profile is not None,
+                client_name=self.client_name,
             ),
         }
 
@@ -261,7 +266,7 @@ class Agent:
                 # streaming response.
                 try:
                     result = _dispatch(
-                        self.conn, self.config, self.user_id, self.guest_profile,
+                        self.conn, self.config, self.client_id, self.guest_profile,
                         tc["name"], args,
                     )
                 except (KeyError, TypeError, ValueError) as e:

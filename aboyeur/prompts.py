@@ -119,9 +119,21 @@ Current guest profile:
 """
 
 
-def build_system_prompt(profile: dict, guest: bool = False) -> str:
+def build_system_prompt(profile: dict, guest: bool = False, client_name: str | None = None) -> str:
+    """client_name: who this session is planning for. Named explicitly so the
+    model addresses one client's plan and never blends in another's — the
+    hard guarantee is structural (every tool is scoped to one client_id),
+    this just keeps the prose consistent with it."""
     if guest:
         profile_block = GUEST_BLOCK + json.dumps(profile, indent=2)
     else:
-        profile_block = "Current household profile:\n" + json.dumps(profile, indent=2)
+        who = f"Current profile for {client_name}" if client_name else "Current household profile"
+        profile_block = f"{who}:\n" + json.dumps(profile, indent=2)
+        if client_name:
+            profile_block = (
+                f"You are planning for one client: {client_name}. Every plan, menu, kit and "
+                "shopping list in this conversation is theirs alone — you have no access to "
+                "any other client's data, and must never carry numbers or dishes over from "
+                "another client's plan.\n\n" + profile_block
+            )
     return SYSTEM_PROMPT_TEMPLATE.format(profile_block=profile_block)

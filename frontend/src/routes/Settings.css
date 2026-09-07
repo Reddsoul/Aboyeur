@@ -1,0 +1,143 @@
+/* Settings / first-run LLM setup. Shares the Onboarding card language (same
+   orbs, radii, shadow) so the first-run screen reads as the next step after
+   the profile builder rather than a different app. */
+
+.set-stage {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  background: var(--bg);
+}
+.set-stage-firstrun {
+  min-height: 100vh;
+  align-items: center;
+}
+.set-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.set-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: var(--card);
+  border-radius: 24px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 40px 44px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.set-title {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+}
+.set-sub {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0;
+}
+.set-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.set-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.set-hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+}
+.set-key-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.set-key-row .text-input {
+  padding-right: 68px;
+}
+.set-key-reveal {
+  position: absolute;
+  right: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.set-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.set-actions .btn-primary {
+  height: 44px;
+  padding: 0 26px;
+  font-size: 15px;
+}
+.set-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fill);
+  overflow-wrap: anywhere;
+}
+.set-result-ok {
+  color: var(--success);
+}
+.set-result-bad {
+  color: var(--danger);
+}
+.set-result-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.set-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  animation: set-spin 0.7s linear infinite;
+}
+@keyframes set-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.set-note {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}

@@ -1,0 +1,288 @@
+/* Client roster + the client workspace. Shares the card language of the
+   profile editor (Profile.css) — this is the same kind of screen, one level
+   up: a list of people instead of one person's details. */
+
+.cl-page {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.cl-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cl-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cl-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+.cl-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+}
+.cl-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cl-search {
+  flex: 1;
+  min-width: 220px;
+  height: 42px;
+}
+.cl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.cl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+.cl-card:hover {
+  border-color: var(--accent);
+}
+.cl-card-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.cl-card-archived {
+  opacity: 0.6;
+}
+.cl-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cl-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, var(--accent), var(--success));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cl-name {
+  font-size: 15.5px;
+  font-weight: 650;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cl-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+.cl-stats {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.cl-stats b {
+  color: var(--ink);
+  font-size: 14px;
+}
+.cl-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cl-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--muted);
+}
+.cl-tag-danger {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+.cl-tag-active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+.cl-empty {
+  padding: 48px 24px;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+}
+.cl-empty h2 {
+  color: var(--ink);
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+/* --- add-client form --- */
+.cl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.cl-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.cl-form .text-input,
+.cl-form textarea.text-input {
+  height: 42px;
+  font-size: 14.5px;
+}
+.cl-form textarea.text-input {
+  height: auto;
+  min-height: 72px;
+  padding: 10px 14px;
+  resize: vertical;
+}
+.cl-form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.cl-form-actions .btn-primary {
+  height: 42px;
+  padding: 0 24px;
+  font-size: 15px;
+}
+
+/* --- workspace --- */
+.cl-ws-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.cl-ws-head .cl-avatar {
+  width: 52px;
+  height: 52px;
+  font-size: 19px;
+}
+.cl-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.cl-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--fill);
+  gap: 3px;
+}
+.cl-tabs button {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cl-tabs button[aria-selected='true'] {
+  background: var(--card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+.cl-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cl-plan {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+.cl-plan-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cl-plan-main {
+  flex: 1;
+  min-width: 0;
+}
+.cl-plan-main strong {
+  font-size: 14.5px;
+  display: block;
+}
+.cl-plan-main span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.cl-danger-zone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.cl-btn-danger {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}

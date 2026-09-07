@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Onboarding.css';
 import * as api from '../api';
+import { useAuth } from '../auth/AuthContext';
+import { useClients } from '../clients/ClientContext';
+import Logo from '../components/Logo';
 
 const CM_PER_IN = 2.54;
 const KG_PER_LB = 0.45359237;
@@ -32,10 +35,40 @@ const GOAL_DEFS = [
 const ALLERGEN_DEFS = ['Peanut', 'Tree nut', 'Shellfish', 'Dairy', 'Egg', 'Gluten', 'Soy', 'Fish'];
 const CUISINE_DEFS = ['Italian', 'Mexican', 'Indian', 'Chinese', 'Thai', 'Japanese', 'Mediterranean', 'French', 'American', 'Korean'];
 const DIET_DEFS = ['Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 'Gluten-free', 'Dairy-free', 'Low-carb'];
-const STEP_NAMES = ['welcome', 'household', 'about', 'goal', 'allergies', 'taste', 'cuisine', 'meals', 'review', 'done'];
+// The tour steps sit between the save and the done screen — first login walks
+// straight into them, and /onboarding?tour=1 jumps to them for a replay.
+const TOUR_STEPS = ['tour_menu', 'tour_kit', 'tour_prompt'];
+const STEP_NAMES = ['welcome', 'household', 'about', 'goal', 'allergies', 'taste', 'cuisine', 'meals', 'review', ...TOUR_STEPS, 'done'];
+const DONE_STEP = STEP_NAMES.indexOf('done');
+const FIRST_TOUR_STEP = STEP_NAMES.indexOf(TOUR_STEPS[0]);
+
+/** What each tour card teaches, with a prompt the user can actually paste. */
+const TOUR_CARDS: Record<string, { icon: string; title: string; body: string; prompts: string[] }> = {
+  tour_menu: {
+    icon: ICONS.calendar,
+    title: 'The menu builder',
+    body:
+      'Pick a client, ask for a plan, and Aboyeur pulls real recipes out of your own cookbook library — never invented ones — fits them to that client’s calorie and macro targets, drops anything with an allergen in it, and rolls the whole thing into one shopping list grouped by aisle. The plan is filed under that client and nobody else.',
+    prompts: ['Plan 5 dinners for this week', 'Swap Thursday for something faster', 'Give me the shopping list for that menu'],
+  },
+  tour_kit: {
+    icon: ICONS.scale,
+    title: 'Mix & match kits',
+    body:
+      'A Macro Kit is the other half: instead of fixed recipes it gives you columns of foods — proteins, carbs, vegetables, fats — with per-meal gram amounts that hit your macros in any combination. Cook once, assemble differently every day.',
+    prompts: ['Build me a macro kit for the week', 'Make the kit higher protein', 'Swap chicken out of the kit'],
+  },
+  tour_prompt: {
+    icon: ICONS.check,
+    title: 'How to ask',
+    body:
+      'Plain sentences work best. Say how many days and any constraint that matters — time, budget, equipment, leftovers. Whoever is selected in the header is who it plans for, and it already knows their household, allergies and targets, so you never repeat those. Push back on anything it gives you and it will redo it.',
+    prompts: ['Nothing that takes over 30 minutes', 'Make it cheaper — pantry staples where you can', 'Only recipes from Ottolenghi'],
+  },
+};
 const SUBSTEPS = ['household', 'about', 'goal', 'allergies', 'taste', 'cuisine', 'meals', 'review'];
 const STEP_META: Record<string, { icon: string; title: string; subtitle: string }> = {
-  household: { icon: ICONS.person, title: 'Who are we planning for?', subtitle: "Add everyone whose meals you're planning. You can fill in details for each person later." },
+  household: { icon: ICONS.person, title: 'Who are we planning for?', subtitle: "Your first client. Add anyone else in their household too — you can fill in each person's details later." },
   about: { icon: ICONS.scale, title: 'Tell us about yourself', subtitle: 'Height, weight, and activity drive your calorie and macro targets, always computed, never entered by hand.' },
   goal: { icon: ICONS.target, title: "What's your goal?", subtitle: "We'll work out the daily calorie deficit or surplus for you, no manual math." },
   allergies: { icon: ICONS.alert, title: 'Any allergies?', subtitle: 'Hard-excluded from every recipe and menu. Category words like “shellfish” cover shrimp, crab, mussels, and more.' },
@@ -116,17 +149,22 @@ function RemovableChip({ label, tone, onRemove }: { label: string; tone: 'danger
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const [s, setS] = useState<State>(INITIAL);
+  const [params] = useSearchParams();
+  const { llmConfigured, refreshClientStatus } = useAuth();
+  const { activeClient, setActiveClient, refreshClients } = useClients();
+  const tourOnly = params.get('tour') === '1';
+  const [s, setS] = useState<State>(tourOnly ? { ...INITIAL, step: FIRST_TOUR_STEP } : INITIAL);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const patch = (p: Partial<State>) => setS((prev) => ({ ...prev, ...p }));
 
-  // Prefill from any existing profile (editing flow), then land on Welcome
-  // either way — a fast re-click through for someone who's already set up.
+  // Prefill from the active client's profile (editing flow), then land on
+  // Welcome either way — a fast re-click through for someone already set up.
   useEffect(() => {
+    if (!activeClient) return; // fresh account: no client to read from yet
     api
-      .getProfile()
+      .getProfile(activeClient.id)
       .then((profile) => {
         const primary = profile.household[0];
         const rest = profile.household.slice(1);
@@ -150,10 +188,10 @@ export default function Onboarding() {
         });
       })
       .catch(() => {
-        /* fresh account, nothing to prefill */
+        /* no profile on this client yet, nothing to prefill */
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeClient?.id]);
 
   const stepName = STEP_NAMES[s.step] ?? 'welcome';
   const subIndex = SUBSTEPS.indexOf(stepName);
@@ -244,7 +282,17 @@ export default function Onboarding() {
         label,
       }));
 
-      await api.saveProfile({
+      // First run has no client yet: the wizard's subject becomes client #1,
+      // named after them. Re-running it writes to whoever is active instead
+      // of quietly creating a duplicate person.
+      let clientId = activeClient?.id ?? null;
+      if (clientId == null) {
+        const created = await api.createClient({ name: s.name.trim() || 'My household' });
+        clientId = created.id;
+        setActiveClient(created);
+      }
+
+      await api.saveProfile(clientId, {
         household: [primary, ...others],
         allergies: s.allergies,
         dislikes: s.dislikes,
@@ -254,9 +302,10 @@ export default function Onboarding() {
         meals_per_day: s.mealsPerDay,
         units: s.units,
       });
-      patch({ step: 9 }); // "done"
+      await Promise.all([refreshClientStatus(), refreshClients()]);
+      patch({ step: FIRST_TOUR_STEP }); // straight into the tour
     } catch {
-      setSaveError("Couldn't save your profile — check your connection and try again.");
+      setSaveError("Couldn't save this client — check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -301,21 +350,28 @@ export default function Onboarding() {
         <div className="ob-body">
           {stepName === 'welcome' && (
             <div className="ob-hero">
-              <div className="ob-hero-mark">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8a6 6 0 0 0-12 0c0 3 1.5 5 2 7h8c.5-2 2-4 2-7Z" />
-                  <path d="M9 21h6M10 18h4" />
-                </svg>
-              </div>
+              <Logo size={88} className="ob-hero-mark" />
               <div>
                 <h1 className="ob-hero-title">Welcome to Aboyeur</h1>
                 <p className="ob-hero-sub">
-                  Set up your household once. Meal plans, calorie targets, and shopping lists adjust to everyone automatically, allergies included.
+                  Set up your first client. Every client keeps their own targets, allergies and plans — and nothing you build for one ever leaks into another.
                 </p>
               </div>
+              <ul className="ob-hero-list">
+                <li>
+                  <strong>Menu builder</strong> — weekly plans per client from real recipes in your library, with the shopping list.
+                </li>
+                <li>
+                  <strong>Mix & match kits</strong> — foods and gram amounts you combine yourself, built to hit your macros.
+                </li>
+                <li>
+                  <strong>Just ask</strong> — plain sentences. It already knows the selected client, their allergies and their targets.
+                </li>
+              </ul>
               <button type="button" className="ob-btn-hero" onClick={next}>
                 Get Started
               </button>
+              <p className="ob-hero-fine">Takes about a minute. Everything here is editable later in your profile.</p>
             </div>
           )}
 
@@ -613,6 +669,43 @@ export default function Onboarding() {
             </div>
           )}
 
+          {TOUR_STEPS.includes(stepName) && (
+            <div className="ob-hero ob-tour">
+              <div className="ob-icon-badge ob-tour-badge">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={TOUR_CARDS[stepName].icon} />
+                </svg>
+              </div>
+              <div>
+                <h1 className="ob-hero-title" style={{ fontSize: 26 }}>
+                  {TOUR_CARDS[stepName].title}
+                </h1>
+                <p className="ob-hero-sub">{TOUR_CARDS[stepName].body}</p>
+              </div>
+              <div className="ob-tour-prompts">
+                <span className="ob-tour-prompts-label">Try saying</span>
+                {TOUR_CARDS[stepName].prompts.map((q) => (
+                  <span className="ob-tour-prompt" key={q}>
+                    “{q}”
+                  </span>
+                ))}
+              </div>
+              <div className="ob-tour-actions">
+                <button type="button" className="ob-btn-hero" onClick={() => patch({ step: s.step + 1 })}>
+                  {stepName === TOUR_STEPS[TOUR_STEPS.length - 1] ? 'Finish' : 'Next'}
+                </button>
+                <button type="button" className="btn-ghost" onClick={() => patch({ step: DONE_STEP })}>
+                  Skip the tour
+                </button>
+              </div>
+              <div className="ob-tour-dots">
+                {TOUR_STEPS.map((t) => (
+                  <span key={t} className={`ob-tour-dot ${t === stepName ? 'ob-tour-dot-on' : ''}`} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {stepName === 'done' && (
             <div className="ob-hero">
               <div className="ob-done-mark">
@@ -622,12 +715,22 @@ export default function Onboarding() {
               </div>
               <div>
                 <h1 className="ob-hero-title" style={{ fontSize: 28 }}>
-                  You're all set
+                  {tourOnly ? "That's the tour" : "You're all set"}
                 </h1>
-                <p className="ob-hero-sub">Your profile is saved. Recipes and menus will respect your goals and allergies from here on.</p>
+                <p className="ob-hero-sub">
+                  {tourOnly
+                    ? 'Everything on a client stays editable — people, allergies, likes, targets.'
+                    : llmConfigured
+                      ? 'Your first client is set up. Add more from the Clients tab whenever you like.'
+                      : 'Your first client is set up. One last step: connect the AI model Aboyeur should run on.'}
+                </p>
               </div>
-              <button type="button" className="ob-btn-hero" onClick={() => navigate('/app/chat')}>
-                Open Aboyeur
+              <button
+                type="button"
+                className="ob-btn-hero"
+                onClick={() => navigate(tourOnly ? '/app/clients' : llmConfigured ? '/app/chat' : '/setup')}
+              >
+                {tourOnly ? 'Back to clients' : llmConfigured ? 'Open Aboyeur' : 'Connect a model'}
               </button>
             </div>
           )}

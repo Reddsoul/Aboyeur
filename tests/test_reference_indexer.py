@@ -51,6 +51,7 @@ def config(tmp_path: Path, reference_dir: Path) -> Config:
         db_path=tmp_path / "test.db",
         llm_base_url="http://unused",
         llm_model="unused",
+        llm_api_key=None,
         usda_api_key=None,
         embedding_model="unused",
     )

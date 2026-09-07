@@ -19,14 +19,14 @@ _PROTEIN_ROLES = ("protein", "dairy_protein")
 def get_shopping_list(
     conn: sqlite3.Connection,
     config: Config,
-    user_id: int,
+    client_id: int,
     menu_id: int | None = None,
     kit_id: int | None = None,
 ) -> dict:
     """Consolidated grocery list for a menu or a Macro Kit, by store section.
 
     Both ids default to the user's most recent of that kind, and every
-    lookup is scoped to user_id — never another account's row. With no id at
+    lookup is scoped to client_id — never another account's row. With no id at
     all, the most recent menu wins, falling back to the most recent kit.
     An id passed as menu_id that turns out to be a kit id resolves as a kit
     (a mid-size model mixes the two up, and erroring on a row the user does
@@ -41,28 +41,28 @@ def get_shopping_list(
     show what's needed vs. already on hand.
     """
     if kit_id is not None:
-        loaded = load_kit(conn, user_id, kit_id)
+        loaded = load_kit(conn, client_id, kit_id)
         if loaded is None:
             return {"error": f"no kit with id {kit_id}"}
-        return _kit_shopping_list(conn, user_id, *loaded)
+        return _kit_shopping_list(conn, client_id, *loaded)
 
     if menu_id is not None:
         row = conn.execute(
-            "SELECT days_json FROM menus WHERE id = ? AND user_id = ?", (menu_id, user_id)
+            "SELECT days_json FROM menus WHERE id = ? AND client_id = ?", (menu_id, client_id)
         ).fetchone()
         if row is None:
-            loaded = load_kit(conn, user_id, menu_id)
+            loaded = load_kit(conn, client_id, menu_id)
             if loaded is not None:
-                return _kit_shopping_list(conn, user_id, *loaded)
+                return _kit_shopping_list(conn, client_id, *loaded)
             return {"error": f"no menu or kit with id {menu_id}"}
     else:
         row = conn.execute(
-            "SELECT days_json FROM menus WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,)
+            "SELECT days_json FROM menus WHERE client_id = ? ORDER BY id DESC LIMIT 1", (client_id,)
         ).fetchone()
         if row is None:
-            loaded = load_kit(conn, user_id, None)
+            loaded = load_kit(conn, client_id, None)
             if loaded is not None:
-                return _kit_shopping_list(conn, user_id, *loaded)
+                return _kit_shopping_list(conn, client_id, *loaded)
             return {"error": "no menu or kit exists yet — call plan_menu or build_macro_kit first"}
 
     plan = json.loads(row["days_json"])
@@ -76,8 +76,8 @@ def get_shopping_list(
     ).fetchall()
     picks = [{"ingredients": json.loads(r["ingredients_json"])} for r in rows]
 
-    pantry = _pantry(conn, user_id)
-    profile = get_profile(conn, user_id)
+    pantry = _pantry(conn, client_id)
+    profile = get_profile(conn, client_id)
     dislikes = profile.get("dislikes", [])
 
     raw_lines = sorted({
@@ -93,12 +93,12 @@ def get_shopping_list(
     return shopping_engine.build_shopping_list(picks, pantry, dislikes, canonical=canonical)
 
 
-def _pantry(conn: sqlite3.Connection, user_id: int) -> set[str]:
-    rows = conn.execute("SELECT item FROM pantry WHERE user_id = ?", (user_id,)).fetchall()
+def _pantry(conn: sqlite3.Connection, client_id: int) -> set[str]:
+    rows = conn.execute("SELECT item FROM pantry WHERE client_id = ?", (client_id,)).fetchall()
     return {r["item"] for r in rows}
 
 
-def _kit_shopping_list(conn: sqlite3.Connection, user_id: int, kit_id: int, kit: dict) -> dict:
+def _kit_shopping_list(conn: sqlite3.Connection, client_id: int, kit_id: int, kit: dict) -> dict:
     """Grams to buy per kit component over the kit's day horizon.
 
     Even rotation: a column's per-meal grams are split across its items, so
@@ -157,8 +157,8 @@ def _kit_shopping_list(conn: sqlite3.Connection, user_id: int, kit_id: int, kit:
         for item in sauces:
             plan.append((item, float(item.get("serving_g") or 0) * share, share))
 
-    pantry = _pantry(conn, user_id)
-    dislikes = [d.lower().strip() for d in (get_profile(conn, user_id).get("dislikes") or [])]
+    pantry = _pantry(conn, client_id)
+    dislikes = [d.lower().strip() for d in (get_profile(conn, client_id).get("dislikes") or [])]
 
     sections: dict[str, list] = {s: [] for s in shopping_engine.SECTIONS}
     total = 0

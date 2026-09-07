@@ -1,4 +1,4 @@
-"""Environment configuration. Reads .env (if present) then process env."""
+"""Environment configuration. Reads process env (aboyeur/__init__.py loads .env)."""
 
 from __future__ import annotations
 
@@ -6,10 +6,9 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(_ENV_FILE)
+# .env is loaded by aboyeur/__init__.py — importing any module in this package
+# is enough, and doing it there (not here) is what keeps import order from
+# deciding whether aboyeur.auth sees the real JWT_SECRET.
 
 
 @dataclass(frozen=True)
@@ -19,6 +18,7 @@ class Config:
     db_path: Path
     llm_base_url: str
     llm_model: str
+    llm_api_key: str | None
     usda_api_key: str | None
     embedding_model: str
 
@@ -40,6 +40,10 @@ class Config:
             db_path=Path(db_path).expanduser(),
             llm_base_url=os.environ.get("LLM_BASE_URL", "http://100.70.6.1:4000/v1"),
             llm_model=os.environ.get("LLM_MODEL", "fast"),
+            # Fallback only: the CLI and the OpenWebUI shim. Web users
+            # store their own key (aboyeur/llm_settings.py), which
+            # backend/main.py overrides onto a copy of this Config.
+            llm_api_key=os.environ.get("LLM_API_KEY") or None,
             usda_api_key=os.environ.get("USDA_API_KEY") or None,
             embedding_model=os.environ.get("EMBEDDING_MODEL", "nomic-embed-text"),
         )

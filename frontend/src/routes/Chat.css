@@ -37,8 +37,14 @@
   font-weight: 700;
   color: #ffffff;
 }
-.chat-avatar-assist {
-  background: linear-gradient(155deg, var(--accent), var(--success));
+/* Assistant side is the logo plate (a <span>, not the letter <div>) — keep it
+   round, and let the mark fill more of it than the default plate ratio. */
+span.chat-avatar {
+  border-radius: 50%;
+}
+span.chat-avatar .brand-mark {
+  width: 24px;
+  height: 24px;
 }
 .chat-avatar-user {
   background: var(--fill-strong);
@@ -149,4 +155,35 @@
 .chat-send-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* Shown in place of the composer when the account has no LLM configured. */
+.chat-setup-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 16px 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--fill);
+}
+.chat-setup-cta strong {
+  font-size: 14.5px;
+}
+.chat-setup-cta p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.chat-setup-btn {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 22px;
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
 }

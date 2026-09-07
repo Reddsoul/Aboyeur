@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const { login } = useAuth();
@@ -17,8 +18,10 @@ export default function Login() {
     setError(null);
     setBusy(true);
     try {
-      await login(email, password);
-      navigate('/app/chat', { replace: true });
+      // login() resolves with the freshly-read status; the context state
+      // this render closed over is still the pre-login one.
+      const { hasClients, llmConfigured } = await login(email, password);
+      navigate(!hasClients ? '/onboarding' : llmConfigured ? '/app/chat' : '/setup', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError && err.status === 401 ? 'Invalid email or password.' : 'Something went wrong. Try again.');
     } finally {
@@ -67,23 +70,7 @@ export default function Login() {
           gap: 18,
         }}
       >
-        <div
-          style={{
-            width: 60,
-            height: 60,
-            borderRadius: 16,
-            background: 'linear-gradient(155deg, var(--accent), var(--success))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 4px',
-          }}
-        >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8a6 6 0 0 0-12 0c0 3 1.5 5 2 7h8c.5-2 2-4 2-7Z" />
-            <path d="M9 21h6M10 18h4" />
-          </svg>
-        </div>
+        <Logo size={64} className="login-mark" />
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.01em' }}>Sign in to Aboyeur</h1>
           <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>Your personal nutritionist and menu planner.</p>
