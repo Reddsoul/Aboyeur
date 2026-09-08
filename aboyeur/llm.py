@@ -62,7 +62,6 @@ class StreamCollector:
         for chunk in self._chunks:
             delta = chunk.choices[0].delta
             if delta.tool_calls:
-                pending = None  # a tool-call round — any held content was filler
                 for tc_delta in delta.tool_calls:
                     slot = self.tool_call_parts.setdefault(
                         tc_delta.index, {"id": None, "name": None, "arguments": ""}
@@ -73,12 +72,19 @@ class StreamCollector:
                         slot["name"] = tc_delta.function.name
                     if tc_delta.function and tc_delta.function.arguments:
                         slot["arguments"] += tc_delta.function.arguments
+                # Only a *named* tool call means the held content was filler for
+                # a tool round. A degenerate nameless delta (see .tool_calls)
+                # gets dropped later, so keep the pending answer chunk.
+                if any(s["name"] for s in self.tool_call_parts.values()):
+                    pending = None
             if delta.content:
                 if pending is not None:
                     self.content_parts.append(pending)
                     yield pending
                 pending = delta.content
-        if pending is not None and not self.tool_call_parts:
+        if pending is not None and not any(
+            s["name"] for s in self.tool_call_parts.values()
+        ):
             self.content_parts.append(pending)
             yield pending
 
@@ -88,4 +94,14 @@ class StreamCollector:
 
     @property
     def tool_calls(self) -> list[dict]:
-        return [self.tool_call_parts[i] for i in sorted(self.tool_call_parts)]
+        # The local model occasionally streams a degenerate tool-call delta —
+        # an index (sometimes an id) with no function name and no arguments
+        # ever arriving. Emitting that as a real tool call puts
+        # {"function": {"name": null}} into the message history, which the
+        # LiteLLM/vLLM endpoint then rejects with a 400 on the *next* round,
+        # bricking the whole conversation. Drop any slot that never got a name.
+        return [
+            self.tool_call_parts[i]
+            for i in sorted(self.tool_call_parts)
+            if self.tool_call_parts[i]["name"]
+        ]

@@ -818,10 +818,13 @@ def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
 
 
 def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] = None):
-    """record_for: the conversation this turn belongs to. The reply is saved
-    once the stream finishes (including the error tail), so a half-streamed
-    answer is still there on the next visit."""
+    """record_for: the conversation this turn belongs to. A real (even if
+    half-streamed) answer is saved so it's still there on the next visit — but
+    a turn that produced nothing but the internal-error notice is NOT persisted,
+    so a transient endpoint failure doesn't litter the transcript with error
+    messages the user re-reads every time they reopen the chat."""
     parts: list[str] = []
+    errored = False
     try:
         for tok in _agent_tokens(agent, message):
             parts.append(tok)
@@ -833,12 +836,27 @@ def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] 
         # the stream cleanly instead, so the client at least gets a
         # well-formed (if apologetic) response rather than a truncated one.
         logger.exception("agent stream failed mid-response")
+        errored = True
         tail = "\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]"
-        parts.append(tail)
         yield _sse(tail)
-    if record_for is not None:
-        _record_message(record_for, "assistant", "".join(parts))
+    answer = "".join(parts)
+    if record_for is not None and answer.strip():
+        _record_message(record_for, "assistant", answer)
+    elif record_for is not None and errored:
+        # Nothing worth keeping — drop the orphaned user turn too so a retry
+        # starts clean instead of stacking two user messages in the history.
+        _delete_last_user_message(record_for)
     yield _sse("[DONE]")
+
+
+def _delete_last_user_message(chat_session_id: int) -> None:
+    conn = _profile_conn()
+    try:
+        _aboyeur_chat_history.delete_last_message_if_role(conn, chat_session_id, "user")
+    except Exception:  # transcript cleanup must never break the response
+        logger.exception("couldn't roll back user message for conversation %s", chat_session_id)
+    finally:
+        conn.close()
 
 
 def _record_message(chat_session_id: int, role: str, content: str) -> None:

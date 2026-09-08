@@ -199,6 +199,26 @@ def agent_history(conn: sqlite3.Connection, session_id: int) -> list[dict]:
     ]
 
 
+def delete_last_message_if_role(conn: sqlite3.Connection, session_id: int, role: str) -> bool:
+    """Drop the newest message in a conversation, but only when it has `role`.
+
+    Used to roll back a user turn that produced no answer (the LLM endpoint
+    failed outright), so the transcript doesn't keep a question with no reply
+    and a retry doesn't stack two user messages in the rebuilt agent's history.
+    Returns whether a row was deleted.
+    """
+    row = conn.execute(
+        "SELECT id, role FROM chat_messages WHERE session_id = ? ORDER BY id DESC LIMIT 1",
+        (session_id,),
+    ).fetchone()
+    if row is None or row["role"] != role:
+        return False
+    conn.execute("DELETE FROM chat_messages WHERE id = ?", (row["id"],))
+    _touch(conn, session_id)
+    conn.commit()
+    return True
+
+
 def clear_messages(conn: sqlite3.Connection, session_id: int) -> int:
     """Empty one conversation without deleting it. Returns how many went."""
     cur = conn.execute("DELETE FROM chat_messages WHERE session_id = ?", (session_id,))

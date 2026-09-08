@@ -36,7 +36,10 @@
       "Bash(node -e ' *)",
       "Bash(curl -s -m 3 -o /dev/null -w \"backend :8000 -> %{http_code}\\\\n\" http://localhost:8000/auth/me)",
       "Bash(curl -s -m 3 -o /dev/null -w \"frontend :5173 -> %{http_code}\\\\n\" http://localhost:5173)",
-      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, email FROM users;\")"
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, email FROM users;\")",
+      "Bash(python -m aboyeur.cli create-user izzy.tufts@gmail.com --password 'Pas2W0rd!')",
+      "Bash(.venv/bin/python -m aboyeur.cli create-user izzy.tufts@gmail.com --password 'Pas2W0rd!')",
+      "Bash(.venv/bin/python -m aboyeur.cli create-user pblagatta@gmail.com --password 'Pas2W0rd!')"
     ]
   }
 }

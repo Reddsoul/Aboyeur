@@ -86,6 +86,29 @@ def _tool_result_text(name: str, result: dict) -> str:
     return json.dumps(result, default=str)
 
 
+def _parse_tool_args(name: str, raw: str | None) -> dict:
+    """Best-effort decode of a tool call's argument string into a dict.
+
+    The local model's streamed arguments are usually clean JSON but sometimes
+    aren't: trailing junk after a valid object ("Extra data"), two objects
+    concatenated, or a truncated object. Salvage a leading object when we can,
+    otherwise fall back to {} and let the dispatcher's schema check feed the
+    model a corrective error. Never raises.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        try:
+            parsed, _ = json.JSONDecoder().raw_decode(raw)
+        except json.JSONDecodeError:
+            logger.warning("tool %s: unparseable arguments %r", name, raw)
+            return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
 def _dispatch(
     conn: sqlite3.Connection,
     config: Config,
@@ -228,6 +251,19 @@ class Agent:
         yield from self._send_turn(user_message, debug)
 
     def _send_turn(self, user_message: str, debug: bool) -> Iterator[tuple[str, object]]:
+        # If this turn blows up part-way (e.g. the endpoint 400s on a message
+        # the model's own malformed output produced), roll the history back to
+        # before the turn so the cached agent stays usable — otherwise every
+        # later turn in the conversation resends the poisoned history and fails
+        # the same way.
+        checkpoint = len(self.messages)
+        try:
+            yield from self._run_turn(user_message, debug)
+        except Exception:
+            del self.messages[checkpoint:]
+            raise
+
+    def _run_turn(self, user_message: str, debug: bool) -> Iterator[tuple[str, object]]:
         self.messages.append({"role": "user", "content": user_message})
 
         for _ in range(MAX_TOOL_ROUNDS):
@@ -239,24 +275,33 @@ class Agent:
                 self.messages.append({"role": "assistant", "content": collector.content})
                 return
 
+            # Parse each call's arguments up front, then hand the *re-serialized*
+            # args back to the endpoint — never the raw stream. This mid-size
+            # local model sometimes emits arguments that aren't valid JSON
+            # (trailing junk -> "Extra data", concatenated objects, truncation),
+            # and a null/blank tool-call id; replaying either verbatim makes the
+            # LiteLLM/vLLM endpoint 400 on the next round. json.dumps(dict) is
+            # always valid, and a synthesized id is always a string.
+            parsed_args: list[dict] = []
+            for i, tc in enumerate(collector.tool_calls):
+                if not tc.get("id"):
+                    tc["id"] = f"call_{i}"
+                parsed_args.append(_parse_tool_args(tc["name"], tc["arguments"]))
+
             self.messages.append({
                 "role": "assistant",
                 "content": collector.content or None,
                 "tool_calls": [
                     {
                         "id": tc["id"], "type": "function",
-                        "function": {"name": tc["name"], "arguments": tc["arguments"]},
+                        "function": {"name": tc["name"], "arguments": json.dumps(args)},
                     }
-                    for tc in collector.tool_calls
+                    for tc, args in zip(collector.tool_calls, parsed_args)
                 ],
             })
 
             called_update_profile = False
-            for tc in collector.tool_calls:
-                try:
-                    args = json.loads(tc["arguments"] or "{}")
-                except json.JSONDecodeError:
-                    args = {}
+            for tc, args in zip(collector.tool_calls, parsed_args):
                 if debug:
                     yield ("tool_call", {"name": tc["name"], "args": args})
                 # The local model sometimes emits tool calls that violate the

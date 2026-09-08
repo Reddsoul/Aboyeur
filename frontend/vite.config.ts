@@ -8,7 +8,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true,
     port: 5173,
+    allowedHosts: ['santo-domingo.flicker-harmonic.ts.net'],
+    hmr: { clientPort: 443 },
     proxy: {
       '/auth': 'http://localhost:8000',
       '/profile': 'http://localhost:8000',

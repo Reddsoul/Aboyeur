@@ -322,6 +322,50 @@ def test_chat_without_a_client_id_falls_back_to_the_default_client(backend_main,
         conn.close()
 
 
+def test_failed_llm_turn_is_not_left_in_the_transcript(backend_main, api):
+    """When the endpoint fails outright, the user sees the error notice in the
+    stream but neither it nor the orphaned question is persisted — reopening
+    the chat doesn't replay a stale error."""
+    from aboyeur import chat_history
+
+    user_id = _as(backend_main, api, "failed-turn@example.com")
+    conn = backend_main._profile_conn()
+    try:
+        client_id = _profile_default_client(backend_main, conn, user_id)
+        session_id = chat_history.create_session(conn, client_id)["id"]
+        chat_history.append_message(conn, session_id, "user", "earlier answered turn")
+        chat_history.append_message(conn, session_id, "assistant", "earlier reply")
+    finally:
+        conn.close()
+
+    class _BoomAgent:
+        def send(self, _message):
+            raise RuntimeError("endpoint down")
+            yield  # pragma: no cover
+
+    backend_main._record_message(session_id, "user", "plan my week")
+    chunks = list(backend_main._agent_stream(_BoomAgent(), "plan my week", record_for=session_id))
+    assert any("internal error" in c for c in chunks)  # user still told
+
+    conn = backend_main._profile_conn()
+    try:
+        roles = [m["role"] for m in chat_history.list_messages(conn, session_id)]
+        contents = [m["content"] for m in chat_history.list_messages(conn, session_id)]
+    finally:
+        conn.close()
+    assert roles == ["user", "assistant"]  # the earlier turn only
+    assert "internal error" not in "".join(contents)
+    assert "plan my week" not in "".join(contents)
+
+
+def _profile_default_client(backend_main, conn, user_id: int) -> int:
+    from aboyeur import clients as clients_mod
+    existing = clients_mod.list_clients(conn, user_id)
+    if existing:
+        return existing[0]["id"]
+    return clients_mod.create_client(conn, user_id, "Default")["id"]
+
+
 # ---------------------------------------------------------------------------
 # Chat history, per-client favorites, and the account (vs client) split
 # ---------------------------------------------------------------------------

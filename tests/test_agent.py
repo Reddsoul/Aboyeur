@@ -9,6 +9,7 @@ update_profile, surfaced to the user as an internal error).
 
 from __future__ import annotations
 
+import json
 import sqlite3
 
 import aboyeur.agent as agent_mod
@@ -69,6 +70,70 @@ def test_wrong_arg_type_becomes_error_tool_result(
 
     tool_msg = next(m for m in agent.messages if m["role"] == "tool")
     assert "invalid arguments" in tool_msg["content"]
+
+
+def test_malformed_tool_args_are_reserialized_clean(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, monkeypatch
+):
+    """The model's raw argument string is never replayed to the endpoint — the
+    assistant message carries a re-serialized dict, so trailing junk / bad JSON
+    can't 400 the next round. A blank id is filled in too."""
+    agent = _scripted_agent(db_conn, config, client_id, monkeypatch, [
+        ("", [{"id": None, "name": "search_recipes",
+               "arguments": '{"query": "steak"} some trailing junk'}]),
+        ("done", []),
+    ])
+    list(agent.send("find steak"))
+
+    asst = next(m for m in agent.messages if m["role"] == "assistant" and m.get("tool_calls"))
+    call = asst["tool_calls"][0]
+    assert call["id"]  # synthesized, non-empty
+    assert json.loads(call["function"]["arguments"]) == {"query": "steak"}
+
+
+def test_unparseable_tool_args_fall_back_to_empty(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, monkeypatch
+):
+    agent = _scripted_agent(db_conn, config, client_id, monkeypatch, [
+        ("", [{"id": "t1", "name": "search_recipes", "arguments": "not json at all"}]),
+        ("done", []),
+    ])
+    list(agent.send("find something"))
+
+    asst = next(m for m in agent.messages if m["role"] == "assistant" and m.get("tool_calls"))
+    assert asst["tool_calls"][0]["function"]["arguments"] == "{}"
+    tool_msg = next(m for m in agent.messages if m["role"] == "tool")
+    assert "invalid arguments" in tool_msg["content"]  # dispatcher's schema check still fires
+
+
+def test_failed_turn_rolls_history_back(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, monkeypatch
+):
+    """If a turn blows up part-way (e.g. the endpoint 400s on the model's own
+    malformed output), the cached agent's history is restored to before the
+    turn so later turns don't resend the poisoned messages and fail the same
+    way."""
+
+    class _BoomCollector:
+        def __init__(self, _stream):
+            pass
+
+        def __iter__(self):
+            raise RuntimeError("endpoint 400")
+            yield  # pragma: no cover
+
+    monkeypatch.setattr(agent_mod, "StreamCollector", _BoomCollector)
+    monkeypatch.setattr(agent_mod, "stream_chat", lambda *a, **k: iter(()))
+    monkeypatch.setattr(agent_mod, "make_client", lambda config: None)
+    agent = Agent(db_conn, config, client_id)
+    before = list(agent.messages)
+
+    try:
+        list(agent.send("plan my week"))
+    except RuntimeError:
+        pass
+
+    assert agent.messages == before
 
 
 def test_guest_profile_overrides_and_never_persists(

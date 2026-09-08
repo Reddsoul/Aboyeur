@@ -2631,3 +2631,928 @@ INFO:     127.0.0.1:51701 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP
 INFO:     127.0.0.1:51704 - "GET /api/recipes/facets HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51712 - "GET /api/recipes?client_id=4&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51715 - "GET /api/recipes?client_id=2&favorites_only=true&offset=0&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51937 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51939 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51944 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51947 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51946 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51950 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51948 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51954 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51956 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51959 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51962 - "POST /auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51966 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51970 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51972 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51975 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51982 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51981 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51985 - "POST /auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52105 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:52121 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:52122 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52343 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:52344 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "POST /api/clients HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "POST /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     100.85.124.24:0 - "PUT /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/messages HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/messages HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7 HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7 HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.85.124.24:0 - "GET /api/clients/7 HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7 HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/messages HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/messages HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/profile HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/messages HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/messages HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "DELETE /api/clients/7/sessions/4 HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "POST /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+bones&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:     100.85.124.24:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=carrots&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spinach&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.474794 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=french+dressing&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egg+plant&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=crackers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fat&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=soup+stock&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spinach+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=gelatine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=smoked&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egg+yolk&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=eggplant&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=coconut+butter&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cress&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mayonnaise&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egg+white&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rum&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rum&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.424038 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vanilla&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cayenne&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cayenne+or+paprika&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cayenne&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paprika&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paprika&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.434531 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salted+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corn+salad&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salad+greens&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mustard&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tuna&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=apple&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nut&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tuna+fish&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fine+herbs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=gelatin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+salad&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cucumber+pickle&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lettuce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cauliflower&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=seasonings&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.417733 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=endive&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=herbs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dressing&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tuna+oil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cream+mushroom+soup&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lemon&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cornbread&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hop+sprouts&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=plain+salad+dressing&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potato+salad&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beet&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+sirloin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+marrow&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salmon&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+tongue&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=saltpetre&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=saltpetre&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=roast+beef&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+gravy&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spaghetti&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salted+tuna&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rye+straw&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=unflavored+gelatin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=celery+seed&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=flaked+canned+tuna&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corned+beef+stock&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corned+beef&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=buttered+crumbs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=celery+salt&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+fillet&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=larding&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+juices&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=green+onions&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dashi&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dashi&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spice+mixture&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=roast+beef+dripping&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paper+bagged+tomatoes&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+fermented+tofu&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=worcestershire+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=crumbs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tofu&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.399896 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tomato+ketchup&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rounds+toasted+bread&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pimolas&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pimolas&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=broccoli&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=firm+tofu&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=scallion&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sesame+seeds&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=milt+tuna&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=ma+tre+d%27h+tel+butter&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=old+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=silken+tofu&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=noodles&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sesame+paste&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=other+seasonings&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=toppings&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=carp+roe+sacs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fresh+tuna&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shallot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chives&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=soy+scallion+seasoning+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=purple+amaranth+leaves&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=kimchi&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pepper+paste&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=scallions&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shiitake+mushrooms&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bamboo+shoot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bicarbonate+soda&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tofu+skins&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potato+starch+mixture&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=deep+frying+oil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.405565 seconds
+INFO:openai._base_client:Retrying request to /chat/completions in 0.398844 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chervil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chervil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=part+vinegar&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=parts+olive+oil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chinese+chives&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+cutlets&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=butter&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=anchovies&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+vinegar&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=light+cream&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=capers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=capers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=papery+dried+shrimp&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=laver+seaweed&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sichuan+preserved+vegetable&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spring+onion+greens&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.464972 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=korean+pepper+flakes&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=leek&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cauliflower+florets&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=soy+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+stock&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tubes+soft+tofu&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.457803 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+butter&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+broth&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+marrow&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cucumbers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+oyster&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=macaroni+vegetable+oyster&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=granola&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=condensed+cream+vegetable+soup&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=half-and-half&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beans&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.85.124.24:0 - "GET /api/clients/7/sessions HTTP/1.1" 200 OK
+INFO:     100.85.124.24:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.85.124.24:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sweet+pickle&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.440931 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=c+tuna+fish&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=c+celery&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hard+eggs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=t+green+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=t+sweet+pickle&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=t+pimento&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=t+paprika&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=t+lemon+juice&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=c+salad+dressing&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.483958 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=green+onion&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tongue&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sauce+tartare&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=water+spinach&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+chile&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=remaining+red+chile&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=tarragon&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=balm+leaves&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=green&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=hard+boiled+egg&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.415014 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=peck+spinach&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=grains+nutmeg&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cream+salad+dressing&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sorrel&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sorrel&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.381215 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dairole+molds&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dairole+molds&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=thin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.453616 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paprica&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paprica&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.433168 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.462339 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salad+oil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=onion&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dandelion&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 826, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 815, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 234, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - 3 validation errors:\n  {\'type\': \'string_type\', \'loc\': (\'body\', 1, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}\n  {\'type\': \'missing\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-80acd1713dfda59f\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}\n  {\'type\': \'literal_error\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}\n\n  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/utils.py", line 40, in create_chat_completion\n    POST /v1/chat/completions [{\'type\': \'string_type\', \'loc\': (\'body\', 1, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}, {\'type\': \'missing\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-80acd1713dfda59f\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}, {\'type\': \'literal_error\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}]. Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.68.148.28:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     100.68.148.28:0 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/plans HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages?session_id=2 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/46988?client_id=2 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=International&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=Jewish&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=Roman&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=Italian&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=Dutch&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=Japanese&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=English&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/38974?client_id=2 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=2&cuisine=Spanish&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/10181?client_id=2 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.68.148.28:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 826, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 815, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 234, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - 3 validation errors:\n  {\'type\': \'string_type\', \'loc\': (\'body\', 1, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}\n  {\'type\': \'missing\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-85a6accd0cbf77d3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}\n  {\'type\': \'literal_error\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}\n\n  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/utils.py", line 40, in create_chat_completion\n    POST /v1/chat/completions [{\'type\': \'string_type\', \'loc\': (\'body\', 1, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}, {\'type\': \'missing\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-85a6accd0cbf77d3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}, {\'type\': \'literal_error\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}]. Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 826, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 815, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 234, in _send_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - 3 validation errors:\n  {\'type\': \'string_type\', \'loc\': (\'body\', 1, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}\n  {\'type\': \'missing\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-85a6accd0cbf77d3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}\n  {\'type\': \'literal_error\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}\n\n  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/utils.py", line 40, in create_chat_completion\n    POST /v1/chat/completions [{\'type\': \'string_type\', \'loc\': (\'body\', 1, \'ChatCompletionMessageFunctionToolCallParam\', \'function\', \'name\'), \'msg\': \'Input should be a valid string\', \'input\': None}, {\'type\': \'missing\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'custom\'), \'msg\': \'Field required\', \'input\': {\'id\': \'chatcmpl-tool-85a6accd0cbf77d3\', \'type\': \'function\', \'function\': {\'name\': None, \'arguments\': \'\'}}}, {\'type\': \'literal_error\', \'loc\': (\'body\', 1, \'ChatCompletionMessageCustomToolCallParam\', \'type\'), \'msg\': "Input should be \'custom\'", \'input\': \'function\', \'ctx\': {\'expected\': "\'custom\'"}}]. Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/llm.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [7486]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [85676]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/llm.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85676]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [85735]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85735]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [85809]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     100.71.143.90:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+WARNING:aboyeur:tool search_recipes failed on args {}: KeyError: 'query'
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 400 Bad Request"
+ERROR:aboyeur:agent stream failed mid-response
+Traceback (most recent call last):
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 826, in _agent_stream
+    for tok in _agent_tokens(agent, message):
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/backend/main.py", line 815, in _agent_tokens
+    for kind, payload in agent.send(message):
+                         ~~~~~~~~~~^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 228, in send
+    yield from self._send_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 238, in _send_turn
+    yield from self._run_turn(user_message, debug)
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/agent.py", line 247, in _run_turn
+    collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
+                                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/General/Coding/Python/Aboyeur/aboyeur/llm.py", line 33, in stream_chat
+    return client.chat.completions.create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        model=config.llm_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream=True,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 1281, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/macmini-m4/.venvs/aboyeur/lib/python3.14/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: OpenAIException - Extra data: line 1 column 40 (char 39). Received Model Group=hard\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85809]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [87592]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87592]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [87618]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/agent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87618]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [87651]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:0 - "POST /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "DELETE /api/clients/2/sessions/3 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "DELETE /api/clients/2/sessions/2 HTTP/1.1" 200 OK
+WARNING:aboyeur:LLM_SETTINGS_KEY not set — deriving the LLM-key encryption key from JWT_SECRET. Set LLM_SETTINGS_KEY in .env before deploying; rotating JWT_SECRET otherwise makes every stored LLM API key undecryptable.
+INFO:     100.71.143.90:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:  WatchFiles detected changes in 'backend/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for connections to close. (CTRL+C to force quit)
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetarian+hamburger+steak&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brown+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lentil+pulp&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=boiled+rice&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sage&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nuttolene&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nuttolene&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=granose+biscuits&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nuttolene&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nuttolene&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nuttolene&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nuttolene&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=protose&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=watercress&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=nut+food&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egg+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sour+cream&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=apricots&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=arrowroot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=paper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chocolate&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=corn&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=omelet&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=filling&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=coffee&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fruit&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=oranges&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sweet+potatoes&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=curry&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=wheatmeal&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=wheatmeal&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=burnt+sugar&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brazil+nuts&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brown+flour&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brown+stock&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.463377 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=soaked+lentils&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shalot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shalot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=each+flour+butter&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=button+mushrooms&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pepper+salt&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.466641 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=milk+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=saltspoonful+curry&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.425104 seconds
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egyptian+lentils&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.498086 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=good+curry&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pepper+salt&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=teacupful+raspings&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=teacupful+raspings&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=captain+white+s+curry+paste&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bay+leaf&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://100.70.6.1:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87651]
+WARNING:  WatchFiles detected changes in 'backend/main.py', 'aboyeur/chat_history.py'. Reloading...
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [94066]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [94066]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [94080]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
