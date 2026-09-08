@@ -23,10 +23,19 @@ CREATE TABLE IF NOT EXISTS recipes (
     ingredients_json TEXT NOT NULL,
     tags_json       TEXT NOT NULL,
     mtime           REAL NOT NULL,
-    indexed_at      TEXT NOT NULL
+    indexed_at      TEXT NOT NULL,
+    -- Populated by aboyeur/classify_recipes.py (one-time batch LLM pass), not
+    -- by the indexer. course: main|side|breakfast|dessert|drink|component|unknown.
+    -- serving_est_g: one serving's cooked weight (rough). meal_complete: 1 if
+    -- edible as a standalone meal (has a protein + a substantive base).
+    course          TEXT NOT NULL DEFAULT 'unknown',
+    serving_est_g   REAL,
+    meal_complete   INTEGER NOT NULL DEFAULT 0,
+    classified_at   TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_recipes_book ON recipes(book);
+CREATE INDEX IF NOT EXISTS idx_recipes_course ON recipes(course);
 CREATE INDEX IF NOT EXISTS idx_recipes_cuisine ON recipes(cuisine);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS recipes_fts USING fts5(

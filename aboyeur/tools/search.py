@@ -41,11 +41,19 @@ def search_recipes(
     exclude_ingredients: list[str] | None = None,
     pantry: list[str] | None = None,
     limit: int = 25,
+    for_menu: bool = False,
 ) -> list[dict]:
     """FTS5 search over title/ingredients/tags/cuisine/book.
 
-    Returns compact dicts: id, title, book, cuisine, first 6 ingredients,
-    pantry-match flag. Allergens are hard-excluded before results are built.
+    Returns compact dicts: id, title, book, cuisine, course, first 6
+    ingredients, pantry-match flag. Allergens are hard-excluded before results
+    are built.
+
+    for_menu=True drops recipes classified as dessert / drink / component
+    (aboyeur/classify_recipes.py) — use it when building a plan_menu candidate
+    pool so the pool is real meals, not garnishes and puddings. Unclassified
+    recipes (course='unknown') are kept; the optimizer's keyword filter is the
+    backstop for those.
     """
     limit = min(max(1, limit), 25)
     # Expand category allergies ("shellfish" -> shrimp, octopus, ...) — see
@@ -60,7 +68,7 @@ def search_recipes(
     if safe_query is None:
         return []
 
-    sql = """SELECT r.id, r.title, r.book, r.cuisine, r.ingredients_json
+    sql = """SELECT r.id, r.title, r.book, r.cuisine, r.course, r.ingredients_json
               FROM recipes_fts JOIN recipes r ON r.id = recipes_fts.rowid
               WHERE recipes_fts MATCH ?"""
     params: list = [safe_query]
@@ -70,6 +78,9 @@ def search_recipes(
     if book:
         sql += " AND r.book = ?"
         params.append(book)
+    if for_menu:
+        # Keep 'unknown' — the optimizer keyword filter is the backstop there.
+        sql += " AND r.course NOT IN ('dessert', 'drink', 'component')"
     sql += " ORDER BY bm25(recipes_fts) LIMIT ?"
     # Overfetch — allergy/ingredient filters happen in Python after the FTS hit,
     # since FTS5 MATCH can't express "ingredients_json does not contain X".
@@ -102,6 +113,7 @@ def search_recipes(
             "title": row["title"],
             "book": row["book"],
             "cuisine": row["cuisine"],
+            "course": row["course"],
             "ingredients": ingredients[:6],
             "pantry_match": bool(pantry) and any(p in ing_blob for p in pantry),
         })

@@ -21,6 +21,7 @@ USDA_URL = "https://api.nal.usda.gov/fdc/v1/foods/search"
 
 # USDA FoodData Central nutrient IDs (per 100 g).
 _N_KCAL, _N_PROTEIN, _N_CARB, _N_FAT = 1008, 1003, 1005, 1004
+_N_FIBER = 1079  # Fiber, total dietary
 
 _ACTIVITY = {
     "sedentary": 1.2, "light": 1.375, "moderate": 1.55,
@@ -86,8 +87,22 @@ def tdee(bmr: float, activity: str) -> float:
     return bmr * _ACTIVITY.get((activity or "moderate").lower(), 1.55)
 
 
+# Dietary fiber target: ~14 g per 1000 kcal (the DGA / Institute of Medicine
+# figure), clamped to a sane daily band so a very low or very high calorie
+# target doesn't produce an absurd fiber goal.
+_FIBER_G_PER_1000_KCAL = 14.0
+_FIBER_DAILY_MIN, _FIBER_DAILY_MAX = 20.0, 45.0
+
+
+def fiber_target_g(daily_kcal: float) -> float:
+    raw = _FIBER_G_PER_1000_KCAL * float(daily_kcal or 0) / 1000.0
+    return round(max(_FIBER_DAILY_MIN, min(_FIBER_DAILY_MAX, raw)), 1)
+
+
 def per_meal_target(daily_kcal: float, meals_per_day: int) -> dict:
-    """Per-meal {kcal, protein_g, carb_g, fat_g} using the 30/40/30 split."""
+    """Per-meal {kcal, protein_g, carb_g, fat_g, fiber_g}. Macros use the
+    30/40/30 split; fiber is 14 g / 1000 kcal of the daily target, divided
+    evenly across meals."""
     meals = max(1, int(meals_per_day or 1))
     kcal = float(daily_kcal) / meals
     return {
@@ -95,6 +110,7 @@ def per_meal_target(daily_kcal: float, meals_per_day: int) -> dict:
         "protein_g": round(_SPLIT["protein"] * kcal / _KCAL_PER_G["protein"], 1),
         "carb_g": round(_SPLIT["carb"] * kcal / _KCAL_PER_G["carb"], 1),
         "fat_g": round(_SPLIT["fat"] * kcal / _KCAL_PER_G["fat"], 1),
+        "fiber_g": round(fiber_target_g(daily_kcal) / meals, 1),
     }
 
 
@@ -470,8 +486,13 @@ def _validated_macros(food: dict) -> dict | None:
     protein = float(nutrients.get(_N_PROTEIN, 0) or 0)
     carb = float(nutrients.get(_N_CARB, 0) or 0)
     fat = float(nutrients.get(_N_FAT, 0) or 0)
+    fiber = float(nutrients.get(_N_FIBER, 0) or 0)
     if min(kcal, protein, carb, fat) < 0 or protein + carb + fat > _MACRO_SUM_MAX:
         return None
+    # Fiber is a subset of carbohydrate; a value well above stated carb is a
+    # bad label. Don't reject the whole entry over it — just drop the fiber.
+    if fiber < 0 or fiber > carb + 5:
+        fiber = 0.0
     atwater = 4.0 * protein + 4.0 * carb + 9.0 * fat
     if kcal <= 0:
         if atwater <= 0:
@@ -488,7 +509,7 @@ def _validated_macros(food: dict) -> dict | None:
     elif kcal >= 20 and abs(kcal - atwater) / kcal > _ATWATER_TOLERANCE:
         return None
     return {"kcal": kcal, "protein_g": protein, "carb_g": carb, "fat_g": fat,
-            "status": "success"}
+            "fiber_g": fiber, "status": "success"}
 
 
 def validated_per_100g(macros: dict) -> dict | None:
@@ -506,6 +527,7 @@ def validated_per_100g(macros: dict) -> dict | None:
         {"nutrientId": _N_PROTEIN, "value": float(macros.get("protein_g") or 0)},
         {"nutrientId": _N_CARB, "value": float(macros.get("carb_g") or 0)},
         {"nutrientId": _N_FAT, "value": float(macros.get("fat_g") or 0)},
+        {"nutrientId": _N_FIBER, "value": float(macros.get("fiber_g") or 0)},
     ]})
 
 
@@ -517,7 +539,7 @@ def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str
     """
     key = (name or "").strip().lower()
     if not key:
-        return {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "failed"}
+        return {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "fiber_g": 0, "status": "failed"}
 
     row = conn.execute("SELECT macros_json FROM usda_cache WHERE ingredient = ?", (key,)).fetchone()
     if row is not None:
@@ -525,12 +547,12 @@ def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str
 
     if key in _ZERO_MACRO_FOODS or clean_ingredient_name(key) in _ZERO_MACRO_FOODS:
         return {"kcal": 0.0, "protein_g": 0.0, "carb_g": 0.0, "fat_g": 0.0,
-                "status": "success"}
+                "fiber_g": 0.0, "status": "success"}
 
     if not config.usda_api_key:
-        result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "skipped"}
+        result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "fiber_g": 0, "status": "skipped"}
     else:
-        result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "failed"}
+        result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "fiber_g": 0, "status": "failed"}
         # Query the cleaned food noun first ("syrup", not "one-half cupful of
         # syrup"), falling back to the raw line if the cleaned one misses.
         # The cache key stays the raw name. Curated datasets (Foundation /
@@ -619,7 +641,7 @@ def estimate_recipe_macros(
             for ing in ingredients or []
         ]
 
-    totals = {"kcal": 0.0, "protein_g": 0.0, "carb_g": 0.0, "fat_g": 0.0}
+    totals = {"kcal": 0.0, "protein_g": 0.0, "carb_g": 0.0, "fat_g": 0.0, "fiber_g": 0.0}
     statuses = []
     matched_grams = total_grams = 0.0
     for p in parsed:
@@ -635,6 +657,7 @@ def estimate_recipe_macros(
         totals["protein_g"] += per100["protein_g"] * factor
         totals["carb_g"] += per100["carb_g"] * factor
         totals["fat_g"] += per100["fat_g"] * factor
+        totals["fiber_g"] += per100.get("fiber_g", 0.0) * factor
 
     matched = statuses.count("success")
     total = len(statuses)
@@ -662,6 +685,7 @@ def estimate_recipe_macros(
         "protein_g": round(totals["protein_g"] / servings, 1),
         "carb_g": round(totals["carb_g"] / servings, 1),
         "fat_g": round(totals["fat_g"] / servings, 1),
+        "fiber_g": round(totals["fiber_g"] / servings, 1),
         "usda_status": status,
         "matched_ingredients": matched,
         "total_ingredients": total,
@@ -691,6 +715,7 @@ def write_nutrition_frontmatter(
         f"  protein_g: {macros['protein_g']}\n"
         f"  carbs_g: {macros['carb_g']}\n"
         f"  fat_g: {macros['fat_g']}\n"
+        f"  fiber_g: {macros.get('fiber_g', 0)}\n"
         f"  confidence: {confidence}\n"
         f"  estimated_at: {estimated_at}\n"
     )

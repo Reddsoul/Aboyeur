@@ -207,17 +207,18 @@ def _upsert_nutrition(conn: sqlite3.Connection, recipe_id: int, nutrition: dict 
         return
     try:
         conn.execute(
-            """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, per_serving, confidence, estimated_at)
-               VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+            """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, fiber_g, per_serving, confidence, estimated_at)
+               VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
                ON CONFLICT(recipe_id) DO UPDATE SET kcal=excluded.kcal, protein_g=excluded.protein_g,
-               carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, confidence=excluded.confidence,
-               estimated_at=excluded.estimated_at""",
+               carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, fiber_g=excluded.fiber_g,
+               confidence=excluded.confidence, estimated_at=excluded.estimated_at""",
             (
                 recipe_id,
                 float(nutrition.get("kcal") or 0),
                 float(nutrition.get("protein_g") or 0),
                 float(nutrition.get("carbs_g") or 0),
                 float(nutrition.get("fat_g") or 0),
+                float(nutrition.get("fiber_g") or 0),
                 str(nutrition.get("confidence") or "medium"),
                 str(nutrition.get("estimated_at") or ""),
             ),

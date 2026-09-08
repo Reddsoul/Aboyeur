@@ -18,7 +18,7 @@ TOOL_SCHEMAS: list[dict] = [
                 "Search the recipe library by keyword. Full-text search over title, "
                 "ingredients, tags, cuisine, book. Allergens listed in the user's profile "
                 "are already hard-excluded from results — you never need to filter them "
-                "yourself. Returns at most 25 compact results (id, title, book, cuisine, "
+                "yourself. Returns at most 25 compact results (id, title, book, cuisine, course, "
                 "first 6 ingredients, pantry-match flag). Call this multiple times with "
                 "different queries to build a larger candidate pool for plan_menu."
             ),
@@ -37,6 +37,14 @@ TOOL_SCHEMAS: list[dict] = [
                         "description": "Soft exclusion, e.g. a disliked ingredient (not allergies — those are automatic).",
                     },
                     "limit": {"type": "integer", "description": "Max results, capped at 25. Default 25."},
+                    "for_menu": {
+                        "type": "boolean",
+                        "description": (
+                            "Set true when building a candidate pool for plan_menu — drops "
+                            "recipes classified as dessert, drink, or condiment/sauce so the "
+                            "pool is real meals. Leave false/unset for general recipe search."
+                        ),
+                    },
                 },
                 "required": ["query"],
             },
@@ -197,9 +205,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "Turn a candidate pool of recipe ids into an optimized menu — ONE call plans "
                 "every meal for every day (days x meals_per_day total picks); it does NOT need "
                 "to be called once per meal, that internal looping already happens for you. "
-                "Maximizes shared ingredients (fewer grocery items) and fit against the "
-                "household's calorie targets; never repeats a recipe; keeps desserts and drinks "
-                "out of the picks; hard-filters to the household's cuisine_affinity when set. "
+                "Meets the client's calorie AND protein/carb/fat targets first, then maximizes "
+                "shared ingredients (fewer grocery items); never repeats a recipe within a day; "
+                "keeps desserts, drinks and bare condiments/sauces out of the picks entirely; "
+                "hard-filters to the household's cuisine_affinity when set. "
                 "Pass at least 2x as many candidate_ids as (days x meals_per_day) — call "
                 "search_recipes a few times first to build that pool (batch multiple "
                 "search_recipes calls into one turn when you can, e.g. one per cuisine, instead "
@@ -208,9 +217,14 @@ TOOL_SCHEMAS: list[dict] = [
                 "days with a second dish per meal (role='top-up') so each day's total kcal "
                 "lands within 15% of the household's daily target — a meal entry can therefore "
                 "have two dishes; present both. Returns picks grouped by day and meal plus "
-                "daily_totals (per-day kcal vs target with an under/ok/over/unknown status), "
-                "an overlap score, and macro fit — mention daily totals and any 'unknown' "
-                "days (missing nutrition data) when presenting the plan."
+                "daily_totals (per-day kcal/protein/carb/fat vs target — each day carries a kcal "
+                "status of under/ok/over/unknown AND a macro_status of ok/off/unknown with "
+                "gap_notes), an overlap score, and macro fit — mention daily totals, each day's "
+                "macro_status, and any 'unknown' days (missing nutrition data) when presenting "
+                "the plan. If the pool can't meet the client's targets it returns instead "
+                "{'error': 'cannot_build', 'reasons': [...], 'suggest': 'macro_kit'} and persists "
+                "nothing — don't show a table; say what fell short and offer a Macro Kit or a "
+                "wider recipe search."
             ),
             "parameters": {
                 "type": "object",

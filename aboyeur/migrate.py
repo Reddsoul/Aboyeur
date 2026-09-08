@@ -114,6 +114,26 @@ def _migrate_menus(conn: sqlite3.Connection, seed_user_id: int) -> None:
     conn.commit()
 
 
+def _add_recipe_classification_columns(conn: sqlite3.Connection) -> None:
+    """course / serving_est_g / meal_complete / classified_at on recipes —
+    filled by aboyeur/classify_recipes.py, read by the menu path. Plain ADD
+    COLUMNs with defaults; the classifier backfills the real values."""
+    if not _table_exists(conn, "recipes"):
+        return
+    existing = _column_names(conn, "recipes")
+    stmts = {
+        "course": "ALTER TABLE recipes ADD COLUMN course TEXT NOT NULL DEFAULT 'unknown'",
+        "serving_est_g": "ALTER TABLE recipes ADD COLUMN serving_est_g REAL",
+        "meal_complete": "ALTER TABLE recipes ADD COLUMN meal_complete INTEGER NOT NULL DEFAULT 0",
+        "classified_at": "ALTER TABLE recipes ADD COLUMN classified_at TEXT",
+    }
+    for col, sql in stmts.items():
+        if col not in existing:
+            conn.execute(sql)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_recipes_course ON recipes(course)")
+    conn.commit()
+
+
 def _add_account_columns(conn: sqlite3.Connection) -> None:
     """The account screen needs somewhere to put the practitioner's own name.
     Plain ADD COLUMNs: nullable, no default, nothing to backfill."""
@@ -336,6 +356,7 @@ def migrate(conn: sqlite3.Connection) -> int:
     _migrate_menus(conn, seed_user_id)
     _migrate_to_clients(conn)
     _add_account_columns(conn)
+    _add_recipe_classification_columns(conn)
     _migrate_chat_sessions(conn)
     # Deliberately not in db.py's static SCHEMA — see the comment above the
     # menus table there. Safe to run every time: the scoping column is

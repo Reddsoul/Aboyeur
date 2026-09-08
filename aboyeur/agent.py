@@ -131,6 +131,7 @@ def _dispatch(
             exclude_ingredients=args.get("exclude_ingredients"),
             pantry=pantry,
             limit=args.get("limit", 25),
+            for_menu=bool(args.get("for_menu")),
         )
         return {"results": results}
 

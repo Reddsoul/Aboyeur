@@ -39,7 +39,28 @@
       "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, email FROM users;\")",
       "Bash(python -m aboyeur.cli create-user izzy.tufts@gmail.com --password 'Pas2W0rd!')",
       "Bash(.venv/bin/python -m aboyeur.cli create-user izzy.tufts@gmail.com --password 'Pas2W0rd!')",
-      "Bash(.venv/bin/python -m aboyeur.cli create-user pblagatta@gmail.com --password 'Pas2W0rd!')"
+      "Bash(.venv/bin/python -m aboyeur.cli create-user pblagatta@gmail.com --password 'Pas2W0rd!')",
+      "Bash(python -m pytest tests/test_engines.py -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_engines.py -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_engines.py tests/test_tools.py tests/test_agent.py -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_tools.py::test_plan_menu_returns_requested_days -q)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -m pytest -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_agent.py::test_failed_turn_rolls_history_back -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_engines.py tests/test_tools.py -q)",
+      "Bash(.venv/bin/python -)",
+      "Bash(.venv/bin/python -m pytest \"tests/test_engines.py::test_validated_macros_accepts_consistent_entry\" \"tests/test_tools.py::test_plan_menu_reports_macro_targets_and_ingredient_summary\" -q)",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT COUNT\\(*\\) FROM nutrition WHERE kcal>0; SELECT COUNT\\(*\\) FROM usda_cache;\")",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"live_copy.db\")",
+      "Bash(.venv/bin/python -m pytest tests/test_tools.py -q -k \"day_solver_hits or refuses_impossible_omad\")",
+      "Bash(.venv/bin/python -m pytest tests/test_tools.py -q -k \"day_solver_hits or refuses_impossible_omad or swap\")",
+      "Bash(.venv/bin/python -m pytest tests/test_tools.py tests/test_engines.py -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_tools.py -q -k \"day_solver_hits or refuses_impossible\")",
+      "Bash(.venv/bin/python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\), f\\) for f in ['aboyeur/engines/optimizer.py','aboyeur/engines/day_solver.py','aboyeur/classify_recipes.py','aboyeur/tools/menu.py','aboyeur/tools/search.py','aboyeur/migrate.py','aboyeur/db.py']]; print\\('all parse OK'\\)\")",
+      "Bash(.venv/bin/python -m pyflakes aboyeur/engines/day_solver.py aboyeur/classify_recipes.py aboyeur/engines/optimizer.py aboyeur/tools/menu.py)",
+      "Bash(.venv/bin/python -m ruff check aboyeur/engines/day_solver.py aboyeur/classify_recipes.py aboyeur/engines/optimizer.py aboyeur/tools/menu.py aboyeur/tools/search.py)",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT COUNT\\(*\\) FROM pragma_table_info\\('recipes'\\) WHERE name='course';\")"
     ]
   }
 }

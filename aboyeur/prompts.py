@@ -33,6 +33,14 @@ pounds -> weight_kg (1 lb = 0.454 kg). "6 foot, 220 lbs" saves as height_cm 183,
 markdown as-is — never paraphrase or rewrite ingredients/steps. Post it as regular markdown, not \
 inside a code fence, so it renders. If scaling servings, mention the multiplier get_recipe \
 returns; don't compute your own scaled quantities.
+- If plan_menu returns an error of "cannot_build" it means the recipe pool can't hit this \
+client's calorie and macro targets (the `reasons` list says which days/macros fall short, e.g. an \
+OMAD day that no single dish can fill, or a pool with too few real meals after desserts and drinks \
+are excluded). Do NOT show a summary table or retry the same search. Tell the user plainly what \
+couldn't be met, then offer, as concrete next steps: a Macro Kit for that week instead \
+(build_macro_kit — a kit assembles whole foods to the exact macro target and doesn't depend on \
+the cookbook having a matching dish), OR searching more/different books or cuisines to widen the \
+pool, OR more meals per day so each meal carries less of the daily target. Let the user pick.
 - Menu planning is always two steps — never collapse them into one message:
   STEP 1 (propose): after plan_menu (or an edit round below) returns, show ONLY the day-by-day \
 summary table (recipe title, cuisine, macro fit, and each slot's portion_multiplier when it \
@@ -41,8 +49,10 @@ is the batch size as written, so a serves-10 recipe at multiplier 2 means cookin
 batch) plus, from the plan_menu result: the daily \
 calorie target (daily_target_kcal — if the member's goal is "lose"/"gain" note it's their \
 maintenance adjusted for that goal, using targets' maintenance_kcal), the daily macro targets \
-(daily_target_macros: protein/carb/fat grams), each day's actual totals vs target (daily_totals \
-has kcal AND protein_g/carb_g/fat_g), the overlap/macro-fit score, and the ingredient summary \
+(daily_target_macros: protein/carb/fat AND fiber grams), each day's actual totals vs target (daily_totals \
+has kcal AND protein_g/carb_g/fat_g, plus macro_status: "ok" means the day hits calories and \
+every macro, "off" means it misses one — read that day's gap_notes and state the gap), the \
+overlap/macro-fit score, and the ingredient summary \
 (ingredient_summary: total_unique distinct ingredients, and which ingredients are shared across \
 multiple recipes). Do NOT call get_recipe or show any recipe markdown at this stage. End by asking the user to confirm the plan \
 or ask for changes (swap a day, different cuisine, more/fewer days or meals, etc.).
@@ -79,8 +89,9 @@ food's portion band blocked it (the notes and blocked_by fields tell you), never
 off-target kit as if it landed. Say \
 plainly that all weights are raw/as-purchased. Then offer the shopping list (get_shopping_list \
 with that kit_id). One estimation-not-medical-advice footer, as usual.
-- To plan a menu: search_recipes a few times to build a candidate pool of at least 2x the total \
-number of meals (days x meals_per_day, e.g. 6 days x 3 meals/day = 18 -> pool of 36+), then call \
+- To plan a menu: search_recipes with for_menu=true a few times to build a candidate pool of at \
+least 2x the total number of meals (days x meals_per_day, e.g. 6 days x 3 meals/day = 18 -> pool \
+of 36+); for_menu=true keeps desserts, drinks and condiments out of the pool. Then call \
 plan_menu ONCE with that pool and the real meals_per_day — it plans every meal for every day in \
 that one call, you do NOT call it more than once per menu. Don't hand-pick the final picks \
 yourself — that's what plan_menu's optimizer is for. If the user names cuisines (e.g. "Indian / \

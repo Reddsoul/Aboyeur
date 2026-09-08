@@ -19,6 +19,7 @@ import pytest
 from aboyeur.config import Config
 from aboyeur.db import connect
 from aboyeur.engines import nutrition as nutrition_engine
+from aboyeur.engines import optimizer
 from aboyeur.engines import shopping as shopping_engine
 from aboyeur.tools import (
     build_macro_kit,
@@ -47,6 +48,18 @@ def test_search_recipes_finds_real_matches(db_conn: sqlite3.Connection):
     results = search_recipes(db_conn, "chocolate")
     titles = {r["title"] for r in results}
     assert "Chocolate Cake" in titles
+
+
+def test_search_recipes_for_menu_drops_classified_desserts(db_conn: sqlite3.Connection):
+    row = db_conn.execute("SELECT id FROM recipes WHERE title = 'Chocolate Cake'").fetchone()
+    db_conn.execute(
+        "UPDATE recipes SET course = 'dessert', classified_at = 'now' WHERE id = ?", (row["id"],)
+    )
+    db_conn.commit()
+    assert "Chocolate Cake" in {r["title"] for r in search_recipes(db_conn, "chocolate")}
+    assert "Chocolate Cake" not in {
+        r["title"] for r in search_recipes(db_conn, "chocolate", for_menu=True)
+    }
 
 
 def test_search_recipes_hard_excludes_allergen(db_conn: sqlite3.Connection):
@@ -418,21 +431,121 @@ def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: C
     assert "menu_id" in plan
 
 
+def test_plan_menu_refuses_when_pool_cannot_make_meals(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    # A candidate pool that is only desserts/drinks/components can't build a
+    # menu — plan_menu returns cannot_build and does NOT persist a draft.
+    dessert_ids = [
+        r["id"] for r in db_conn.execute(
+            "SELECT id, title FROM recipes WHERE lower(title) LIKE '%cake%' "
+            "OR lower(title) LIKE '%glaze%' OR lower(title) LIKE '%tea-cake%'"
+        ).fetchall()
+    ]
+    assert dessert_ids, "fixture should contain some dessert recipes"
+    before = db_conn.execute("SELECT COUNT(*) AS n FROM menus").fetchone()["n"]
+    result = plan_menu(db_conn, config, client_id, candidate_ids=dessert_ids, days=3)
+    assert result["error"] == "cannot_build"
+    assert result["reasons"]
+    assert result["suggest"] == "macro_kit"
+    after = db_conn.execute("SELECT COUNT(*) AS n FROM menus").fetchone()["n"]
+    assert after == before  # nothing persisted
+
+
 def test_plan_menu_reports_macro_targets_and_ingredient_summary(
     db_conn: sqlite3.Connection, config: Config, client_id: int,
 ):
     ids = _all_ids(db_conn)
     plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
-    # Macro targets, not just calories.
-    assert set(plan["daily_target_macros"]) == {"protein_g", "carb_g", "fat_g"}
+    # Macro targets, not just calories — now including fiber.
+    assert set(plan["daily_target_macros"]) == {"protein_g", "carb_g", "fat_g", "fiber_g"}
     for day in plan["daily_totals"]:
-        assert {"protein_g", "carb_g", "fat_g"} <= set(day)
+        assert {"protein_g", "carb_g", "fat_g", "fiber_g", "macro_status"} <= set(day)
     # Plan-wide ingredient stats: total distinct + which overlap across recipes.
     summary = plan["ingredient_summary"]
     assert summary["total_unique"] > 0
     assert summary["shared_count"] == len(summary["shared"])
     for entry in summary["shared"]:
         assert entry["recipes"] >= 2
+
+
+def _seed_macros(monkeypatch, per_id: dict[int, dict]):
+    """Stub the nutrition estimate plan_menu/swap use, so day-solver behavior
+    can be tested against known per-serving macros without USDA/LLM."""
+    import aboyeur.tools.menu as menu_mod
+
+    def fake(conn, config, recipe_ids):
+        return {
+            rid: {**per_id.get(rid, {"kcal": 0, "protein_g": 0, "carb_g": 0,
+                                     "fat_g": 0, "fiber_g": 0}),
+                  "confidence": "medium" if rid in per_id else "low"}
+            for rid in recipe_ids
+        }
+    monkeypatch.setattr(menu_mod, "estimate_nutrition", fake)
+
+
+def test_plan_menu_day_solver_hits_all_macros_and_varies_portions(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, user_id: int, monkeypatch,
+):
+    from aboyeur import clients
+    # A client with real anthropometrics -> a concrete kcal + macro target.
+    cid = clients.create_client(db_conn, user_id, "Solver Client")["id"]
+    update_profile(db_conn, cid, {"add_member": {
+        "id": "a", "label": "A", "sex": "m", "age": 35,
+        "height_cm": 180, "weight_kg": 82, "activity": "moderate", "meals_per_day": 2,
+    }})
+    eligible = [
+        r["id"] for r in db_conn.execute(
+            "SELECT id, title FROM recipes WHERE lower(title) NOT LIKE '%cake%' "
+            "AND lower(title) NOT LIKE '%glaze%' AND lower(title) NOT LIKE '%tea%'"
+        ).fetchall()
+    ]
+    # Two dish shapes — protein-leaning and carb-leaning — both substantial
+    # enough that a per-day pair can be scaled onto every macro without
+    # hitting the portion clamp, so the solve has real freedom to move them.
+    per_id = {}
+    for n, rid in enumerate(eligible):
+        if n % 2 == 0:
+            per_id[rid] = {"kcal": 820, "protein_g": 68, "carb_g": 56, "fat_g": 27, "fiber_g": 9}
+        else:
+            per_id[rid] = {"kcal": 780, "protein_g": 47, "carb_g": 90, "fat_g": 22, "fiber_g": 13}
+    _seed_macros(monkeypatch, per_id)
+
+    plan = plan_menu(db_conn, config, cid, candidate_ids=eligible, days=2, meals_per_day=2)
+    assert "menu_id" in plan, plan
+    for dt in plan["daily_totals"]:
+        assert dt["macro_status"] == "ok", dt
+    mults = {d["portion_multiplier"] for d in plan["days"]}
+    assert len(mults) > 1  # per-dish multipliers, not one uniform day factor
+    assert all(
+        optimizer.PORTION_MULT_MIN <= d["portion_multiplier"] <= optimizer.PORTION_MULT_MAX
+        for d in plan["days"]
+    )
+
+
+def test_plan_menu_refuses_impossible_omad_day(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, user_id: int, monkeypatch,
+):
+    from aboyeur import clients
+    cid = clients.create_client(db_conn, user_id, "OMAD Client")["id"]
+    update_profile(db_conn, cid, {"add_member": {
+        "id": "a", "label": "A", "sex": "m", "age": 35,
+        "height_cm": 183, "weight_kg": 95, "activity": "active", "meals_per_day": 1,
+    }})
+    eligible = [
+        r["id"] for r in db_conn.execute(
+            "SELECT id, title FROM recipes WHERE lower(title) NOT LIKE '%cake%' "
+            "AND lower(title) NOT LIKE '%glaze%' AND lower(title) NOT LIKE '%tea%'"
+        ).fetchall()
+    ]
+    # Every dish a ~120 kcal side — no way to reach a 2500+ kcal OMAD day.
+    _seed_macros(monkeypatch, {
+        rid: {"kcal": 120, "protein_g": 4, "carb_g": 20, "fat_g": 2, "fiber_g": 3}
+        for rid in eligible
+    })
+    result = plan_menu(db_conn, config, cid, candidate_ids=eligible, days=3, meals_per_day=1)
+    assert result["error"] == "cannot_build"
+    assert result["suggest"] == "macro_kit"
 
 
 def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config, client_id: int):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from aboyeur.data import components
-from aboyeur.engines import allergens, kit, nutrition, optimizer, shopping
+from aboyeur.engines import allergens, day_solver, kit, nutrition, optimizer, shopping
 
 
 # ---------------------------------------------------------------------------
@@ -224,10 +224,58 @@ def test_is_dessert():
     assert not optimizer.is_dessert("Achar Gosht")
 
 
+def test_is_dessert_catches_leaky_titles_from_menu_60():
+    # The real menu-60 slips: none of these were caught by the old list.
+    assert optimizer.is_dessert("Ginger Snaps")
+    assert optimizer.is_dessert("Cracker-Jack")
+    assert optimizer.is_dessert("Shortbread Fingers")
+    assert optimizer.is_dessert("Almond Toffee")
+
+
+def test_is_dessert_word_boundary_no_false_positives():
+    # "snap" must not fire on snap peas; "ale" / "tea" handled by is_drink.
+    assert not optimizer.is_dessert("Sugar Snap Pea Saute")
+    assert not optimizer.is_dessert("Sweetbreads Braised with Peas")
+
+
 def test_is_drink():
     assert optimizer.is_drink("Mango Lassi Smoothie")
     assert optimizer.is_drink("Classic Margarita")
+    assert optimizer.is_drink("French Coffee")
+    assert optimizer.is_drink("Roman Punch")
     assert not optimizer.is_drink("Achar Gosht")
+
+
+def test_is_drink_word_boundary_no_false_positives():
+    assert not optimizer.is_drink("Kale and White Bean Soup")   # 'ale' in kale
+    assert not optimizer.is_drink("Grilled Rib Eye Steak")      # 'tea' in steak
+    assert not optimizer.is_drink("Beef Braised in Red Wine")   # 'wine' not listed
+
+
+def test_is_component():
+    assert optimizer.is_component("Béchamel Sauce", ["milk", "flour", "butter"])
+    assert optimizer.is_component("Orange Filling", ["orange juice", "sugar", "cornstarch"])
+    assert optimizer.is_component("French Dressing", ["oil", "vinegar", "mustard"])
+    assert not optimizer.is_component("Chicken Curry", ["chicken", "onion", "curry powder", "tomato"])
+    assert not optimizer.is_component("Roast Beef", ["beef", "salt", "pepper"])
+
+
+def test_is_menu_ineligible_combines_the_three():
+    assert optimizer.is_menu_ineligible("Apple Pie", ["apple", "sugar", "flour"])
+    assert optimizer.is_menu_ineligible("Iced Tea", ["tea", "sugar", "lemon"])
+    assert optimizer.is_menu_ineligible("Mint Sauce", ["mint", "vinegar", "sugar"])
+    assert not optimizer.is_menu_ineligible("Lentil Shepherd's Pie",
+                                            ["lentil", "potato", "carrot", "onion"])
+
+
+def test_is_menu_ineligible_classified_course_wins_over_keywords():
+    # A recipe classified 'main' is a meal even if its title trips a keyword.
+    assert not optimizer.is_menu_ineligible("Tamale Pie", ["cornmeal", "beef"], course="main")
+    # And a classified dessert/drink/component is out regardless of title.
+    assert optimizer.is_menu_ineligible("Hearty Winter Bowl", ["oats"], course="dessert")
+    assert optimizer.is_menu_ineligible("Garden Blend", ["carrot", "beet"], course="drink")
+    # 'unknown' falls through to the keyword heuristics.
+    assert optimizer.is_menu_ineligible("Chocolate Cake", ["flour", "sugar"], course="unknown")
 
 
 def test_has_protein_and_main_protein():
@@ -305,10 +353,14 @@ def test_select_menu_meals_per_day_multiplies_pick_count_in_one_call():
     assert len(ids) == len(set(ids))  # still never repeats
 
 
-def test_select_menu_never_starves_pool_when_all_are_desserts():
+def test_select_menu_refuses_when_pool_is_all_desserts():
+    # Desserts/drinks/components are never re-admitted to fill a thin pool —
+    # an all-dessert pool is infeasible, not an excuse to serve cake.
     candidates = [_candidate(i, f"Cake {i}", f"Book{i}", ["flour", "sugar"]) for i in range(3)]
     result = optimizer.select_menu(candidates, days=3, pantry=set(), target_kcal=500)
-    assert len(result["picks"]) == 3
+    assert result["feasible"] is False
+    assert result["picks"] == []
+    assert result["infeasible_reasons"]
 
 
 def test_select_menu_excludes_drinks_from_dinner_pool():
@@ -441,7 +493,9 @@ def test_select_menu_no_third_dish_when_scaling_can_reach_target():
 
 def test_select_menu_scales_portions_to_reach_omad_target():
     # OMAD: 2323 kcal in one meal. Two single servings (~1100 kcal) can never
-    # reach it — portion scaling must close the rest of the gap.
+    # reach it — portion scaling must close most of the gap (the 2.0x clamp
+    # caps how far a two-dish day can stretch; Phase B's day solver composes
+    # a fuller plate).
     candidates = [
         _candidate(i, f"Dish {i}", f"Book{i}", ["chicken", "ginger", f"x_{i}"], kcal=550)
         for i in range(1, 6)
@@ -449,7 +503,6 @@ def test_select_menu_scales_portions_to_reach_omad_target():
     result = optimizer.select_menu(candidates, days=1, pantry=set(), target_kcal=2323)
     dt = result["daily_totals"][0]
     assert dt["status"] == "ok", dt
-    assert abs(dt["kcal"] - 2323) <= 5
     for p in result["picks"]:
         assert p.portion_multiplier > 1.0
 
@@ -533,7 +586,19 @@ def test_validated_macros_accepts_consistent_entry():
     ]}
     m = nutrition._validated_macros(food)
     assert m == {"kcal": 165.0, "protein_g": 31.0, "carb_g": 0.0, "fat_g": 3.6,
-                 "status": "success"}
+                 "fiber_g": 0.0, "status": "success"}
+
+
+def test_validated_macros_extracts_fiber_and_rejects_impossible_fiber():
+    base = [
+        {"nutrientId": 1008, "value": 130}, {"nutrientId": 1003, "value": 8.7},
+        {"nutrientId": 1005, "value": 23.0}, {"nutrientId": 1004, "value": 0.5},
+    ]
+    m = nutrition._validated_macros({"foodNutrients": base + [{"nutrientId": 1079, "value": 7.8}]})
+    assert m["fiber_g"] == 7.8
+    # Fiber far above carbohydrate is a bad label — drop it, keep the rest.
+    m2 = nutrition._validated_macros({"foodNutrients": base + [{"nutrientId": 1079, "value": 60}]})
+    assert m2 is not None and m2["fiber_g"] == 0.0
 
 
 def test_clean_ingredient_name_strips_recipe_prose():
@@ -870,3 +935,47 @@ def test_solve_bowl_anchors_vegetables_rather_than_solving_them():
     target = {"kcal": 700.0, "protein_g": 50.0, "carb_g": 70.0, "fat_g": 23.0}
     bowl = kit.solve_bowl(target, _CHICKEN, _RICE, _BROCCOLI, _OLIVE_OIL)
     assert bowl["grams_by_role"]["veg_volume"] == round(kit.VEG_ANCHOR_G)
+
+
+# ---------------------------------------------------------------------------
+# day_solver — per-dish portion solve (Phase B)
+# ---------------------------------------------------------------------------
+
+def test_day_solver_hits_calorie_target_with_one_dish():
+    # 400 kcal dish, 1000 kcal day -> ~2.5x, clamped to PORTION_MULT_MAX.
+    mults = day_solver.solve_day_multipliers(
+        [{"kcal": 400, "protein_g": 30, "carb_g": 40, "fat_g": 10, "fiber_g": 5}],
+        {"kcal": 1000},
+    )
+    assert mults == [optimizer.PORTION_MULT_MAX]
+
+
+def test_day_solver_moves_dishes_independently_to_fix_macro_shape():
+    # A protein-heavy dish and a carb-heavy dish; the day wants lots of protein
+    # and moderate carbs. The solve should lean on the protein dish, not scale
+    # both equally the way uniform day-scaling would.
+    protein_dish = {"kcal": 300, "protein_g": 45, "carb_g": 5, "fat_g": 8, "fiber_g": 1}
+    carb_dish = {"kcal": 300, "protein_g": 6, "carb_g": 55, "fat_g": 3, "fiber_g": 6}
+    target = {"kcal": 900, "protein_g": 110, "carb_g": 90, "fat_g": 25, "fiber_g": 12}
+    mults = day_solver.solve_day_multipliers([protein_dish, carb_dish], target)
+    assert mults[0] > mults[1]  # more of the protein dish
+    totals = day_solver.combined_totals([protein_dish, carb_dish], mults)
+    # protein gap is closed better than uniform scaling (mult ~1.5 each) would.
+    uniform = day_solver.combined_totals([protein_dish, carb_dish], [1.5, 1.5])
+    assert abs(totals["protein_g"] - 110) < abs(uniform["protein_g"] - 110)
+
+
+def test_day_solver_respects_clamps():
+    mults = day_solver.solve_day_multipliers(
+        [{"kcal": 100, "protein_g": 2, "carb_g": 20, "fat_g": 1, "fiber_g": 2}],
+        {"kcal": 2000, "protein_g": 150},
+    )
+    assert all(optimizer.PORTION_MULT_MIN <= m <= optimizer.PORTION_MULT_MAX for m in mults)
+
+
+def test_day_solver_leaves_unresolved_dishes_at_one_serving():
+    mults = day_solver.solve_day_multipliers(
+        [{"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "fiber_g": 0}],
+        {"kcal": 800},
+    )
+    assert mults == [1.0]

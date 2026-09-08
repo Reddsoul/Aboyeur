@@ -21,13 +21,15 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
     out: dict[int, dict] = {}
     for rid in recipe_ids:
         row = conn.execute(
-            "SELECT kcal, protein_g, carbs_g, fat_g, confidence FROM nutrition WHERE recipe_id = ?",
+            "SELECT kcal, protein_g, carbs_g, fat_g, fiber_g, confidence "
+            "FROM nutrition WHERE recipe_id = ?",
             (rid,),
         ).fetchone()
         if row is not None:
             out[rid] = {
                 "kcal": row["kcal"], "protein_g": row["protein_g"],
-                "carb_g": row["carbs_g"], "fat_g": row["fat_g"], "confidence": row["confidence"],
+                "carb_g": row["carbs_g"], "fat_g": row["fat_g"],
+                "fiber_g": row["fiber_g"], "confidence": row["confidence"],
             }
             continue
 
@@ -51,13 +53,13 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
         if confidence != "low":
             now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             conn.execute(
-                """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, per_serving, confidence, estimated_at)
-                   VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+                """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, fiber_g, per_serving, confidence, estimated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
                    ON CONFLICT(recipe_id) DO UPDATE SET kcal=excluded.kcal, protein_g=excluded.protein_g,
-                   carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, confidence=excluded.confidence,
-                   estimated_at=excluded.estimated_at""",
+                   carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, fiber_g=excluded.fiber_g,
+                   confidence=excluded.confidence, estimated_at=excluded.estimated_at""",
                 (rid, macros["calories"], macros["protein_g"], macros["carb_g"], macros["fat_g"],
-                 confidence, now),
+                 macros.get("fiber_g", 0), confidence, now),
             )
             conn.commit()
             # Persist into the recipe .md too, so the estimate survives DB
@@ -69,6 +71,7 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
                 logger.warning("couldn't write nutrition frontmatter to %s", rrow["path"])
         out[rid] = {
             "kcal": macros["calories"], "protein_g": macros["protein_g"],
-            "carb_g": macros["carb_g"], "fat_g": macros["fat_g"], "confidence": confidence,
+            "carb_g": macros["carb_g"], "fat_g": macros["fat_g"],
+            "fiber_g": macros.get("fiber_g", 0), "confidence": confidence,
         }
     return out
