@@ -35,7 +35,10 @@ CREATE TABLE IF NOT EXISTS recipes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_recipes_book ON recipes(book);
-CREATE INDEX IF NOT EXISTS idx_recipes_course ON recipes(course);
+-- idx_recipes_course is created by migrate._add_recipe_classification_columns,
+-- not here: on an existing pre-course DB, init_db() runs this whole script
+-- BEFORE the ALTER that adds the column, so a course index in the static
+-- schema would fail on "no such column".
 CREATE INDEX IF NOT EXISTS idx_recipes_cuisine ON recipes(cuisine);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS recipes_fts USING fts5(

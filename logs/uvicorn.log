@@ -5109,3 +5109,109 @@ Traceback (most recent call last):
     conn.executescript(SCHEMA)
     ~~~~~~~~~~~~~~~~~~^^^^^^^^
 sqlite3.OperationalError: no such column: course
+WARNING:  WatchFiles detected changes in 'aboyeur/db.py'. Reloading...
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [10496]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [10496]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [19839]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [19839]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [21704]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [21704]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [21724]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [21724]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [21738]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [21738]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [36788]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36788]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [36842]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/classify_recipes.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [36842]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [36860]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+INFO:     100.71.143.90:61649 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     100.71.143.90:61655 - "GET /v1/models HTTP/1.1" 200 OK
