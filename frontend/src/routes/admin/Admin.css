@@ -1,0 +1,681 @@
+/* Operator console. Its own shell and nav — a different place, deliberately —
+   but the same visual language as the practitioner app: the card frame from
+   Clients.css (1px var(--line), 16px radius, var(--card) on var(--bg)), the
+   pill tab group from AppShell, the 999px chip from .cl-tag, and no color
+   that isn't already a token. Nothing here should look like a second product.
+
+   Prefix: ad-. */
+
+.ad-page {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.ad-inner {
+  /* Wider than the app's 980px: these are tables, not forms. */
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --- shell --------------------------------------------------------------- */
+
+.ad-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--card);
+}
+.ad-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.ad-wordmark {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+/* Marks the console as a distinct place without inventing a new palette. */
+.ad-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+.ad-nav {
+  display: flex;
+  gap: 4px;
+  margin-left: 6px;
+  background: var(--fill);
+  border-radius: 10px;
+  padding: 3px;
+  flex-wrap: wrap;
+}
+.ad-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+}
+.ad-tab-on {
+  background: var(--accent);
+  color: #ffffff;
+}
+/* A count riding on a nav tab (open feedback). Inverts on the active tab so
+   it stays legible against the accent fill. */
+.ad-tab-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--fill-strong);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ad-tab-on .ad-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.ad-topbar-spacer {
+  flex: 1;
+}
+.ad-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.ad-body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- page furniture ------------------------------------------------------ */
+
+.ad-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ad-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+.ad-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+  max-width: 68ch;
+}
+.ad-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.ad-section-title {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 4px 0 0;
+}
+
+.ad-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.ad-card-pad0 {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ad-empty {
+  padding: 44px 24px;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.ad-empty h2 {
+  color: var(--ink);
+  font-size: 17px;
+  margin: 0 0 6px;
+}
+
+/* --- stat tiles ---------------------------------------------------------- */
+
+.ad-stats {
+  display: grid;
+  /* auto-fit + a 160px floor so the six tiles fill one row at the container's
+     max width instead of leaving a lone orphan on a second row, and still
+     wrap evenly (3 / 2 / 1) as the window narrows. */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+.ad-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.ad-stat-label {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ad-stat-value {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  /* Tabular figures so a column of tiles doesn't jitter as numbers change. */
+  font-variant-numeric: tabular-nums;
+}
+.ad-stat-value-muted {
+  color: var(--muted);
+}
+.ad-stat-value-danger {
+  color: var(--danger);
+}
+.ad-stat-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* --- "needs attention" strip --------------------------------------------- */
+
+.ad-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ad-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  font-size: 13.5px;
+  text-decoration: none;
+  color: inherit;
+}
+.ad-alert:hover {
+  border-color: var(--accent);
+}
+.ad-alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--muted);
+}
+.ad-alert-danger .ad-alert-dot {
+  background: var(--danger);
+}
+.ad-alert-warn .ad-alert-dot {
+  background: var(--warn);
+}
+.ad-alert-ok .ad-alert-dot {
+  background: var(--success);
+}
+.ad-alert-main {
+  flex: 1;
+  min-width: 0;
+}
+.ad-alert-main strong {
+  font-size: 14px;
+  font-weight: 600;
+  display: block;
+}
+.ad-alert-main span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.ad-alert-go {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* --- charts -------------------------------------------------------------- */
+
+.ad-chart-grid {
+  display: grid;
+  /* 400px floor => two per row at the container's max width, so the four
+     charts read as a 2x2 block rather than a row of three plus an orphan. */
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 14px;
+}
+.ad-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ad-chart-title {
+  font-size: 14px;
+  font-weight: 650;
+}
+.ad-chart-note {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ad-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.ad-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ad-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ad-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* --- tables -------------------------------------------------------------- */
+
+/* The card is the scroll container, so a wide table scrolls inside its frame
+   instead of pushing the page sideways. */
+.ad-table-wrap {
+  overflow-x: auto;
+}
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.ad-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.ad-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.ad-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.ad-table tbody tr:hover {
+  background: var(--fill);
+}
+.ad-table td.ad-num,
+.ad-table th.ad-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ad-table a {
+  font-weight: 600;
+  text-decoration: none;
+}
+.ad-cell-strong {
+  font-weight: 600;
+}
+.ad-cell-muted {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+/* Long free text (an error message, a feedback comment) in a table cell. */
+.ad-cell-clip {
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- chips --------------------------------------------------------------- */
+
+.ad-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ad-tag-accent {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+.ad-tag-danger {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+.ad-tag-success {
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
+}
+.ad-tag-warn {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
+/* --- toolbar / filters --------------------------------------------------- */
+
+.ad-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ad-search {
+  flex: 1;
+  min-width: 220px;
+  height: 42px;
+}
+.ad-segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--fill);
+  gap: 3px;
+}
+.ad-segmented button {
+  height: 34px;
+  padding: 0 15px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ad-segmented button[aria-selected='true'] {
+  background: var(--card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+.ad-select {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- expandable error / log detail --------------------------------------- */
+
+.ad-expand {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ad-pre {
+  margin: 10px 0 2px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+/* --- transcript ---------------------------------------------------------- */
+
+/* Read-only echo of the Chat bubbles. Same radii, same fills, same
+   asymmetric tail — an operator reading this should recognize it as the
+   screen the user was looking at. Full width rather than the chat's 680px
+   cap, because the reader is scanning, not conversing. */
+.ad-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ad-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 760px;
+}
+.ad-turn-user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.ad-turn-assist {
+  align-self: flex-start;
+}
+.ad-turn-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+.ad-bubble {
+  border-radius: 18px;
+  padding: 11px 15px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ad-bubble-user {
+  background: var(--accent);
+  color: #ffffff;
+  border-bottom-right-radius: 5px;
+}
+.ad-bubble-assist {
+  background: var(--fill);
+  color: var(--ink);
+  border-bottom-left-radius: 5px;
+}
+.ad-bubble-assist p:first-child {
+  margin-top: 0;
+}
+.ad-bubble-assist p:last-child {
+  margin-bottom: 0;
+}
+.ad-bubble-assist pre {
+  background: var(--fill-strong);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+}
+.ad-bubble-assist table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ad-bubble-assist th,
+.ad-bubble-assist td {
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  text-align: left;
+}
+/* The thumb a user left on this turn, shown under the bubble it belongs to. */
+.ad-turn-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12.5px;
+  color: var(--muted);
+  /* Hug the text. As a column flex child it would otherwise stretch to the
+     full turn width and read as an empty bar next to a short "Thumbs up". */
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+.ad-turn-feedback-down {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+}
+.ad-turn-feedback b {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* Scroll target for a feedback deep link — a soft ring, no layout shift. */
+.ad-turn-focus .ad-bubble {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* --- feedback board ------------------------------------------------------ */
+
+.ad-fb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ad-fb {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.ad-fb-down {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+.ad-fb-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ad-fb-rating {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--fill);
+  color: var(--muted);
+}
+.ad-fb-rating-up {
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
+}
+.ad-fb-rating-down {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+.ad-fb-who {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.ad-fb-when {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.ad-fb-body {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+.ad-fb-quote {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 2px solid var(--line);
+  border-radius: 0 10px 10px 0;
+  background: var(--fill);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-height: 96px;
+  overflow: hidden;
+}
+.ad-fb-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ad-fb-note {
+  flex: 1;
+  min-width: 220px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--ink);
+  font-size: 13px;
+}
+.ad-fb-saved {
+  font-size: 12.5px;
+  color: var(--success);
+  font-weight: 600;
+}

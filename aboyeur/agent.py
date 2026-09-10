@@ -232,6 +232,13 @@ class Agent:
         self.messages: list[dict] = [{"role": "system", "content": system}]
         if history:
             self.messages.extend(history)
+        # Per-turn telemetry for the admin console, reset at the top of every
+        # send() and read by the caller once the turn has finished streaming
+        # (see backend/main.py's _agent_stream). Plain attributes rather than
+        # a callback: an agent is cached per conversation and only ever runs
+        # one turn at a time, so there is nothing to interleave.
+        self.last_tool_calls = 0
+        self.last_usage: tuple[int | None, int | None] | None = None
 
     def _refresh_system_prompt(self) -> None:
         self.messages[0] = {
@@ -249,6 +256,8 @@ class Agent:
         ("tool_result", dict) events for each tool the model invokes along
         the way.
         """
+        self.last_tool_calls = 0
+        self.last_usage = None
         yield from self._send_turn(user_message, debug)
 
     def _send_turn(self, user_message: str, debug: bool) -> Iterator[tuple[str, object]]:
@@ -271,6 +280,17 @@ class Agent:
             collector = StreamCollector(stream_chat(self.client, self.config, self.messages, TOOL_SCHEMAS))
             for text_chunk in collector:
                 yield ("text", text_chunk)
+
+            # Accumulated across rounds, not overwritten: one user turn can
+            # cost several completions, and the console wants the turn's bill.
+            if collector.usage is not None:
+                prior_in, prior_out = self.last_usage or (0, 0)
+                new_in, new_out = collector.usage
+                self.last_usage = (
+                    (prior_in or 0) + (new_in or 0),
+                    (prior_out or 0) + (new_out or 0),
+                )
+            self.last_tool_calls += len(collector.tool_calls)
 
             if not collector.tool_calls:
                 self.messages.append({"role": "assistant", "content": collector.content})

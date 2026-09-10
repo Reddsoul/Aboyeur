@@ -54,7 +54,7 @@ export function logout() {
 }
 
 export function me() {
-  return request<{ user_id: number }>('/auth/me');
+  return request<{ user_id: number; is_admin: boolean }>('/auth/me');
 }
 
 // ---------------------------------------------------------------------------
@@ -515,4 +515,215 @@ export async function* streamChat(
       yield payload;
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Feedback — a thumb on one assistant turn. Anchored to (session, message)
+// so the admin board can always deep-link back to the turn that earned it.
+// ---------------------------------------------------------------------------
+
+export interface Feedback {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+  client_id: number | null;
+  session_id: number;
+  message_id: number;
+  /** -1 or +1. */
+  rating: number;
+  body: string | null;
+  status: 'new' | 'triaged' | 'in_progress' | 'resolved' | 'wontfix';
+  admin_note: string | null;
+  resolved_at: string | null;
+  /** Joined in by the admin list only. */
+  email?: string;
+  client_name?: string;
+  message_excerpt?: string;
+}
+
+export function sendFeedback(body: {
+  session_id: number;
+  message_id: number;
+  rating: number;
+  body?: string;
+}) {
+  return request<Feedback>('/api/feedback', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function clearFeedback(messageId: number) {
+  return request<{ deleted: number }>(`/api/feedback/message/${messageId}`, { method: 'DELETE' });
+}
+
+/** `{ [messageId]: rating }` for the turns this user already rated here. */
+export function getSessionFeedback(sessionId: number) {
+  return request<{ ratings: Record<string, number> }>(`/api/sessions/${sessionId}/feedback`).then(
+    (r) => r.ratings,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Admin console — operator-only. Every call here 403s for a normal account;
+// the frontend guard is a convenience, the server check is the gate.
+//
+// Under /api/admin, while the console's own screens live at /admin: one path
+// can't be both an API prefix and a SPA route (see backend/main.py).
+// ---------------------------------------------------------------------------
+
+export interface AdminDay {
+  day: string;
+  messages: number;
+  turns: number;
+  errors: number;
+}
+
+export interface AdminOverview {
+  users_total: number;
+  users_active_7d: number;
+  users_active_30d: number;
+  clients_total: number;
+  sessions_total: number;
+  messages_24h: number;
+  messages_7d: number;
+  messages_30d: number;
+  turns_7d: number;
+  errors_7d: number;
+  /** null until at least one turn has been recorded — not the same as 0. */
+  error_rate_7d: number | null;
+  latency_p50_ms: number | null;
+  latency_p95_ms: number | null;
+  menus_7d: number;
+  feedback_open: number;
+  thumbs_up_30d: number;
+  thumbs_down_30d: number;
+  daily: AdminDay[];
+}
+
+export function adminOverview() {
+  return request<AdminOverview>('/api/admin/overview');
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string | null;
+  practice: string | null;
+  is_admin: boolean;
+  created_at: string;
+  client_count: number;
+  session_count: number;
+  message_count: number;
+  last_active: string | null;
+  errors_7d: number;
+}
+
+export interface AdminSessionRow {
+  id: number;
+  title: string;
+  client_id: number;
+  client_name: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  last_message_at: string | null;
+}
+
+export interface AdminUserDetail extends AdminUser {
+  clients: {
+    id: number;
+    name: string;
+    status: string;
+    is_self: boolean;
+    created_at: string;
+    session_count: number;
+  }[];
+  sessions: AdminSessionRow[];
+}
+
+export function adminUsers() {
+  return request<{ users: AdminUser[] }>('/api/admin/users').then((r) => r.users);
+}
+
+export function adminUser(id: number) {
+  return request<AdminUserDetail>(`/api/admin/users/${id}`);
+}
+
+export interface AdminTranscriptMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+  /** The thumb this turn got, if any — shown inline on the transcript. */
+  feedback: { rating: number; body: string | null; status: string } | null;
+}
+
+export interface AdminTranscript {
+  id: number;
+  title: string;
+  client_id: number;
+  client_name: string;
+  user_id: number;
+  email: string;
+  created_at: string;
+  updated_at: string;
+  messages: AdminTranscriptMessage[];
+}
+
+export function adminTranscript(sessionId: number) {
+  return request<AdminTranscript>(`/api/admin/sessions/${sessionId}`);
+}
+
+export interface AdminEvent {
+  id: number;
+  ts: string;
+  kind: string;
+  user_id: number | null;
+  email: string | null;
+  client_id: number | null;
+  session_id: number | null;
+  model: string | null;
+  latency_ms: number | null;
+  tool_calls: number | null;
+  /** Null whenever the endpoint didn't report usage — treat as unknown. */
+  tokens_in: number | null;
+  tokens_out: number | null;
+  ok: boolean;
+  error_type: string | null;
+  error_detail: string | null;
+}
+
+export function adminEvents(params: {
+  kind?: string;
+  errorsOnly?: boolean;
+  userId?: number;
+  days?: number;
+  limit?: number;
+} = {}) {
+  const qs = new URLSearchParams();
+  if (params.kind) qs.set('kind', params.kind);
+  if (params.errorsOnly) qs.set('errors_only', 'true');
+  if (params.userId != null) qs.set('target_user_id', String(params.userId));
+  if (params.days != null) qs.set('days', String(params.days));
+  qs.set('limit', String(params.limit ?? 200));
+  return request<{ events: AdminEvent[] }>(`/api/admin/events?${qs.toString()}`).then((r) => r.events);
+}
+
+export function adminLogTail(lines = 200) {
+  return request<{ path: string; lines: string[]; detail?: string }>(
+    `/api/admin/logs/tail?lines=${lines}`,
+  );
+}
+
+/** `status` accepts a literal status, or 'open' for everything not closed. */
+export function adminFeedback(status?: string) {
+  return request<{ feedback: Feedback[] }>(
+    `/api/admin/feedback${status ? `?status=${encodeURIComponent(status)}` : ''}`,
+  ).then((r) => r.feedback);
+}
+
+export function adminUpdateFeedback(id: number, patch: { status?: string; admin_note?: string }) {
+  return request<Feedback>(`/api/admin/feedback/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
 }

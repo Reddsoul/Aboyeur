@@ -11,6 +11,13 @@ import Settings from './routes/Settings';
 import Account from './routes/Account';
 import Clients from './routes/Clients';
 import ClientDetail from './routes/ClientDetail';
+import AdminShell from './routes/admin/AdminShell';
+import Dashboard from './routes/admin/Dashboard';
+import AdminUsers from './routes/admin/Users';
+import AdminUserDetail from './routes/admin/UserDetail';
+import AdminActivity from './routes/admin/Activity';
+import AdminFeedback from './routes/admin/Feedback';
+import AdminTranscript from './routes/admin/Transcript';
 
 function OnboardingGate() {
   const { hasClients } = useAuth();
@@ -26,6 +33,18 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const { userId, loading } = useAuth();
   if (loading) return null;
   if (!userId) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+/** Guards the whole /admin tree. A non-admin never renders the shell at all —
+ * they land back in the app. This is convenience, not security: the console's
+ * code ships in everyone's bundle, and every /admin API call is checked
+ * server-side by require_admin regardless of what the client decides here. */
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { userId, isAdmin, loading } = useAuth();
+  if (loading) return null;
+  if (!userId) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/app" replace />;
   return <>{children}</>;
 }
 
@@ -78,6 +97,22 @@ export default function App() {
         {/* Pre-clients deep link: a "profile" used to mean the household. */}
         <Route path="profile" element={<Navigate to="/app/account" replace />} />
         <Route path="settings" element={<Settings />} />
+      </Route>
+      {/* The operator console — its own shell, its own nav, same app. */}
+      <Route
+        path="/admin"
+        element={
+          <RequireAdmin>
+            <AdminShell />
+          </RequireAdmin>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="users/:userId" element={<AdminUserDetail />} />
+        <Route path="activity" element={<AdminActivity />} />
+        <Route path="feedback" element={<AdminFeedback />} />
+        <Route path="sessions/:sessionId" element={<AdminTranscript />} />
       </Route>
       <Route path="*" element={<Navigate to={userId ? home : '/login'} replace />} />
     </Routes>

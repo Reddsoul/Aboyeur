@@ -24,6 +24,10 @@ class _FakeCollector:
 
     def __init__(self, _stream):
         self.content, self.tool_calls = type(self).script.pop(0)
+        # Part of StreamCollector's contract since the admin console started
+        # recording per-turn token spend. None is the honest value here and
+        # the one a real endpoint that omits `usage` also produces.
+        self.usage = None
 
     def __iter__(self):
         if self.content:

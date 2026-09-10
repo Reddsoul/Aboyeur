@@ -272,7 +272,61 @@ def cmd_create_user(args: argparse.Namespace) -> int:
     finally:
         conn.close()
 
-    console.print(f"[bold green]created[/bold green] user {user_id} ({args.email})")
+    if getattr(args, "admin", False):
+        from aboyeur import admin as admin_mod
+
+        conn = connect(config.db_path)
+        try:
+            admin_mod.set_admin(conn, args.email, True)
+        finally:
+            conn.close()
+
+    console.print(
+        f"[bold green]created[/bold green] user {user_id} ({args.email})"
+        + (" [bold]— admin[/bold]" if getattr(args, "admin", False) else "")
+    )
+    return 0
+
+
+def cmd_set_admin(args: argparse.Namespace) -> int:
+    """Grant or revoke the /admin console. Out-of-band on purpose — no route
+    in the app can promote an account, so a compromised session can't either."""
+    from aboyeur import admin as admin_mod
+    from aboyeur.db import init_db, schema_lock
+    from aboyeur.migrate import migrate
+
+    config = Config.load()
+    conn = connect(config.db_path)
+    try:
+        # A deploy that hasn't run the migration yet has no is_admin column;
+        # granting is exactly when someone is most likely to hit that.
+        with schema_lock(config.db_path):
+            init_db(conn)
+            migrate(conn)
+        user_id = admin_mod.set_admin(conn, args.email, not args.revoke)
+    except admin_mod.AdminError as e:
+        console.print(f"[bold red]error:[/bold red] {e}")
+        return 1
+    finally:
+        conn.close()
+
+    verb = "revoked admin from" if args.revoke else "granted admin to"
+    console.print(f"[bold green]{verb}[/bold green] user {user_id} ({args.email.strip().lower()})")
+    return 0
+
+
+def cmd_purge_events(args: argparse.Namespace) -> int:
+    """Event-log retention. Point cron at this — the table is one row per
+    agent turn, so it grows forever otherwise (slowly, but forever)."""
+    from aboyeur import admin as admin_mod
+
+    config = Config.load()
+    conn = connect(config.db_path)
+    try:
+        deleted = admin_mod.purge_events(conn, args.keep_days)
+    finally:
+        conn.close()
+    console.print(f"[bold green]purged[/bold green] {deleted} event(s) older than {args.keep_days}d")
     return 0
 
 
@@ -305,7 +359,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_create_user = sub.add_parser("create-user", help="provision an account (invite-only, admin use)")
     p_create_user.add_argument("email")
     p_create_user.add_argument("--password", help="omit to be prompted (hidden input)")
+    p_create_user.add_argument("--admin", action="store_true",
+                               help="also grant the /admin console")
     p_create_user.set_defaults(func=cmd_create_user)
+
+    p_purge = sub.add_parser("purge-events", help="drop admin event rows older than N days")
+    p_purge.add_argument("--keep-days", type=int, default=90)
+    p_purge.set_defaults(func=cmd_purge_events)
+
+    p_set_admin = sub.add_parser("set-admin", help="grant/revoke the /admin console")
+    p_set_admin.add_argument("email")
+    p_set_admin.add_argument("--revoke", action="store_true", help="take it away instead")
+    p_set_admin.set_defaults(func=cmd_set_admin)
 
     return parser
 

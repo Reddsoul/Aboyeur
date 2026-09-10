@@ -1,0 +1,135 @@
+
+> frontend@0.0.0 dev
+> vite
+
+5:27:54 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.2.2  ready in 1689 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.68:5173/   en0
+  ➜  Network: http://192.168.1.109:5173/  en1
+  ➜  Network: http://100.71.143.90:5173/  utun4
+5:27:56 PM [vite] (client) [optimizer] bundling dependencies...
+10:08:10 AM [vite] (client) hmr update /src/auth/AuthContext.tsx, /src/clients/ClientContext.tsx, /src/routes/Login.tsx, /src/routes/Onboarding.tsx, /src/routes/Library.tsx, /src/routes/Account.tsx, /src/routes/Chat.tsx, /src/routes/Settings.tsx, /src/routes/Clients.tsx, /src/routes/ClientDetail.tsx, /src/routes/Profile.tsx
+10:08:33 AM [vite] (client) hmr update /src/auth/AuthContext.tsx, /src/clients/ClientContext.tsx, /src/routes/Login.tsx, /src/routes/Onboarding.tsx, /src/routes/Library.tsx, /src/routes/Account.tsx, /src/routes/Chat.tsx, /src/routes/Settings.tsx, /src/routes/Clients.tsx, /src/routes/ClientDetail.tsx, /src/routes/Profile.tsx
+10:08:43 AM [vite] (client) hmr update /src/auth/AuthContext.tsx
+10:13:23 AM [vite] (client) hmr update /src/App.tsx
+10:13:32 AM [vite] (client) hmr update /src/routes/AppShell.tsx
+10:14:09 AM [vite] (client) hmr update /src/routes/Chat.tsx
+10:14:27 AM [vite] (client) hmr update /src/routes/Chat.tsx
+10:14:39 AM [vite] (client) hmr update /src/routes/Chat.tsx
+10:14:52 AM [vite] (client) hmr update /src/routes/Chat.css
+10:16:07 AM [vite] (client) hmr update /src/routes/Chat.tsx
+10:17:51 AM [vite] (client) hmr update /src/auth/AuthContext.tsx, /src/clients/ClientContext.tsx, /src/routes/Login.tsx, /src/routes/Onboarding.tsx, /src/routes/Library.tsx, /src/routes/Account.tsx, /src/routes/Chat.tsx, /src/routes/Settings.tsx, /src/routes/Clients.tsx, /src/routes/ClientDetail.tsx, /src/routes/Profile.tsx
+10:18:16 AM [vite] (client) hmr invalidate /src/auth/AuthContext.tsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:18:16 AM [vite] (client) page reload src/auth/AuthContext.tsx
+10:18:16 AM [vite] (client) hmr invalidate /src/clients/ClientContext.tsx Could not Fast Refresh ("useClients" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+10:18:16 AM [vite] (client) page reload src/clients/ClientContext.tsx
+10:18:17 AM [vite] (client) [Unhandled error] Error: useAuth must be used inside AuthProvider
+ > useAuth src/auth/AuthContext.tsx:117:28
+    115 |  export function useAuth(): AuthState {
+    116 |    const ctx = useContext(AuthContext);
+    117 |    if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+        |                              ^
+    118 |    return ctx;
+    119 |  }
+ > ClientProvider src/clients/ClientContext.tsx:35:29
+ > react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:29
+ > renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:40
+ > updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10167:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:21
+ > performUnitOfWork node_modules/react-dom/cjs/react-dom-client.development.js:17642:12
+ > workLoopSync node_modules/react-dom/cjs/react-dom-client.development.js:17469:58
+ > renderRootSync node_modules/react-dom/cjs/react-dom-client.development.js:17450:23
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:16584:18
+ > performSyncWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18972:24
+ > flushSyncWorkAcrossRoots_impl node_modules/react-dom/cjs/react-dom-client.development.js:18814:42
+ > flushSyncWork$1 node_modules/react-dom/cjs/react-dom-client.development.js:16898:41
+ > scheduleRefresh node_modules/react-dom/cjs/react-dom-client.development.js:113:24
+ > ../../../../../../@react-refresh:228:32
+ > performReactRefresh ../../../../../../@react-refresh:217:33
+ > ../../../../../../@react-refresh:604:22
+
+10:18:17 AM [vite] (client) [console.warn] An error occurred in the <ClientProvider> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+10:18:17 AM [vite] (client) [Unhandled error] Error: useAuth must be used inside AuthProvider
+ > useAuth src/auth/AuthContext.tsx:117:28
+    115 |  export function useAuth(): AuthState {
+    116 |    const ctx = useContext(AuthContext);
+    117 |    if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+        |                              ^
+    118 |    return ctx;
+    119 |  }
+ > ClientProvider src/clients/ClientContext.tsx:35:29
+ > react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:29
+ > renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:40
+ > updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10167:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:21
+ > performUnitOfWork node_modules/react-dom/cjs/react-dom-client.development.js:17642:12
+ > workLoopSync node_modules/react-dom/cjs/react-dom-client.development.js:17469:58
+ > renderRootSync node_modules/react-dom/cjs/react-dom-client.development.js:17450:23
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:16584:18
+ > performSyncWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18972:24
+ > flushSyncWorkAcrossRoots_impl node_modules/react-dom/cjs/react-dom-client.development.js:18814:42
+ > flushSyncWork$1 node_modules/react-dom/cjs/react-dom-client.development.js:16898:41
+ > scheduleRoot node_modules/react-dom/cjs/react-dom-client.development.js:101:24
+ > ../../../../../../@react-refresh:208:29
+ > performReactRefresh ../../../../../../@react-refresh:190:32
+ > ../../../../../../@react-refresh:604:22
+
+10:18:17 AM [vite] (client) [console.warn] An error occurred in the <ClientProvider> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+10:18:17 AM [vite] (client) [Unhandled error] Error: useAuth must be used inside AuthProvider
+ > useAuth src/auth/AuthContext.tsx:117:28
+    115 |  export function useAuth(): AuthState {
+    116 |    const ctx = useContext(AuthContext);
+    117 |    if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+        |                              ^
+    118 |    return ctx;
+    119 |  }
+ > ClientProvider src/clients/ClientContext.tsx:35:29
+ > react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:29
+ > renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:40
+ > updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10167:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:21
+ > performUnitOfWork node_modules/react-dom/cjs/react-dom-client.development.js:17642:12
+ > workLoopSync node_modules/react-dom/cjs/react-dom-client.development.js:17469:58
+ > renderRootSync node_modules/react-dom/cjs/react-dom-client.development.js:17450:23
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:16584:18
+ > performSyncWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18972:24
+ > flushSyncWorkAcrossRoots_impl node_modules/react-dom/cjs/react-dom-client.development.js:18814:42
+ > flushSyncWork$1 node_modules/react-dom/cjs/react-dom-client.development.js:16898:41
+ > scheduleRoot node_modules/react-dom/cjs/react-dom-client.development.js:101:24
+ > ../../../../../../@react-refresh:208:29
+ > performReactRefresh ../../../../../../@react-refresh:190:32
+ > ../../../../../../@react-refresh:604:22
+
+10:18:17 AM [vite] (client) [console.warn] An error occurred in the <ClientProvider> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+10:21:36 AM [vite] (client) hmr update /src/routes/admin/Admin.css
+10:21:36 AM [vite] (client) hmr update /src/routes/admin/Transcript.tsx, /src/routes/admin/UserDetail.tsx, /src/routes/admin/Users.tsx, /src/routes/admin/Dashboard.tsx, /src/routes/admin/Feedback.tsx, /src/routes/admin/Activity.tsx
+10:21:36 AM [vite] (client) hmr update /src/routes/admin/Feedback.tsx
+10:23:05 AM [vite] (client) hmr update /src/routes/admin/Transcript.tsx, /src/routes/admin/UserDetail.tsx, /src/routes/admin/Users.tsx, /src/routes/admin/Dashboard.tsx, /src/routes/admin/Feedback.tsx, /src/routes/admin/Activity.tsx
+10:23:05 AM [vite] (client) hmr update /src/routes/admin/Feedback.tsx
+10:23:05 AM [vite] (client) hmr update /src/routes/admin/Transcript.tsx
+
+> frontend@0.0.0 dev
+> vite
+
+
+  VITE v8.2.2  ready in 791 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.68:5173/   en0
+  ➜  Network: http://192.168.1.109:5173/  en1
+  ➜  Network: http://100.71.143.90:5173/  utun4

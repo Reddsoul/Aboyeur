@@ -341,3 +341,114 @@ span.chat-avatar .brand-mark {
   text-align: left;
   cursor: pointer;
 }
+
+/* --- per-turn feedback ---------------------------------------------------
+   Thumbs on an assistant answer. The bubble and its controls share a column
+   inside .chat-row so the buttons sit under the bubble rather than beside it,
+   and the row's user/assistant alignment still decides which side that is. */
+.chat-bubble-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.chat-feedback {
+  display: flex;
+  gap: 2px;
+  padding: 0 2px;
+  /* Quiet until the turn is hovered — a rated turn stays visible, since the
+     user's own verdict is worth seeing when they scroll back. */
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.chat-row:hover .chat-feedback,
+.chat-feedback:focus-within,
+.chat-feedback:has(.chat-fb-btn-up),
+.chat-feedback:has(.chat-fb-btn-down) {
+  opacity: 1;
+}
+.chat-fb-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chat-fb-btn:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.chat-fb-btn-up {
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
+}
+.chat-fb-btn-up:hover {
+  background: color-mix(in srgb, var(--success) 22%, transparent);
+  color: var(--success);
+}
+.chat-fb-btn-down {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+.chat-fb-btn-down:hover {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  color: var(--danger);
+}
+
+/* The optional "what went wrong?" box a thumb-down opens. */
+.chat-fb-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  max-width: 420px;
+}
+.chat-fb-box label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chat-fb-box textarea {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--ink);
+  font-size: 13.5px;
+  padding: 9px 12px;
+  resize: vertical;
+}
+.chat-fb-box-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.chat-fb-send {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 980px;
+  border: none;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-fb-skip {
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}

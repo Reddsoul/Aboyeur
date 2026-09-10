@@ -9,7 +9,12 @@ import { useClients } from '../clients/ClientContext';
 import Logo from '../components/Logo';
 
 interface Message {
+  /** Render key only — a local counter, unique per mount. */
   id: number;
+  /** The row id in chat_messages. Absent for the synthetic greeting and for
+   * a turn that is still streaming, which is exactly when a thumb has
+   * nothing to attach itself to — so the buttons wait for it. */
+  serverId?: number;
   from: 'user' | 'assistant';
   text: string;
 }
@@ -28,9 +33,50 @@ function toMessages(history: api.ChatMessage[], clientName: string): Message[] {
   if (!history.length) return [greeting(clientName)];
   return history.map((m) => ({
     id: idCounter++,
+    serverId: m.id,
     from: m.role === 'user' ? ('user' as const) : ('assistant' as const),
     text: m.content,
   }));
+}
+
+/** Thumb buttons under one assistant turn. Thumb-down opens an optional
+ * "what went wrong?" box — optional on purpose: forcing a comment costs the
+ * signal from everyone who won't type one. */
+function FeedbackBar({
+  rating,
+  onRate,
+  onClear,
+}: {
+  rating: number | undefined;
+  onRate: (rating: number) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="chat-feedback">
+      <button
+        type="button"
+        className={`chat-fb-btn ${rating === 1 ? 'chat-fb-btn-up' : ''}`}
+        title={rating === 1 ? 'Remove your rating' : 'This answer was good'}
+        aria-pressed={rating === 1}
+        onClick={() => (rating === 1 ? onClear() : onRate(1))}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3Zm0 0 5-8a2.5 2.5 0 0 1 2.4 3.2L13.5 9h5.3a2 2 0 0 1 2 2.5l-1.7 7A2 2 0 0 1 17 20H7" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className={`chat-fb-btn ${rating === -1 ? 'chat-fb-btn-down' : ''}`}
+        title={rating === -1 ? 'Remove your rating' : 'Something was wrong with this'}
+        aria-pressed={rating === -1}
+        onClick={() => (rating === -1 ? onClear() : onRate(-1))}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 14V3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3Zm0 0-5 8a2.5 2.5 0 0 1-2.4-3.2L10.5 15H5.2a2 2 0 0 1-2-2.5l1.7-7A2 2 0 0 1 7 4h10" />
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 export default function Chat() {
@@ -43,11 +89,26 @@ export default function Chat() {
   const [sessions, setSessions] = useState<api.ChatSession[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // { [chat_messages.id]: -1 | 1 } — this user's own thumbs in this thread.
+  const [ratings, setRatings] = useState<Record<number, number>>({});
+  // The message whose thumb-down comment box is open, if any.
+  const [commentFor, setCommentFor] = useState<number | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
   const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, streaming]);
+
+  async function loadRatings(id: number, cancelled?: () => boolean) {
+    try {
+      const raw = await api.getSessionFeedback(id);
+      if (cancelled?.()) return;
+      setRatings(Object.fromEntries(Object.entries(raw).map(([k, v]) => [Number(k), v])));
+    } catch {
+      /* thumbs are an extra; the conversation reads fine without them */
+    }
+  }
 
   // Switching clients loads their conversations; opening one loads its
   // messages. Both the list and the thread are per client, and the agent
@@ -62,12 +123,14 @@ export default function Chat() {
     let cancelled = false;
     setLoadingHistory(true);
     setMessages([]);
+    setRatings({});
     Promise.all([api.listSessions(activeClient.id), api.getClientMessages(activeClient.id)])
       .then(([list, opened]) => {
         if (cancelled) return;
         setSessions(list);
         setSessionId(opened.session_id);
         setMessages(toMessages(opened.messages, activeClient.name));
+        void loadRatings(opened.session_id, () => cancelled);
       })
       .catch(() => {
         if (!cancelled) setMessages([greeting(activeClient.name)]);
@@ -88,6 +151,8 @@ export default function Chat() {
       const opened = await api.getClientMessages(activeClient.id, id);
       setSessionId(opened.session_id);
       setMessages(toMessages(opened.messages, activeClient.name));
+      setRatings({});
+      void loadRatings(opened.session_id);
     } finally {
       setLoadingHistory(false);
       setPickerOpen(false);
@@ -100,6 +165,7 @@ export default function Chat() {
     setSessions((prev) => [created, ...prev]);
     setSessionId(created.id);
     setMessages([greeting(activeClient.name)]);
+    setRatings({});
     setPickerOpen(false);
   }
 
@@ -123,6 +189,69 @@ export default function Chat() {
     }
   }
 
+  /** The SSE stream carries text, not row ids, so a just-streamed answer has
+   * no `serverId` to hang a thumb on. Re-reading the thread once the turn
+   * lands is the cheap way to get them — same content, now with ids. */
+  async function refreshThread() {
+    if (!activeClient || sessionId == null) return;
+    try {
+      const opened = await api.getClientMessages(activeClient.id, sessionId);
+      if (opened.messages.length) setMessages(toMessages(opened.messages, activeClient.name));
+    } catch {
+      /* keep what's on screen — it's the same text, just without ids */
+    }
+  }
+
+  async function rate(messageId: number, rating: number, body?: string) {
+    // Optimistic: the thumb lights immediately and rolls back if the write
+    // fails, because a button that waits on a round trip feels broken.
+    const previous = ratings[messageId];
+    setRatings((r) => ({ ...r, [messageId]: rating }));
+    try {
+      await api.sendFeedback({ session_id: sessionId!, message_id: messageId, rating, body });
+    } catch {
+      setRatings((r) => {
+        const next = { ...r };
+        if (previous === undefined) delete next[messageId];
+        else next[messageId] = previous;
+        return next;
+      });
+    }
+  }
+
+  async function clearRating(messageId: number) {
+    const previous = ratings[messageId];
+    setRatings((r) => {
+      const next = { ...r };
+      delete next[messageId];
+      return next;
+    });
+    if (commentFor === messageId) setCommentFor(null);
+    try {
+      await api.clearFeedback(messageId);
+    } catch {
+      if (previous !== undefined) setRatings((r) => ({ ...r, [messageId]: previous }));
+    }
+  }
+
+  function onRate(messageId: number, rating: number) {
+    void rate(messageId, rating);
+    // Only a thumb-down asks why. A thumb-up needs no explanation.
+    if (rating === -1) {
+      setCommentFor(messageId);
+      setCommentDraft('');
+    } else {
+      setCommentFor(null);
+    }
+  }
+
+  async function submitComment(messageId: number) {
+    const body = commentDraft.trim();
+    setCommentFor(null);
+    setCommentDraft('');
+    if (body) await rate(messageId, -1, body);
+  }
+
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || streaming || !llmConfigured || !activeClient || sessionId == null) return;
@@ -144,6 +273,7 @@ export default function Chat() {
       // Titles are set from the first message server-side, and the list is
       // ordered by last activity — so it's stale the moment a turn lands.
       void refreshSessions();
+      void refreshThread();
     }
   }
 
@@ -216,19 +346,61 @@ export default function Chat() {
             ) : (
               <Logo size={28} className="chat-avatar" />
             )}
-            <div className={`chat-bubble ${m.from === 'user' ? 'chat-bubble-user' : 'chat-bubble-assist'}`}>
-              {m.from === 'assistant' ? (
-                m.text ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+            <div className="chat-bubble-col">
+              <div className={`chat-bubble ${m.from === 'user' ? 'chat-bubble-user' : 'chat-bubble-assist'}`}>
+                {m.from === 'assistant' ? (
+                  m.text ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                  ) : (
+                    <div className="chat-typing-dots">
+                      <span className="chat-typing-dot" />
+                      <span className="chat-typing-dot" />
+                      <span className="chat-typing-dot" />
+                    </div>
+                  )
                 ) : (
-                  <div className="chat-typing-dots">
-                    <span className="chat-typing-dot" />
-                    <span className="chat-typing-dot" />
-                    <span className="chat-typing-dot" />
+                  m.text
+                )}
+              </div>
+
+              {/* Rateable only once the turn is persisted and finished — the
+                  greeting has no row behind it and a streaming answer isn't
+                  done being judged. */}
+              {m.from === 'assistant' && m.serverId != null && !streaming && (
+                <FeedbackBar
+                  rating={ratings[m.serverId]}
+                  onRate={(r) => onRate(m.serverId!, r)}
+                  onClear={() => void clearRating(m.serverId!)}
+                />
+              )}
+
+              {m.serverId != null && commentFor === m.serverId && (
+                <div className="chat-fb-box">
+                  <label htmlFor={`fb-${m.serverId}`}>What went wrong? (optional)</label>
+                  <textarea
+                    id={`fb-${m.serverId}`}
+                    autoFocus
+                    rows={2}
+                    value={commentDraft}
+                    placeholder="Wrong portions, ignored an allergy, made up a recipe…"
+                    onChange={(e) => setCommentDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        void submitComment(m.serverId!);
+                      }
+                      if (e.key === 'Escape') setCommentFor(null);
+                    }}
+                  />
+                  <div className="chat-fb-box-actions">
+                    <button type="button" className="chat-fb-send" onClick={() => void submitComment(m.serverId!)}>
+                      Send
+                    </button>
+                    <button type="button" className="chat-fb-skip" onClick={() => setCommentFor(null)}>
+                      Skip
+                    </button>
                   </div>
-                )
-              ) : (
-                m.text
+                </div>
               )}
             </div>
           </div>

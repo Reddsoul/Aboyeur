@@ -18,7 +18,7 @@ const tabStyle = (active: boolean): React.CSSProperties => ({
 });
 
 export default function AppShell() {
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
   const { clients, activeClient, setActiveClient } = useClients();
   const navigate = useNavigate();
 
@@ -95,6 +95,34 @@ export default function AppShell() {
         </label>
 
         <div style={{ flex: 1 }} />
+
+        {/* Only the operator sees this. The console is a different place, so
+            it sits apart from the Chat/Library/Clients tab group rather than
+            inside it. */}
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              height: 32,
+              padding: '0 12px',
+              borderRadius: 999,
+              background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
+              color: 'var(--accent)',
+              fontSize: 12.5,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+            title="Operator console"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v18h18M7 15l4-5 3 3 5-7" />
+            </svg>
+            Admin
+          </NavLink>
+        )}
 
         <NavLink
           to="/app/settings"

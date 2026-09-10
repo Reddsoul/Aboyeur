@@ -10,6 +10,7 @@ import os
 import shutil
 import sqlite3
 import time
+import traceback as _traceback
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
@@ -560,6 +561,7 @@ import threading
 
 from dataclasses import replace as _dc_replace
 
+from aboyeur import admin as _aboyeur_admin
 from aboyeur import auth as _aboyeur_auth
 from aboyeur import chat_history as _aboyeur_chat_history
 from aboyeur import clients as _aboyeur_clients
@@ -788,9 +790,29 @@ def auth_logout(response: Response):
     return {"ok": True}
 
 
+def require_admin(user_id: int = Depends(get_current_user)) -> int:
+    """The only gate on /api/admin. 403, not 404 — the caller is authenticated,
+    they just aren't the operator, and pretending the console doesn't exist
+    buys nothing when the frontend bundle ships to everyone anyway."""
+    conn = _profile_conn()
+    try:
+        if not _aboyeur_admin.is_admin(conn, user_id):
+            raise HTTPException(403, "admin only")
+    finally:
+        conn.close()
+    return user_id
+
+
 @app.get("/auth/me")
 def auth_me(user_id: int = Depends(get_current_user)):
-    return {"user_id": user_id}
+    conn = _profile_conn()
+    try:
+        admin = _aboyeur_admin.is_admin(conn, user_id)
+    finally:
+        conn.close()
+    # The frontend hides the admin nav on this flag. It is a convenience, not
+    # the gate — every /admin route re-checks server-side.
+    return {"user_id": user_id, "is_admin": admin}
 
 
 def _sse(data: str) -> str:
@@ -817,19 +839,27 @@ def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
             yield payload
 
 
-def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] = None):
+def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] = None,
+                  user_id: Optional[int] = None, client_id: Optional[int] = None):
     """record_for: the conversation this turn belongs to. A real (even if
     half-streamed) answer is saved so it's still there on the next visit — but
     a turn that produced nothing but the internal-error notice is NOT persisted,
     so a transient endpoint failure doesn't litter the transcript with error
-    messages the user re-reads every time they reopen the chat."""
+    messages the user re-reads every time they reopen the chat.
+
+    user_id/client_id: who this turn was for, recorded on the `events` row so
+    the admin console can answer "who hit this error" — the thing the bare
+    logger.exception below could never say."""
     parts: list[str] = []
     errored = False
+    error_type: Optional[str] = None
+    error_detail: Optional[str] = None
+    started = time.monotonic()
     try:
         for tok in _agent_tokens(agent, message):
             parts.append(tok)
             yield _sse(tok)
-    except Exception:
+    except Exception as e:
         # Anything raised mid-generator here previously killed the chunked
         # HTTP response outright — the client sees a bare transfer-encoding
         # error with zero context. Log the real cause server-side and end
@@ -837,8 +867,11 @@ def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] 
         # well-formed (if apologetic) response rather than a truncated one.
         logger.exception("agent stream failed mid-response")
         errored = True
+        error_type = type(e).__name__
+        error_detail = _traceback.format_exc()
         tail = "\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]"
         yield _sse(tail)
+    latency_ms = int((time.monotonic() - started) * 1000)
     answer = "".join(parts)
     if record_for is not None and answer.strip():
         _record_message(record_for, "assistant", answer)
@@ -846,7 +879,38 @@ def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] 
         # Nothing worth keeping — drop the orphaned user turn too so a retry
         # starts clean instead of stacking two user messages in the history.
         _delete_last_user_message(record_for)
+    # After the stream, never inside it: one short write on a connection of
+    # its own, so the event log can't slow a turn down or hold a lock while
+    # the LLM is still talking.
+    _record_turn_event(
+        user_id=user_id, client_id=client_id, session_id=record_for,
+        agent=agent, latency_ms=latency_ms, ok=not errored,
+        error_type=error_type, error_detail=error_detail,
+    )
     yield _sse("[DONE]")
+
+
+def _record_turn_event(*, user_id: Optional[int], client_id: Optional[int],
+                       session_id: Optional[int], agent: _AboyeurAgent,
+                       latency_ms: int, ok: bool,
+                       error_type: Optional[str] = None,
+                       error_detail: Optional[str] = None) -> None:
+    tokens_in, tokens_out = getattr(agent, "last_usage", None) or (None, None)
+    conn = _profile_conn()
+    try:
+        _aboyeur_admin.record_event(
+            conn, "chat_turn",
+            user_id=user_id, client_id=client_id, session_id=session_id,
+            model=getattr(agent.config, "llm_model", None),
+            latency_ms=latency_ms,
+            tool_calls=getattr(agent, "last_tool_calls", None),
+            tokens_in=tokens_in, tokens_out=tokens_out,
+            ok=ok, error_type=error_type, error_detail=error_detail,
+        )
+    except Exception:  # monitoring must never break the thing it monitors
+        logger.exception("couldn't record chat_turn event")
+    finally:
+        conn.close()
 
 
 def _delete_last_user_message(chat_session_id: int) -> None:
@@ -1019,8 +1083,10 @@ def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_us
     if agent is None:
         return _needs_llm_setup_stream()
     _record_message(chat_session_id, "user", body.message)
-    return StreamingResponse(_agent_stream(agent, body.message, record_for=chat_session_id),
-                             media_type="text/event-stream")
+    return StreamingResponse(
+        _agent_stream(agent, body.message, record_for=chat_session_id,
+                      user_id=user_id, client_id=client_id),
+        media_type="text/event-stream")
 
 
 def _require_chat_session(conn: sqlite3.Connection, client_id: int,
@@ -1869,6 +1935,181 @@ def _llm_error_detail(exc: Exception) -> str:
     detail = str(exc).strip() or exc.__class__.__name__
     detail = detail.split("\n")[0]
     return detail[:300]
+
+
+# ===========================================================================
+# Feedback — a thumb on one assistant message. User-facing half; the triage
+# half lives under /admin below.
+# ===========================================================================
+
+class FeedbackBody(BaseModel):
+    session_id: int
+    message_id: int
+    rating: int          # +1 | -1
+    body: Optional[str] = None
+
+
+@app.post("/api/feedback")
+def api_feedback_post(body: FeedbackBody, user_id: int = Depends(get_current_user)):
+    """Rate an assistant turn. Re-thumbing the same message updates the row
+    rather than adding one."""
+    conn = _profile_conn()
+    try:
+        # The message must be in a conversation on this account's own book.
+        # Without this an id from someone else's transcript would attach
+        # feedback to a turn the caller can't even read.
+        if not _aboyeur_admin.owns_message(conn, user_id, body.session_id, body.message_id):
+            raise HTTPException(404, "no such message")
+        return _aboyeur_admin.upsert_feedback(
+            conn, user_id, body.session_id, body.message_id, body.rating, body.body,
+        )
+    except _aboyeur_admin.AdminError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        conn.close()
+
+
+@app.delete("/api/feedback/message/{message_id}")
+def api_feedback_delete(message_id: int, user_id: int = Depends(get_current_user)):
+    """Un-thumb. Scoped to the caller's own row, so this can't clear anyone
+    else's rating even with a guessed id."""
+    conn = _profile_conn()
+    try:
+        return {"deleted": _aboyeur_admin.delete_feedback(conn, user_id, message_id)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/sessions/{session_id}/feedback")
+def api_session_feedback(session_id: int, user_id: int = Depends(get_current_user)):
+    """Which turns in this conversation the caller has already rated — what
+    the chat screen needs to render its thumbs lit on load."""
+    conn = _profile_conn()
+    try:
+        ratings = _aboyeur_admin.my_feedback_for_session(conn, user_id, session_id)
+        return {"ratings": {str(k): v for k, v in ratings.items()}}
+    finally:
+        conn.close()
+
+
+# ===========================================================================
+# Admin console — operator-only. Every route here is gated by require_admin
+# and every one of them is a read, except the feedback triage PATCH.
+#
+# Mounted under /api/admin, not /admin: /admin is the *frontend* route for the
+# console's own screens. One path can't be both a SPA route and an API prefix
+# — the dev proxy and the production reverse proxy each have to send it to
+# exactly one place, and deep-linking to /admin has to reach the React app.
+# ===========================================================================
+
+@app.get("/api/admin/overview")
+def admin_overview(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_admin.overview(conn)
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/users")
+def admin_users(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"users": _aboyeur_admin.list_users(conn)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/users/{target_id}")
+def admin_user_detail(target_id: int, _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_admin.get_user(conn, target_id)
+    except _aboyeur_admin.AdminError as e:
+        raise HTTPException(404, str(e))
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/sessions/{session_id}")
+def admin_transcript(session_id: int, _: int = Depends(require_admin)):
+    """Read any conversation on the deploy. Users are told the operator can
+    do this — see the privacy note in admin-monitoring-plan.md."""
+    conn = _profile_conn()
+    try:
+        return _aboyeur_admin.get_transcript(conn, session_id)
+    except _aboyeur_admin.AdminError as e:
+        raise HTTPException(404, str(e))
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/events")
+def admin_events(kind: Optional[str] = None, errors_only: bool = False,
+                 target_user_id: Optional[int] = None, days: Optional[int] = None,
+                 limit: int = Query(200, ge=1, le=1000),
+                 _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {
+            "events": _aboyeur_admin.list_events(
+                conn, kind=kind, errors_only=errors_only,
+                user_id=target_user_id, days=days, limit=limit,
+            )
+        }
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/logs/tail")
+def admin_log_tail(lines: int = Query(200, ge=1, le=2000),
+                   _: int = Depends(require_admin)):
+    """Raw uvicorn.log tail — the escape hatch for whatever `events` didn't
+    think to record. Reads the last chunk of the file rather than the whole
+    thing, so a log that has grown to hundreds of MB still answers fast."""
+    log_path = PROJECT_ROOT / "logs" / "uvicorn.log"
+    if not log_path.exists():
+        return {"path": str(log_path), "lines": [], "detail": "no log file yet"}
+    # ~400 bytes per line is generous for access lines and leaves tracebacks
+    # room; worst case the tail is short, which the caller can live with.
+    size = log_path.stat().st_size
+    window = min(size, lines * 400 + 8192)
+    with open(log_path, "rb") as handle:
+        handle.seek(size - window)
+        chunk = handle.read().decode("utf-8", "replace")
+    tail = chunk.splitlines()
+    # A mid-file seek lands inside a line; drop that first partial one.
+    if window < size and tail:
+        tail = tail[1:]
+    return {"path": str(log_path), "lines": tail[-lines:]}
+
+
+@app.get("/api/admin/feedback")
+def admin_feedback_list(status: Optional[str] = None,
+                        limit: int = Query(200, ge=1, le=1000),
+                        _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"feedback": _aboyeur_admin.list_feedback(conn, status, limit)}
+    finally:
+        conn.close()
+
+
+class FeedbackPatch(BaseModel):
+    status: Optional[str] = None
+    admin_note: Optional[str] = None
+
+
+@app.patch("/api/admin/feedback/{feedback_id}")
+def admin_feedback_update(feedback_id: int, patch: FeedbackPatch,
+                          _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_admin.update_feedback(conn, feedback_id, patch.status, patch.admin_note)
+    except _aboyeur_admin.AdminError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        conn.close()
 
 
 # ===========================================================================

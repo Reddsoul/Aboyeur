@@ -36,6 +36,11 @@ def stream_chat(
         tools=tools,
         tool_choice="auto",
         stream=True,
+        # Asks the endpoint for a final usage-only chunk so the admin console
+        # can chart token spend. Purely advisory: a self-hosted vLLM/LiteLLM
+        # build may ignore it, in which case StreamCollector.usage stays None
+        # and the console shows tokens as unknown rather than as zero.
+        stream_options={"include_usage": True},
     )
 
 
@@ -56,10 +61,24 @@ class StreamCollector:
         self._chunks = chunks
         self.content_parts: list[str] = []
         self.tool_call_parts: dict[int, dict] = {}
+        # (prompt_tokens, completion_tokens) from the endpoint's final usage
+        # chunk, or None if it never sent one. Best-effort by design.
+        self.usage: tuple[int | None, int | None] | None = None
 
     def __iter__(self) -> Iterator[str]:
         pending: str | None = None
         for chunk in self._chunks:
+            usage = getattr(chunk, "usage", None)
+            if usage is not None:
+                self.usage = (
+                    getattr(usage, "prompt_tokens", None),
+                    getattr(usage, "completion_tokens", None),
+                )
+            # The usage chunk carries an empty `choices` list — reading
+            # choices[0] on it would IndexError and kill the stream one chunk
+            # short of the answer being flushed.
+            if not chunk.choices:
+                continue
             delta = chunk.choices[0].delta
             if delta.tool_calls:
                 for tc_delta in delta.tool_calls:

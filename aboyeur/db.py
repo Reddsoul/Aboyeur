@@ -160,6 +160,10 @@ CREATE TABLE IF NOT EXISTS users (
     -- Distinct from any client record, including their own "Me" client.
     name           TEXT,
     practice       TEXT,
+    -- Operator access to the /admin console. Off for everyone by default,
+    -- granted out-of-band with `aboyeur set-admin <email>` — there is no
+    -- route, CLI flag aside, that can promote an account from inside the app.
+    is_admin       INTEGER NOT NULL DEFAULT 0,
     created_at     TEXT NOT NULL
 );
 
@@ -285,6 +289,58 @@ CREATE TABLE IF NOT EXISTS interactions (
     content  TEXT NOT NULL,
     intent   TEXT
 );
+
+-- Operator monitoring. Born after the practitioner migration, so — like
+-- `kits` and `llm_settings` — CREATE TABLE IF NOT EXISTS here is the whole
+-- story: there is no older shape of these to rebuild.
+--
+-- One row per agent turn, plus a row for anything else worth answering
+-- "what happened at 3am" with. Deliberately denormalized and nullable: this
+-- is a log, and a log that refuses a write because a foreign key moved is
+-- worse than one with a dangling id. No REFERENCES for that reason — a
+-- purged client must not cascade its history out of the record.
+CREATE TABLE IF NOT EXISTS events (
+    id           INTEGER PRIMARY KEY,
+    ts           TEXT NOT NULL,              -- ISO8601 UTC
+    kind         TEXT NOT NULL,              -- chat_turn | error | menu_plan | login
+    user_id      INTEGER,
+    client_id    INTEGER,
+    session_id   INTEGER,
+    model        TEXT,
+    latency_ms   INTEGER,
+    tool_calls   INTEGER,
+    tokens_in    INTEGER,                    -- NULL when the endpoint omits usage
+    tokens_out   INTEGER,
+    ok           INTEGER NOT NULL DEFAULT 1,
+    error_type   TEXT,
+    error_detail TEXT,                       -- truncated traceback / message
+    meta_json    TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+CREATE INDEX IF NOT EXISTS idx_events_kind_ts ON events(kind, ts);
+CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id, ts);
+
+-- A thumb on one assistant message. Anchored to (session, message) rather
+-- than floating free, so triage always lands on the exact turn that earned
+-- it. UNIQUE(message_id, user_id) makes re-thumbing an update, not a pile.
+CREATE TABLE IF NOT EXISTS feedback (
+    id          INTEGER PRIMARY KEY,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_id   INTEGER,
+    session_id  INTEGER NOT NULL,
+    message_id  INTEGER NOT NULL,
+    rating      INTEGER NOT NULL,            -- -1 | +1
+    body        TEXT,                        -- optional thumb-down comment
+    status      TEXT NOT NULL DEFAULT 'new', -- new | triaged | in_progress | resolved | wontfix
+    admin_note  TEXT,
+    resolved_at TEXT,
+    UNIQUE (message_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status, created_at);
 """
 
 

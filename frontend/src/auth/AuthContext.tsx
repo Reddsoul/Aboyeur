@@ -5,6 +5,9 @@ import * as api from '../api';
 interface AuthState {
   userId: number | null;
   loading: boolean;
+  /** Operator access to /admin. Server-checked on every admin call — this
+   * only decides whether the nav entry and route tree render at all. */
+  isAdmin: boolean;
   /** Whether this user has saved an LLM endpoint + key (the /setup gate). */
   llmConfigured: boolean;
   refreshLlmStatus: () => Promise<boolean>;
@@ -22,6 +25,7 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [llmConfigured, setLlmConfigured] = useState(false);
   const [hasClients, setHasClients] = useState(false);
 
@@ -56,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .me()
       .then(async (res) => {
         setUserId(res.user_id);
+        setIsAdmin(res.is_admin);
         await Promise.all([refreshLlmStatus(), refreshClientStatus()]);
       })
       .catch(() => setUserId(null))
@@ -66,7 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const res = await api.login(email, password);
       setUserId(res.user_id);
+      // The login response doesn't carry the flag; /auth/me does. One extra
+      // round trip on sign-in only, so the admin nav is right immediately
+      // instead of appearing after a reload.
       const [llm, clientsPresent] = await Promise.all([refreshLlmStatus(), refreshClientStatus()]);
+      try {
+        setIsAdmin((await api.me()).is_admin);
+      } catch {
+        setIsAdmin(false);
+      }
       return { hasClients: clientsPresent, llmConfigured: llm };
     },
     [refreshLlmStatus, refreshClientStatus],
@@ -75,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await api.logout();
     setUserId(null);
+    setIsAdmin(false);
     setLlmConfigured(false);
     setHasClients(false);
   }, []);
@@ -84,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         userId,
         loading,
+        isAdmin,
         llmConfigured,
         refreshLlmStatus,
         hasClients,

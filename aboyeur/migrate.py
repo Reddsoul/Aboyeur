@@ -148,6 +148,16 @@ def _add_account_columns(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _add_is_admin_column(conn: sqlite3.Connection) -> None:
+    """Operator flag for the /admin console. Defaults to 0 for everyone —
+    an existing deploy comes out of this migration with no admin at all,
+    which is the safe direction. Grant one with `aboyeur set-admin <email>`."""
+    if not _table_exists(conn, "users") or "is_admin" in _column_names(conn, "users"):
+        return
+    conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+    conn.commit()
+
+
 def _ensure_clients_is_self(conn: sqlite3.Connection) -> None:
     """clients.is_self marks the practitioner's own record. On an account that
     predates the flag it's the client the household was folded into — the
@@ -356,6 +366,7 @@ def migrate(conn: sqlite3.Connection) -> int:
     _migrate_menus(conn, seed_user_id)
     _migrate_to_clients(conn)
     _add_account_columns(conn)
+    _add_is_admin_column(conn)
     _add_recipe_classification_columns(conn)
     _migrate_chat_sessions(conn)
     # Deliberately not in db.py's static SCHEMA — see the comment above the
