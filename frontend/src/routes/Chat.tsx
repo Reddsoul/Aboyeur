@@ -95,6 +95,10 @@ export default function Chat() {
   const [commentFor, setCommentFor] = useState<number | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
   const threadRef = useRef<HTMLDivElement>(null);
+  // The conversation currently on screen, readable from inside a long-lived
+  // catch-up stream so it stops touching the thread if the user moves on.
+  const sessionIdRef = useRef<number | null>(null);
+  sessionIdRef.current = sessionId;
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
@@ -107,6 +111,59 @@ export default function Chat() {
       setRatings(Object.fromEntries(Object.entries(raw).map(([k, v]) => [Number(k), v])));
     } catch {
       /* thumbs are an extra; the conversation reads fine without them */
+    }
+  }
+
+  /** A refresh mid-answer used to look like nothing had happened: the turn
+   * kept the server busy but the screen showed the question with no reply.
+   * Turns now outlive the connection, so on opening a conversation ask
+   * whether one is running and, if so, re-attach: show what has streamed
+   * so far, keep streaming, then re-read the thread once it lands. */
+  async function catchUp(clientId: number, id: number, cancelled?: () => boolean) {
+    let status: api.TurnStatus | null;
+    try {
+      status = (await api.chatStatus(clientId, id)).turn;
+    } catch {
+      return; // status is a convenience; the thread loaded fine without it
+    }
+    const gone = () => cancelled?.() === true || sessionIdRef.current !== id;
+    if (gone() || !status) return;
+    if (!status.in_flight) {
+      // Finished between the thread fetch and this call: the reply is in
+      // the transcript now but not on screen if the thread ended on the
+      // question — re-read rather than wait for the user to notice.
+      setMessages((m) => {
+        const last = m[m.length - 1];
+        if (last?.from === 'user') void refreshThreadFor(clientId, id);
+        return m;
+      });
+      return;
+    }
+    const assistantId = idCounter++;
+    setMessages((m) => [...m, { id: assistantId, from: 'assistant', text: status!.text }]);
+    setStreaming(true);
+    try {
+      for await (const chunk of api.resumeChat(clientId, id, status.chunk_count)) {
+        if (gone()) return;
+        setMessages((m) => m.map((msg) => (msg.id === assistantId ? { ...msg, text: msg.text + chunk } : msg)));
+      }
+    } catch {
+      /* the answer still lands in the transcript; the refresh below shows it */
+    } finally {
+      if (!gone()) {
+        setStreaming(false);
+        void refreshSessions();
+        void refreshThreadFor(clientId, id);
+      }
+    }
+  }
+
+  async function refreshThreadFor(clientId: number, id: number) {
+    try {
+      const opened = await api.getClientMessages(clientId, id);
+      if (opened.messages.length) setMessages(toMessages(opened.messages, activeClient?.name ?? ''));
+    } catch {
+      /* keep what's on screen — it's the same text, just without ids */
     }
   }
 
@@ -131,6 +188,7 @@ export default function Chat() {
         setSessionId(opened.session_id);
         setMessages(toMessages(opened.messages, activeClient.name));
         void loadRatings(opened.session_id, () => cancelled);
+        void catchUp(activeClient.id, opened.session_id, () => cancelled);
       })
       .catch(() => {
         if (!cancelled) setMessages([greeting(activeClient.name)]);
@@ -153,6 +211,7 @@ export default function Chat() {
       setMessages(toMessages(opened.messages, activeClient.name));
       setRatings({});
       void loadRatings(opened.session_id);
+      void catchUp(activeClient.id, opened.session_id);
     } finally {
       setLoadingHistory(false);
       setPickerOpen(false);
@@ -264,7 +323,18 @@ export default function Chat() {
       for await (const chunk of api.streamChat(trimmed, activeClient.id, sessionId)) {
         setMessages((m) => m.map((msg) => (msg.id === assistantId ? { ...msg, text: msg.text + chunk } : msg)));
       }
-    } catch {
+    } catch (err) {
+      // 409: the server is still answering an earlier message in this
+      // conversation (another tab, or a send that raced a reload). Show
+      // that answer instead of a connection error — the message just typed
+      // was not accepted and stays in the box to resend afterwards.
+      if (err instanceof api.ApiError && err.status === 409) {
+        setMessages((m) => m.filter((msg) => msg.id !== assistantId && !(msg.from === 'user' && msg.text === trimmed && msg.serverId == null)));
+        setDraft(trimmed);
+        setStreaming(false);
+        void catchUp(activeClient.id, sessionId);
+        return;
+      }
       setMessages((m) =>
         m.map((msg) => (msg.id === assistantId ? { ...msg, text: msg.text || "Couldn't reach Aboyeur — check your connection and try again." } : msg)),
       );

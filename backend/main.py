@@ -579,6 +579,7 @@ from aboyeur.tools.profile import (
     make_guest_profile as _make_guest_profile,
 )
 from backend import profile_ui
+from backend.turns import Turn as _Turn, TurnInFlight as _TurnInFlight, TurnRegistry as _TurnRegistry
 
 # The real Aboyeur brain: 59k-recipe FTS5 DB, native tool calling, profile +
 # nutrition tools. backend/'s own SQLAlchemy Book/Recipe schema below has no
@@ -614,6 +615,12 @@ _SEED_USER_ID = _aboyeur_auth.get_or_create_user(_aboyeur_conn, _SEED_USER_EMAIL
 # answering out of the old thread's context.
 _aboyeur_session_agents: dict[tuple[int, int, int], _AboyeurAgent] = {}
 _aboyeur_sessions_lock = threading.Lock()  # guards dict get-or-create, not turn execution
+
+# One in-flight turn per conversation, living on its own thread so a dropped
+# browser connection can't abort it (see backend/turns.py). Keyed by
+# chat_session_id — the same conversation identity the agent cache uses, so
+# "one Agent per conversation" and "one turn at a time per Agent" line up.
+_turns = _TurnRegistry()
 
 
 # Each account brings its own LLM endpoint + key (the Settings screen, stored
@@ -839,9 +846,13 @@ def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
             yield payload
 
 
-def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] = None,
-                  user_id: Optional[int] = None, client_id: Optional[int] = None):
-    """record_for: the conversation this turn belongs to. A real (even if
+def _run_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
+                    record_for: Optional[int] = None,
+                    user_id: Optional[int] = None, client_id: Optional[int] = None) -> None:
+    """The worker body of one agent turn — runs on the Turn's thread, to
+    completion, whether or not anyone is still reading (backend/turns.py).
+
+    record_for: the conversation this turn belongs to. A real (even if
     half-streamed) answer is saved so it's still there on the next visit — but
     a turn that produced nothing but the internal-error notice is NOT persisted,
     so a transient endpoint failure doesn't litter the transcript with error
@@ -849,7 +860,15 @@ def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] 
 
     user_id/client_id: who this turn was for, recorded on the `events` row so
     the admin console can answer "who hit this error" — the thing the bare
-    logger.exception below could never say."""
+    logger.exception below could never say.
+
+    This is the ONLY place a turn's transcript row and chat_turn event are
+    written, and it runs exactly once per turn — so however many readers
+    (the original response, a reconnect) observe the same turn, nothing is
+    persisted twice. Because the thread is not an HTTP-bound generator, a
+    client disconnect can no longer throw GeneratorExit into the agent loop:
+    a genuine mid-turn failure now reaches `except Exception` here and
+    Agent._send_turn's own history rollback, as intended."""
     parts: list[str] = []
     errored = False
     error_type: Optional[str] = None
@@ -858,36 +877,65 @@ def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] 
     try:
         for tok in _agent_tokens(agent, message):
             parts.append(tok)
-            yield _sse(tok)
+            turn.append(tok)
     except Exception as e:
-        # Anything raised mid-generator here previously killed the chunked
-        # HTTP response outright — the client sees a bare transfer-encoding
-        # error with zero context. Log the real cause server-side and end
-        # the stream cleanly instead, so the client at least gets a
-        # well-formed (if apologetic) response rather than a truncated one.
-        logger.exception("agent stream failed mid-response")
+        # Log the real cause server-side and end the turn cleanly with a
+        # well-formed (if apologetic) tail, rather than a truncated stream.
+        logger.exception("agent turn failed mid-response")
         errored = True
         error_type = type(e).__name__
         error_detail = _traceback.format_exc()
-        tail = "\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]"
-        yield _sse(tail)
+        turn.append("\n\n[Aboyeur hit an internal error and couldn't finish this response — check server logs.]")
     latency_ms = int((time.monotonic() - started) * 1000)
     answer = "".join(parts)
-    if record_for is not None and answer.strip():
-        _record_message(record_for, "assistant", answer)
-    elif record_for is not None and errored:
-        # Nothing worth keeping — drop the orphaned user turn too so a retry
-        # starts clean instead of stacking two user messages in the history.
-        _delete_last_user_message(record_for)
-    # After the stream, never inside it: one short write on a connection of
-    # its own, so the event log can't slow a turn down or hold a lock while
-    # the LLM is still talking.
-    _record_turn_event(
-        user_id=user_id, client_id=client_id, session_id=record_for,
-        agent=agent, latency_ms=latency_ms, ok=not errored,
-        error_type=error_type, error_detail=error_detail,
-    )
+    try:
+        if record_for is not None and answer.strip():
+            _record_message(record_for, "assistant", answer)
+        elif record_for is not None and errored:
+            # Nothing worth keeping — drop the orphaned user turn too so a retry
+            # starts clean instead of stacking two user messages in the history.
+            _delete_last_user_message(record_for)
+        # After the stream, never inside it: one short write on a connection of
+        # its own, so the event log can't slow a turn down or hold a lock while
+        # the LLM is still talking.
+        _record_turn_event(
+            user_id=user_id, client_id=client_id, session_id=record_for,
+            agent=agent, latency_ms=latency_ms, ok=not errored,
+            error_type=error_type, error_detail=error_detail,
+        )
+    finally:
+        # Readers unblock only once persistence is done, so "the stream ended"
+        # always means "the transcript has it".
+        turn.finish(error=errored)
+
+
+def _start_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
+                      record_for: Optional[int] = None,
+                      user_id: Optional[int] = None, client_id: Optional[int] = None) -> _Turn:
+    turn.start(lambda t: _run_agent_turn(t, agent, message, record_for=record_for,
+                                         user_id=user_id, client_id=client_id))
+    return turn
+
+
+def _turn_sse(turn: _Turn, start: int = 0) -> Iterator[str]:
+    """SSE frames for one turn's buffered + live chunks, then [DONE]. Pure
+    reader: closing this generator (client gone) doesn't touch the turn."""
+    for tok in turn.stream(start):
+        yield _sse(tok)
     yield _sse("[DONE]")
+
+
+def _agent_stream(agent: _AboyeurAgent, message: str, record_for: Optional[int] = None,
+                  user_id: Optional[int] = None, client_id: Optional[int] = None,
+                  turn: Optional[_Turn] = None) -> Iterator[str]:
+    """Start a turn and stream it as SSE. `turn` is the registry-reserved
+    Turn from /chat (the in-flight guard + reconnect handle); without one an
+    unregistered Turn is used (direct callers with no conversation)."""
+    if turn is None:
+        turn = _Turn()
+    _start_agent_turn(turn, agent, message, record_for=record_for,
+                      user_id=user_id, client_id=client_id)
+    yield from _turn_sse(turn)
 
 
 def _record_turn_event(*, user_id: Optional[int], client_id: Optional[int],
@@ -1070,23 +1118,77 @@ def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_us
         return StreamingResponse(
             iter([_sse("Guest session ended — back to this client's profile."), _sse("[DONE]")]),
             media_type="text/event-stream")
-    if guest is not None:
-        agent = _reset_session_agent(user_id, client_id, chat_session_id, guest=True)
-        if agent is None:
-            return _needs_llm_setup_stream()
-        # Guest turns are deliberately not recorded — nothing a guest says is
-        # persisted anywhere, transcript included.
-        return StreamingResponse(_agent_stream(agent, guest or _GUEST_DEFAULT_PROMPT),
-                                 media_type="text/event-stream")
 
-    agent = _get_session_agent(user_id, client_id, chat_session_id)
-    if agent is None:
-        return _needs_llm_setup_stream()
-    _record_message(chat_session_id, "user", body.message)
-    return StreamingResponse(
-        _agent_stream(agent, body.message, record_for=chat_session_id,
-                      user_id=user_id, client_id=client_id),
-        media_type="text/event-stream")
+    # One turn at a time per conversation. A second message while one is
+    # still generating is REJECTED (409), not queued: the UI disables send
+    # while streaming and, after a refresh, while catching up — so this only
+    # fires for a second tab or an impatient retry, where "wait for the
+    # answer in progress" is the honest response. Reserve before recording
+    # the user message so a rejected duplicate leaves no orphan row.
+    try:
+        turn = _turns.begin(chat_session_id)
+    except _TurnInFlight:
+        raise HTTPException(
+            409, "Aboyeur is still answering the previous message in this conversation — "
+                 "wait for it to finish (reload to catch up on it) before sending another.")
+
+    try:
+        if guest is not None:
+            agent = _reset_session_agent(user_id, client_id, chat_session_id, guest=True)
+            if agent is None:
+                _turns.release(chat_session_id, turn)
+                return _needs_llm_setup_stream()
+            # Guest turns are deliberately not recorded — nothing a guest says is
+            # persisted anywhere, transcript included.
+            _start_agent_turn(turn, agent, guest or _GUEST_DEFAULT_PROMPT)
+            return StreamingResponse(_turn_sse(turn), media_type="text/event-stream")
+
+        agent = _get_session_agent(user_id, client_id, chat_session_id)
+        if agent is None:
+            _turns.release(chat_session_id, turn)
+            return _needs_llm_setup_stream()
+        _record_message(chat_session_id, "user", body.message)
+        _start_agent_turn(turn, agent, body.message, record_for=chat_session_id,
+                          user_id=user_id, client_id=client_id)
+    except Exception:
+        _turns.release(chat_session_id, turn)
+        raise
+    return StreamingResponse(_turn_sse(turn), media_type="text/event-stream")
+
+
+@app.get("/chat/status")
+def chat_status(client_id: Optional[int] = None, session_id: Optional[int] = None,
+                user_id: int = Depends(get_current_user)):
+    """Is a turn in flight (or just finished) for this conversation? The
+    chat screen asks on load so a refresh mid-answer shows "still
+    generating" and catches up instead of presenting stale state."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        chat_session_id = _require_chat_session(conn, resolved, session_id)
+    finally:
+        conn.close()
+    turn = _turns.get(chat_session_id)
+    return {"session_id": chat_session_id, "turn": turn.snapshot() if turn is not None else None}
+
+
+@app.get("/chat/stream")
+def chat_stream(client_id: Optional[int] = None, session_id: Optional[int] = None,
+                start: int = Query(0, ge=0), user_id: int = Depends(get_current_user)):
+    """Re-attach to a conversation's current turn: replays the chunks
+    buffered so far from index `start`, then streams live until it ends —
+    same SSE framing as POST /chat, so the client reads both the same way.
+    404 when there's no turn to attach to (nothing running or recently done)."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        chat_session_id = _require_chat_session(conn, resolved, session_id)
+    finally:
+        conn.close()
+    turn = _turns.get(chat_session_id)
+    if turn is None:
+        raise HTTPException(404, "no turn in progress for this conversation")
+    return StreamingResponse(_turn_sse(turn, start), media_type="text/event-stream")
 
 
 def _require_chat_session(conn: sqlite3.Connection, client_id: int,

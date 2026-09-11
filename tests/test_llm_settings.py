@@ -4,6 +4,8 @@ backend's effective-config + unconfigured-chat behavior."""
 from __future__ import annotations
 
 import os
+import threading
+import types
 import sqlite3
 
 import pytest
@@ -636,3 +638,193 @@ def test_favorites_only_is_empty_for_a_client_with_no_stars(backend_main, api):
     client_id = api.post("/api/clients", json={"name": "Ada"}).json()["id"]
     body = api.get(f"/api/recipes?client_id={client_id}&favorites_only=true").json()
     assert body["results"] == [] and body["total"] == 0
+
+
+# ---------------------------------------------------------------------------
+# A turn survives its client going away (backend/turns.py)
+# ---------------------------------------------------------------------------
+
+class _GatedAgent:
+    """Yields `first`, then blocks until `release` is set, then yields `rest`.
+    Lets a test drop the HTTP-side reader mid-turn and prove the worker
+    still finishes and persists. Carries the telemetry attributes
+    _record_turn_event reads."""
+
+    def __init__(self, first: str = "Planning", rest: str = " your week — done."):
+        self.first, self.rest = first, rest
+        self.release = threading.Event()
+        self.config = types.SimpleNamespace(llm_model="fake-model")
+        self.last_tool_calls = 3
+        self.last_usage = (10, 20)
+
+    def send(self, _message):
+        yield ("text", self.first)
+        assert self.release.wait(10), "test never released the agent"
+        yield ("text", self.rest)
+
+
+def _fresh_session(backend_main, api, email: str) -> tuple[int, int, int]:
+    from aboyeur import chat_history
+    user_id = _as(backend_main, api, email)
+    conn = backend_main._profile_conn()
+    try:
+        client_id = _profile_default_client(backend_main, conn, user_id)
+        session_id = chat_history.create_session(conn, client_id)["id"]
+    finally:
+        conn.close()
+    return user_id, client_id, session_id
+
+
+def _transcript(backend_main, session_id: int) -> list[tuple[str, str]]:
+    from aboyeur import chat_history
+    conn = backend_main._profile_conn()
+    try:
+        return [(m["role"], m["content"]) for m in chat_history.list_messages(conn, session_id)]
+    finally:
+        conn.close()
+
+
+def _turn_events(backend_main, session_id: int) -> list[dict]:
+    from aboyeur import admin
+    conn = backend_main._profile_conn()
+    try:
+        return [e for e in admin.list_events(conn, kind="chat_turn", limit=500)
+                if e.get("session_id") == session_id]
+    finally:
+        conn.close()
+
+
+def test_abandoned_reader_does_not_abort_the_turn(backend_main, api):
+    """Client disconnects after the first chunk (generator closed -> the old
+    code got GeneratorExit and died there). The worker keeps going and the
+    assistant message + chat_turn event land once it finishes."""
+    user_id, client_id, session_id = _fresh_session(backend_main, api, "abandon@example.com")
+    agent = _GatedAgent()
+    backend_main._record_message(session_id, "user", "plan my week")
+
+    turn = backend_main._turns.begin(session_id)
+    backend_main._start_agent_turn(turn, agent, "plan my week", record_for=session_id,
+                                   user_id=user_id, client_id=client_id)
+    reader = backend_main._turn_sse(turn)
+    assert next(reader) == "data: Planning\n\n"
+    reader.close()  # <- the tab refresh
+
+    assert not turn.done
+    assert _transcript(backend_main, session_id) == [("user", "plan my week")]
+    agent.release.set()
+    assert turn.wait(timeout=10)
+
+    assert _transcript(backend_main, session_id) == [
+        ("user", "plan my week"), ("assistant", "Planning your week — done."),
+    ]
+    events = _turn_events(backend_main, session_id)
+    assert len(events) == 1
+    assert events[0]["ok"] is True
+    assert events[0]["tool_calls"] == 3
+
+
+def test_reconnect_replays_and_nothing_is_persisted_twice(backend_main, api):
+    """Original reader + a reconnect (GET /chat/stream) both see the whole
+    turn; the transcript and event log still get exactly one row each."""
+    user_id, client_id, session_id = _fresh_session(backend_main, api, "reconnect@example.com")
+    agent = _GatedAgent()
+    backend_main._record_message(session_id, "user", "plan my week")
+    turn = backend_main._turns.begin(session_id)
+    backend_main._start_agent_turn(turn, agent, "plan my week", record_for=session_id,
+                                   user_id=user_id, client_id=client_id)
+    original = backend_main._turn_sse(turn)
+    assert next(original) == "data: Planning\n\n"
+
+    # Reconnect while it's still running: status says in flight + what's buffered.
+    status = api.get("/chat/status", params={"client_id": client_id, "session_id": session_id}).json()
+    assert status["turn"]["in_flight"] is True
+    assert status["turn"]["text"] == "Planning"
+    assert status["turn"]["chunk_count"] == 1
+
+    agent.release.set()
+    with api.stream("GET", "/chat/stream",
+                    params={"client_id": client_id, "session_id": session_id, "start": 0}) as res:
+        assert res.status_code == 200
+        replay = "".join(res.iter_text())
+    assert replay == "data: Planning\n\ndata:  your week — done.\n\ndata: [DONE]\n\n"
+    assert list(original) == ["data:  your week — done.\n\n", "data: [DONE]\n\n"]
+
+    assert _transcript(backend_main, session_id) == [
+        ("user", "plan my week"), ("assistant", "Planning your week — done."),
+    ]
+    assert len(_turn_events(backend_main, session_id)) == 1
+
+    # After completion the status still answers (done, not in flight) so a
+    # late reload knows to re-read the transcript rather than wait.
+    status = api.get("/chat/status", params={"client_id": client_id, "session_id": session_id}).json()
+    assert status["turn"]["done"] is True and status["turn"]["in_flight"] is False
+
+
+def test_second_message_while_a_turn_runs_is_rejected(backend_main, api, monkeypatch):
+    """Rejected (409), not queued: two turns must never interleave into one
+    Agent's message history. The orphan user row is not written either.
+    (The first turn is started directly rather than through a streaming
+    TestClient request — the test client buffers a response to completion,
+    so it can't hold one open while a second request is made.)"""
+    user_id, client_id, session_id = _fresh_session(backend_main, api, "busy@example.com")
+    agent = _GatedAgent()
+    backend_main._record_message(session_id, "user", "plan my week")
+    turn = backend_main._turns.begin(session_id)
+    backend_main._start_agent_turn(turn, agent, "plan my week", record_for=session_id,
+                                   user_id=user_id, client_id=client_id)
+
+    monkeypatch.setattr(backend_main, "_get_session_agent", lambda *a, **k: agent)
+    second = api.post("/chat", json={"message": "and a dessert", "client_id": client_id,
+                                     "session_id": session_id})
+    assert second.status_code == 409
+    assert "still answering" in second.json()["detail"]
+    assert _transcript(backend_main, session_id) == [("user", "plan my week")]  # no orphan
+
+    agent.release.set()
+    assert turn.wait(timeout=10)
+    assert _transcript(backend_main, session_id) == [
+        ("user", "plan my week"), ("assistant", "Planning your week — done."),
+    ]
+
+    # Once it's done the conversation accepts messages again.
+    agent2 = _GatedAgent(first="Sure", rest=".")
+    agent2.release.set()
+    monkeypatch.setattr(backend_main, "_get_session_agent", lambda *a, **k: agent2)
+    third = api.post("/chat", json={"message": "and a dessert", "client_id": client_id,
+                                    "session_id": session_id})
+    assert third.status_code == 200
+    assert third.text.endswith("data: [DONE]\n\n")
+    assert backend_main._turns.get(session_id).wait(timeout=10)
+    assert _transcript(backend_main, session_id)[-2:] == [
+        ("user", "and a dessert"), ("assistant", "Sure."),
+    ]
+
+
+def test_failed_turn_off_connection_still_rolls_back_and_logs(backend_main, api):
+    """With the turn on its own thread, a mid-turn exception is a real
+    `except Exception` (not a swallowed GeneratorExit): the error tail is
+    buffered for any reader, the orphan user row is removed, and the event
+    row records the failure — even with no reader attached at all."""
+    user_id, client_id, session_id = _fresh_session(backend_main, api, "offline-fail@example.com")
+
+    class _BoomAgent:
+        config = types.SimpleNamespace(llm_model="fake-model")
+        last_tool_calls = 0
+        last_usage = None
+
+        def send(self, _message):
+            yield ("text", "Starting")
+            raise RuntimeError("endpoint down")
+
+    backend_main._record_message(session_id, "user", "plan my week")
+    turn = backend_main._turns.begin(session_id)
+    backend_main._start_agent_turn(turn, _BoomAgent(), "plan my week", record_for=session_id,
+                                   user_id=user_id, client_id=client_id)
+    assert turn.wait(timeout=10)
+    assert turn.error is True
+    assert "internal error" in turn.text()
+    # "Starting" alone is a real partial answer, so it's kept (same rule as before).
+    assert _transcript(backend_main, session_id) == [("user", "plan my week"), ("assistant", "Starting")]
+    events = _turn_events(backend_main, session_id)
+    assert len(events) == 1 and events[0]["ok"] is False
+    assert events[0]["error_type"] == "RuntimeError"

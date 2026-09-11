@@ -489,8 +489,51 @@ export async function* streamChat(
     // ids decide whose plans this turn touches and which thread it continues.
     body: JSON.stringify({ message, client_id: clientId, session_id: sessionId }),
   });
+  yield* readSse(res);
+}
+
+/** A turn the server is running (or just ran) for one conversation. The
+ * turn lives on the server independently of any HTTP connection, so a
+ * refresh mid-answer can find it here and re-attach (see resumeChat). */
+export interface TurnStatus {
+  turn_id: string;
+  in_flight: boolean;
+  done: boolean;
+  error: boolean;
+  /** How many chunks are buffered — pass as `start` to resumeChat to get
+   * only what comes after `text`. */
+  chunk_count: number;
+  /** Everything streamed so far. */
+  text: string;
+  started_at: number;
+  finished_at: number | null;
+}
+
+export function chatStatus(clientId: number, sessionId: number) {
+  return request<{ session_id: number; turn: TurnStatus | null }>(
+    `/chat/status?client_id=${clientId}&session_id=${sessionId}`,
+  );
+}
+
+/** Re-attach to the conversation's current turn: replays buffered chunks
+ * from index `start`, then streams live until "[DONE]". Same framing as
+ * streamChat. 404 when there is nothing to attach to. */
+export async function* resumeChat(clientId: number, sessionId: number, start = 0): AsyncGenerator<string> {
+  const res = await fetch(`${API_BASE}/chat/stream?client_id=${clientId}&session_id=${sessionId}&start=${start}`, {
+    credentials: 'include',
+  });
+  yield* readSse(res);
+}
+
+async function* readSse(res: Response): AsyncGenerator<string> {
   if (!res.ok || !res.body) {
-    throw new ApiError(res.status, res.statusText);
+    let detail = res.statusText;
+    try {
+      detail = (await res.json()).detail || detail;
+    } catch {
+      // no JSON body
+    }
+    throw new ApiError(res.status, detail);
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
