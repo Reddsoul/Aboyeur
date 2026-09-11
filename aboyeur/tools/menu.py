@@ -91,7 +91,9 @@ def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: li
         m = macros_by_id.get(row["id"], {})
         out.append({
             "id": row["id"], "title": row["title"], "book": row["book"], "path": row["path"],
-            "cuisine": row["cuisine"], "servings": row["servings"],
+            "cuisine": row["cuisine"],
+            # Stated servings, else the count the estimate was divided by.
+            "servings": row["servings"] or m.get("servings_est"),
             "course": row["course"], "meal_complete": row["meal_complete"],
             "ingredients": json.loads(row["ingredients_json"]),
             "macros": {
@@ -905,7 +907,7 @@ def swap_menu_item(
             carb_g=float(m.get("carb_g") or 0),
             fat_g=float(m.get("fat_g") or 0),
             fiber_g=float(m.get("fiber_g") or 0),
-            servings=row["servings"],
+            servings=row["servings"] or m.get("servings_est"),
         ))
 
     # Macros above are fresh per-serving values; re-apply portion scaling per

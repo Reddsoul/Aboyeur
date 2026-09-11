@@ -13,15 +13,21 @@ from aboyeur.engines import nutrition as nutrition_engine
 logger = logging.getLogger("aboyeur")
 
 
-def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: list[int]) -> dict[int, dict]:
+def estimate_nutrition(
+    conn: sqlite3.Connection, config: Config, recipe_ids: list[int],
+    *, write_frontmatter: bool = True, raise_on_rate_limit: bool = False,
+) -> dict[int, dict]:
     """Per-serving kcal/macros per recipe. Cached in the `nutrition` table;
     computed and stored on first request. Low-confidence estimates (no USDA
     key, or lookups failed) are flagged rather than silently trusted.
+
+    write_frontmatter / raise_on_rate_limit: batch-job knobs (see
+    aboyeur/estimate_nutrition_batch.py); the agent path uses the defaults.
     """
     out: dict[int, dict] = {}
     for rid in recipe_ids:
         row = conn.execute(
-            "SELECT kcal, protein_g, carbs_g, fat_g, fiber_g, confidence "
+            "SELECT kcal, protein_g, carbs_g, fat_g, fiber_g, confidence, servings_est "
             "FROM nutrition WHERE recipe_id = ?",
             (rid,),
         ).fetchone()
@@ -30,20 +36,27 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
                 "kcal": row["kcal"], "protein_g": row["protein_g"],
                 "carb_g": row["carbs_g"], "fat_g": row["fat_g"],
                 "fiber_g": row["fiber_g"], "confidence": row["confidence"],
+                "servings_est": row["servings_est"],
             }
             continue
 
         rrow = conn.execute(
-            "SELECT ingredients_json, servings, path FROM recipes WHERE id = ?", (rid,)
+            "SELECT ingredients_json, servings, path, serving_est_g FROM recipes WHERE id = ?",
+            (rid,),
         ).fetchone()
         if rrow is None:
             out[rid] = {"error": "recipe not found"}
             continue
 
         ingredients = json.loads(rrow["ingredients_json"])
-        servings = rrow["servings"] or 4
-        macros = nutrition_engine.estimate_recipe_macros(conn, config, ingredients, servings)
+        # Stated servings win; otherwise derived from total grams and the
+        # course's plate size (engines/nutrition.py derive_servings), else 4.
+        macros = nutrition_engine.estimate_recipe_macros(
+            conn, config, ingredients, rrow["servings"], serving_est_g=rrow["serving_est_g"],
+            raise_on_rate_limit=raise_on_rate_limit,
+        )
         confidence = "medium" if macros["usda_status"] == "success" else "low"
+        servings_est = macros["servings_used"] if macros["servings_source"] == "estimated" else None
 
         # Same reasoning as the usda_cache table (engines/nutrition.py): a
         # "low" confidence estimate is a statement about missing/failed
@@ -53,19 +66,20 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
         if confidence != "low":
             now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             conn.execute(
-                """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, fiber_g, per_serving, confidence, estimated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                """INSERT INTO nutrition (recipe_id, kcal, protein_g, carbs_g, fat_g, fiber_g, per_serving, confidence, estimated_at, servings_est)
+                   VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
                    ON CONFLICT(recipe_id) DO UPDATE SET kcal=excluded.kcal, protein_g=excluded.protein_g,
                    carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, fiber_g=excluded.fiber_g,
-                   confidence=excluded.confidence, estimated_at=excluded.estimated_at""",
+                   confidence=excluded.confidence, estimated_at=excluded.estimated_at,
+                   servings_est=excluded.servings_est""",
                 (rid, macros["calories"], macros["protein_g"], macros["carb_g"], macros["fat_g"],
-                 macros.get("fiber_g", 0), confidence, now),
+                 macros.get("fiber_g", 0), confidence, now, servings_est),
             )
             conn.commit()
             # Persist into the recipe .md too, so the estimate survives DB
             # rebuilds — the indexer reads the nutrition block back into the
             # table. Best-effort: an unmounted NAS never fails the tool call.
-            if not nutrition_engine.write_nutrition_frontmatter(
+            if write_frontmatter and not nutrition_engine.write_nutrition_frontmatter(
                 rrow["path"], macros, confidence, now
             ):
                 logger.warning("couldn't write nutrition frontmatter to %s", rrow["path"])
@@ -73,5 +87,6 @@ def estimate_nutrition(conn: sqlite3.Connection, config: Config, recipe_ids: lis
             "kcal": macros["calories"], "protein_g": macros["protein_g"],
             "carb_g": macros["carb_g"], "fat_g": macros["fat_g"],
             "fiber_g": macros.get("fiber_g", 0), "confidence": confidence,
+            "servings_est": servings_est,
         }
     return out

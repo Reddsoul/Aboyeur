@@ -134,6 +134,17 @@ def _add_recipe_classification_columns(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _add_nutrition_servings_est(conn: sqlite3.Connection) -> None:
+    """nutrition.servings_est — the derived serving count behind a
+    per-serving estimate for a recipe with no stated servings (see
+    engines/nutrition.py derive_servings). Nullable, nothing to backfill."""
+    if not _table_exists(conn, "nutrition"):
+        return
+    if "servings_est" not in _column_names(conn, "nutrition"):
+        conn.execute("ALTER TABLE nutrition ADD COLUMN servings_est INTEGER")
+        conn.commit()
+
+
 def _add_account_columns(conn: sqlite3.Connection) -> None:
     """The account screen needs somewhere to put the practitioner's own name.
     Plain ADD COLUMNs: nullable, no default, nothing to backfill."""
@@ -368,6 +379,7 @@ def migrate(conn: sqlite3.Connection) -> int:
     _add_account_columns(conn)
     _add_is_admin_column(conn)
     _add_recipe_classification_columns(conn)
+    _add_nutrition_servings_est(conn)
     _migrate_chat_sessions(conn)
     # Deliberately not in db.py's static SCHEMA — see the comment above the
     # menus table there. Safe to run every time: the scoping column is

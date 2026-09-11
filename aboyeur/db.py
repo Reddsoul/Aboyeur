@@ -126,7 +126,11 @@ CREATE TABLE IF NOT EXISTS nutrition (
     micros_json   TEXT,
     per_serving   INTEGER NOT NULL DEFAULT 1,
     confidence    TEXT NOT NULL DEFAULT 'unknown',
-    estimated_at  TEXT
+    estimated_at  TEXT,
+    -- Servings the per-serving figures were divided by when the recipe
+    -- itself doesn't say (derived from total parsed grams / the course's
+    -- serving_est_g). NULL when the recipe stated its servings.
+    servings_est  INTEGER
 );
 
 -- Parsed ingredient lines ("6 eggs" -> food "eggs", ~300 g), LLM-produced.

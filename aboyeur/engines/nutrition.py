@@ -531,6 +531,23 @@ def validated_per_100g(macros: dict) -> dict | None:
     ]})
 
 
+def _retry_after_seconds(resp) -> float:
+    try:
+        return max(1.0, float(resp.headers.get("Retry-After", "60")))
+    except (TypeError, ValueError):
+        return 60.0
+
+
+class RateLimited(Exception):
+    """Raised by estimate_recipe_macros(raise_on_rate_limit=True) so a batch
+    caller can sleep and resume instead of persisting a half-resolved
+    estimate. The default path (agent tools) never raises."""
+
+    def __init__(self, retry_after_s: float):
+        super().__init__(f"USDA rate limit hit; retry after {retry_after_s:.0f}s")
+        self.retry_after_s = retry_after_s
+
+
 def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str) -> dict:
     """Per-100g macros for one ingredient via USDA. Cached in the usda_cache table.
 
@@ -567,6 +584,14 @@ def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str
                     params["dataType"] = data_types
                 try:
                     resp = httpx.get(USDA_URL, params=params, timeout=15)
+                    if resp.status_code == 429:
+                        # Rate-limited (FDC: 1,000 requests/hour/IP). Stop
+                        # querying this food — every further call would 429
+                        # too — and tell the caller so a batch job can pause
+                        # instead of burning the hour on non-answers.
+                        result["status"] = "rate_limited"
+                        result["retry_after_s"] = _retry_after_seconds(resp)
+                        return result
                     resp.raise_for_status()
                     foods = resp.json().get("foods") or []
                 except (httpx.HTTPError, ValueError, KeyError):
@@ -616,19 +641,43 @@ def lookup_ingredient_macros(conn: sqlite3.Connection, config: Config, name: str
     return result
 
 
+# Derived-servings clamp: a recipe's total parsed grams / the course's
+# typical plate size (recipes.serving_est_g, from the classifier) — used
+# only when the recipe itself doesn't say how many it serves, which in this
+# corpus is ~98% of them. "/4" was the old blanket default; a 4 kg stew and
+# a two-egg omelet are not both four servings.
+SERVINGS_EST_MIN = 1
+SERVINGS_EST_MAX = 16
+DEFAULT_SERVINGS = 4
+
+
+def derive_servings(total_grams: float, serving_est_g: float | None) -> int | None:
+    if not serving_est_g or serving_est_g <= 0 or total_grams <= 0:
+        return None
+    return int(max(SERVINGS_EST_MIN, min(SERVINGS_EST_MAX, round(total_grams / serving_est_g))))
+
+
 def estimate_recipe_macros(
     conn: sqlite3.Connection,
     config: Config,
     ingredients: list[str],
-    servings: int = 4,
+    servings: int | None = DEFAULT_SERVINGS,
     grams_per_ingredient: float = _DEFAULT_GRAMS_PER_INGREDIENT,
+    serving_est_g: float | None = None,
+    raise_on_rate_limit: bool = False,
 ) -> dict:
     """Best-effort per-serving macros for a recipe from its ingredient names.
 
-    Returns {calories, protein_g, carb_g, fat_g, usda_status}. Macros are 0 when
-    nothing resolves (usda_status failed/skipped) so callers can flag confidence.
+    Returns {calories, protein_g, carb_g, fat_g, fiber_g, usda_status,
+    servings_used, servings_source, total_grams}. Macros are 0 when nothing
+    resolves (usda_status failed/skipped) so callers can flag confidence.
+
+    servings: as written in the recipe; None/0 means unknown. Then, if
+    serving_est_g is given and the LLM parse produced real grams, servings
+    are derived from total grams (servings_source "estimated"); otherwise
+    DEFAULT_SERVINGS ("default").
     """
-    servings = max(1, int(servings or 1))
+    stated = int(servings) if servings else 0
     # LLM parse gives each line a real food name and quantity-aware grams
     # ("6 eggs" -> eggs/300g, "12 eggs" -> eggs/600g). Skipped without a USDA
     # key — nothing downstream would use the parse. USDA cache is keyed by the
@@ -644,10 +693,13 @@ def estimate_recipe_macros(
     totals = {"kcal": 0.0, "protein_g": 0.0, "carb_g": 0.0, "fat_g": 0.0, "fiber_g": 0.0}
     statuses = []
     matched_grams = total_grams = 0.0
+    real_grams = all(p.get("source") in ("cache", "llm") for p in parsed if p.get("food"))
     for p in parsed:
         if not p["food"]:
             continue
         per100 = lookup_ingredient_macros(conn, config, p["food"])
+        if per100["status"] == "rate_limited" and raise_on_rate_limit:
+            raise RateLimited(per100.get("retry_after_s", 60.0))
         statuses.append(per100["status"])
         total_grams += p["grams"]
         if per100["status"] == "success":
@@ -680,15 +732,28 @@ def estimate_recipe_macros(
     else:
         status = "failed"
 
+    if stated > 0:
+        servings_used, servings_source = stated, "recipe"
+    else:
+        derived = derive_servings(total_grams, serving_est_g) if real_grams else None
+        if derived is not None:
+            servings_used, servings_source = derived, "estimated"
+        else:
+            servings_used, servings_source = DEFAULT_SERVINGS, "default"
+    servings_used = max(1, servings_used)
+
     return {
-        "calories": round(totals["kcal"] / servings, 1),
-        "protein_g": round(totals["protein_g"] / servings, 1),
-        "carb_g": round(totals["carb_g"] / servings, 1),
-        "fat_g": round(totals["fat_g"] / servings, 1),
-        "fiber_g": round(totals["fiber_g"] / servings, 1),
+        "calories": round(totals["kcal"] / servings_used, 1),
+        "protein_g": round(totals["protein_g"] / servings_used, 1),
+        "carb_g": round(totals["carb_g"] / servings_used, 1),
+        "fat_g": round(totals["fat_g"] / servings_used, 1),
+        "fiber_g": round(totals["fiber_g"] / servings_used, 1),
         "usda_status": status,
         "matched_ingredients": matched,
         "total_ingredients": total,
+        "servings_used": servings_used,
+        "servings_source": servings_source,
+        "total_grams": round(total_grams, 1),
     }
 
 
@@ -716,7 +781,9 @@ def write_nutrition_frontmatter(
         f"  carbs_g: {macros['carb_g']}\n"
         f"  fat_g: {macros['fat_g']}\n"
         f"  fiber_g: {macros.get('fiber_g', 0)}\n"
-        f"  confidence: {confidence}\n"
+        + (f"  servings_est: {macros['servings_used']}\n"
+           if macros.get("servings_source") == "estimated" else "")
+        + f"  confidence: {confidence}\n"
         f"  estimated_at: {estimated_at}\n"
     )
     try:
