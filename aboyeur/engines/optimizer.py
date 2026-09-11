@@ -40,6 +40,10 @@ W_MACRO_FIT = 3.0
 W_SAME_BOOK_PENALTY = 0.4
 W_PROTEIN_REPEAT_PENALTY = 0.4
 PROTEIN_MISSING_PENALTY = 2.5
+# A dish with no nutrition data (kcal 0) can't be graded or portion-solved;
+# when the pool has dishes WITH data, prefer those. Uniform across an
+# all-unknown pool, so it never changes the order there.
+UNKNOWN_NUTRITION_PENALTY = 2.0
 CONSTRAINT_NUDGE = 3.0
 
 # Hard floor on the plan-wide overlap_score (0-100). If the first greedy pass
@@ -445,6 +449,8 @@ def select_menu(
     meals_per_day: int = 1,
     target_macros: dict | None = None,
     start_day: int = 1,
+    day_numbers: list[int] | None = None,
+    seed_ingredients: set[str] | None = None,
 ) -> dict:
     """Greedy selection: `days * meals_per_day` picks, each maximizing
     overlap+pantry+macro fit against what's already chosen, minus same-book
@@ -472,6 +478,14 @@ def select_menu(
                  pick, top-up note, daily total and infeasibility reason
                  carries the real day number instead of restarting at 1
                  (see tools/menu.py plan_menu's extend_menu_id).
+    day_numbers: explicit day number per planned day (len == days), for
+                 re-planning a non-contiguous set of failed days (2, 5, 7)
+                 while the good ones are kept. Overrides start_day.
+    seed_ingredients: meaningful ingredients already committed elsewhere in
+                 the plan (kept days, an extended menu's existing days). Picks
+                 are scored for overlap with these from the first slot, so a
+                 repaired/extended day reuses what's already on the shopping
+                 list instead of starting its own.
     """
     diet_modes = diet_modes or []
     vegetarian = "vegetarian" in diet_modes or "vegan" in diet_modes
@@ -479,6 +493,11 @@ def select_menu(
     cuisine_affinity = [c.lower() for c in (cuisine_affinity or [])]
     meals_per_day = max(1, int(meals_per_day or 1))
     start_day = max(1, int(start_day or 1))
+    if day_numbers is not None:
+        if len(day_numbers) != days:
+            raise ValueError(f"day_numbers has {len(day_numbers)} entries for {days} days")
+        day_numbers = [int(d) for d in day_numbers]
+    seed_ingredients = set(seed_ingredients or ())
     total_picks = days * meals_per_day
     daily_target = (target_kcal or 0) * meals_per_day
 
@@ -525,6 +544,14 @@ def select_menu(
     # top-ups, where pairing one with the chosen main is exactly the point.
     main_pool = [c for c in base_pool if is_meal_main_eligible(c)]
     accompaniment_pool = [c for c in base_pool if not is_meal_main_eligible(c)]
+    # A dish with no nutrition data can't be graded or portion-solved. When
+    # enough dishes WITH data exist to fill every slot, plan only from those
+    # — an "unknown" day is a plan that can't be checked, not a plan. Same
+    # never-starve shape as the cuisine filter: with too few known dishes the
+    # unknowns stay in (and UNKNOWN_NUTRITION_PENALTY nudges past them).
+    known_mains = [c for c in main_pool if float(c.get("macros", {}).get("calories") or 0) > 0]
+    if len(known_mains) >= total_picks:
+        main_pool = known_mains
     if len(main_pool) < total_picks:
         infeasible_reasons.append(
             f"only {len(main_pool)} main-eligible dishes for {total_picks} meal "
@@ -535,7 +562,7 @@ def select_menu(
     def _greedy(overlap_weight: float) -> tuple[list[MenuPick], list[dict], dict[str, int], set[str]]:
         pool = list(main_pool)
         picks: list[MenuPick] = []
-        selected_meaningful: set[str] = set()
+        selected_meaningful: set[str] = set(seed_ingredients)
         book_counts: dict[str, int] = {}
         protein_counts: dict[str, int] = {}
         constraint_counts: dict[str, int] = {kw: 0 for kw in constraints}
@@ -550,13 +577,15 @@ def select_menu(
             mp = main_protein(ings)
             protein_pen = protein_counts.get(mp, 0) if mp else 0
             missing_protein_pen = 0.0 if vegetarian or has_protein(ings) else PROTEIN_MISSING_PENALTY
+            unknown_pen = 0.0 if float(c.get("macros", {}).get("calories") or 0) > 0 else UNKNOWN_NUTRITION_PENALTY
 
             s = (overlap_weight * overlap
                  + W_PANTRY_OVERLAP * pantry_s
                  + W_MACRO_FIT * macro_s
                  - W_SAME_BOOK_PENALTY * book_pen
                  - W_PROTEIN_REPEAT_PENALTY * protein_pen
-                 - missing_protein_pen)
+                 - missing_protein_pen
+                 - unknown_pen)
 
             joined = " ".join(ings).lower() + " " + c["title"].lower()
             for kw, target_n in constraints.items():
@@ -570,13 +599,18 @@ def select_menu(
 
             m_ings = meaningful_ingredients(best["ingredients"])
             shared = sorted(m_ings & selected_meaningful)
-            reason = "best pantry/macro fit" if not picks else f"shares {len(shared)} ingredients"
+            reason = (
+                "best pantry/macro fit" if not picks and not shared
+                else f"shares {len(shared)} ingredients"
+            )
+            day_idx = slot // meals_per_day
             picks.append(MenuPick(
                 recipe_id=best["id"], title=best["title"], book=best["book"], path=best.get("path"),
                 ingredients=best["ingredients"], shared_ingredients=shared,
                 macro_fit=round(macro_fit(best.get("macros", {}), target_kcal, target_macros), 2),
                 pick_reason=reason,
-                day=slot // meals_per_day + start_day, meal=slot % meals_per_day + 1,
+                day=day_numbers[day_idx] if day_numbers is not None else day_idx + start_day,
+                meal=slot % meals_per_day + 1,
                 kcal=float(best.get("macros", {}).get("calories") or 0),
                 protein_g=float(best.get("macros", {}).get("protein_g") or 0),
                 carb_g=float(best.get("macros", {}).get("carb_g") or 0),

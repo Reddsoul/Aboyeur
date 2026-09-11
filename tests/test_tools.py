@@ -431,20 +431,42 @@ def test_plan_menu_returns_requested_days(db_conn: sqlite3.Connection, config: C
     assert "menu_id" in plan
 
 
-def test_plan_menu_refuses_when_pool_cannot_make_meals(
-    db_conn: sqlite3.Connection, config: Config, client_id: int,
-):
-    # A candidate pool that is only desserts/drinks/components can't build a
-    # menu — plan_menu returns cannot_build and does NOT persist a draft.
-    dessert_ids = [
-        r["id"] for r in db_conn.execute(
+def _dessert_ids(conn: sqlite3.Connection) -> list[int]:
+    ids = [
+        r["id"] for r in conn.execute(
             "SELECT id, title FROM recipes WHERE lower(title) LIKE '%cake%' "
             "OR lower(title) LIKE '%glaze%' OR lower(title) LIKE '%tea-cake%'"
         ).fetchall()
     ]
-    assert dessert_ids, "fixture should contain some dessert recipes"
+    assert ids, "fixture should contain some dessert recipes"
+    return ids
+
+
+def test_plan_menu_repairs_a_useless_pool_from_the_corpus(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    """A candidate pool that is only desserts used to be a refusal. Now
+    plan_menu widens the pool itself from the library and still delivers
+    every requested day — with real dishes, never the desserts."""
+    from aboyeur.tools import menu as menu_mod
+    result = plan_menu(db_conn, config, client_id, candidate_ids=_dessert_ids(db_conn), days=3)
+    assert "error" not in result, result
+    assert sorted({d["day"] for d in result["days"]}) == [1, 2, 3]
+    assert not any(optimizer.is_dessert(d["title"]) for d in result["days"])
+    assert result["repair_notes"] and result["repair_notes"][0].startswith("round 1")
+    assert "repair" not in result["summary_markdown"].lower() or "Not fully on target" in result["summary_markdown"]
+    assert menu_mod.REPAIR_ROUNDS[0] >= 3 * 3  # widening asks for at least a few x the slots
+
+
+def test_plan_menu_refuses_only_when_the_library_has_nothing_left(
+    db_conn: sqlite3.Connection, config: Config, client_id: int, monkeypatch,
+):
+    # With nothing to widen from, an all-dessert pool is still a refusal —
+    # cannot_build, nothing persisted, Macro Kit suggested.
+    from aboyeur.tools import menu as menu_mod
+    monkeypatch.setattr(menu_mod, "_widen_pool", lambda *a, **k: [])
     before = db_conn.execute("SELECT COUNT(*) AS n FROM menus").fetchone()["n"]
-    result = plan_menu(db_conn, config, client_id, candidate_ids=dessert_ids, days=3)
+    result = plan_menu(db_conn, config, client_id, candidate_ids=_dessert_ids(db_conn), days=3)
     assert result["error"] == "cannot_build"
     assert result["reasons"]
     assert result["suggest"] == "macro_kit"
@@ -523,7 +545,7 @@ def test_plan_menu_day_solver_hits_all_macros_and_varies_portions(
     )
 
 
-def test_plan_menu_refuses_impossible_omad_day(
+def test_plan_menu_delivers_an_impossible_omad_week_flagged(
     db_conn: sqlite3.Connection, config: Config, client_id: int, user_id: int, monkeypatch,
 ):
     from aboyeur import clients
@@ -544,8 +566,15 @@ def test_plan_menu_refuses_impossible_omad_day(
         for rid in eligible
     })
     result = plan_menu(db_conn, config, cid, candidate_ids=eligible, days=3, meals_per_day=1)
-    assert result["error"] == "cannot_build"
-    assert result["suggest"] == "macro_kit"
+    # Every dish in the library is a 120 kcal side, so no repair round can
+    # fix it — but the week is still delivered, every day flagged honestly
+    # rather than hidden behind a refusal.
+    assert "error" not in result, result
+    assert sorted({d["day"] for d in result["days"]}) == [1, 2, 3]
+    assert all(t["macro_status"] == "off" for t in result["daily_totals"])
+    assert all(t["gap_notes"] for t in result["daily_totals"])
+    assert result["repair_notes"][-1].startswith("day(s) 1, 2, 3 are the closest")
+    assert "**Not fully on target:** days 1, 2, 3" in result["summary_markdown"]
 
 
 def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: Config, client_id: int):
@@ -1212,12 +1241,14 @@ def test_plan_menu_extend_unknown_menu_errors(
 
 
 def test_plan_menu_extend_infeasible_leaves_existing_menu_untouched(
-    db_conn: sqlite3.Connection, config: Config, client_id: int,
+    db_conn: sqlite3.Connection, config: Config, client_id: int, monkeypatch,
 ):
-    """A continuation that can't be built surfaces as cannot_build, exactly
-    like a fresh plan — the days already planned are neither shortened nor
-    partially appended to."""
+    """A continuation that can't be built (nothing left to widen from)
+    surfaces as cannot_build, exactly like a fresh plan — the days already
+    planned are neither shortened nor partially appended to."""
+    from aboyeur.tools import menu as menu_mod
     from aboyeur.tools.menu import plan_menu
+    monkeypatch.setattr(menu_mod, "_widen_pool", lambda *a, **k: [])
     ids = _all_ids(db_conn)
     first = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
     mid = first["menu_id"]
@@ -1333,3 +1364,41 @@ def test_agent_hands_the_model_the_summary_markdown_not_the_table_json():
     # swap_menu_item shares the contract; a cannot_build result stays JSON.
     assert _tool_result_text("swap_menu_item", result).startswith("## Menu #4")
     assert _tool_result_text("plan_menu", {"error": "cannot_build", "reasons": []}).startswith("{")
+
+
+def test_widen_pool_ranks_by_shared_ingredients_and_skips_desserts(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    from aboyeur.tools import menu as menu_mod
+    from aboyeur.tools.profile import get_profile
+    profile = get_profile(db_conn, client_id)
+    anchor = db_conn.execute(
+        "SELECT id, ingredients_json FROM recipes WHERE lower(title) LIKE '%gosht%' LIMIT 1"
+    ).fetchone()
+    seeds = optimizer.meaningful_ingredients(json.loads(anchor["ingredients_json"]))
+    assert seeds
+    got = menu_mod._widen_pool(
+        db_conn, config, profile, pantry=set(), exclude_ids={anchor["id"]}, exclude_titles=set(),
+        seed_ingredients=seeds, want=6, uncached_cap=6,
+    )
+    assert got and len(got) <= 6
+    assert anchor["id"] not in {c["id"] for c in got}
+    assert not any(optimizer.is_menu_ineligible(c["title"], c["ingredients"], c.get("course")) for c in got)
+    overlaps = [len(optimizer.meaningful_ingredients(c["ingredients"]) & seeds) for c in got]
+    assert overlaps == sorted(overlaps, reverse=True)  # best-shared first
+    assert overlaps[0] > 0
+
+
+def test_widen_pool_caps_uncached_nutrition_lookups(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    from aboyeur.tools import menu as menu_mod
+    from aboyeur.tools.profile import get_profile
+    profile = get_profile(db_conn, client_id)
+    got = menu_mod._widen_pool(
+        db_conn, config, profile, pantry=set(), exclude_ids=set(), exclude_titles=set(),
+        seed_ingredients=set(), want=50, uncached_cap=2,
+    )
+    # No nutrition rows exist in a fresh fixture DB, so everything is
+    # uncached and the cap is the whole budget.
+    assert len(got) == 2

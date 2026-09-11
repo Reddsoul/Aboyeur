@@ -174,6 +174,229 @@ def _ingredients_for(conn: sqlite3.Connection, recipe_ids: list[int]) -> dict[in
     return {r["id"]: json.loads(r["ingredients_json"]) for r in rows}
 
 
+# Self-repair: how many times plan_menu widens the pool and re-plans the
+# days that missed target before delivering its best attempt. Each round
+# pulls this many extra corpus recipes, ranked by ingredient overlap with
+# what's already in the plan (cached-nutrition recipes first — estimating
+# nutrition for an uncached one costs LLM + USDA round-trips).
+REPAIR_ROUNDS = (60, 150, 300)
+REPAIR_UNCACHED_CAP = (10, 20, 30)
+
+
+def _widen_pool(
+    conn: sqlite3.Connection,
+    config: Config,
+    profile: dict,
+    pantry: set[str],
+    exclude_ids: set[int],
+    exclude_titles: set[str],
+    seed_ingredients: set[str],
+    want: int,
+    uncached_cap: int,
+) -> list[dict]:
+    """Pull `want` more menu-eligible recipes from the whole corpus, ranked
+    by how many ingredients they share with `seed_ingredients` (the dishes
+    already in the plan) and the pantry — so a repaired day reuses the
+    shopping list rather than adding to it. Allergies are hard-excluded here
+    exactly as search_recipes does; cuisine_affinity is applied when it
+    leaves enough to choose from. Recipes with cached nutrition come first
+    (free); at most `uncached_cap` uncached ones are admitted per round
+    because each costs a live estimate."""
+    from aboyeur.engines import allergens
+    allergies = allergens.expand_all([a for a in profile.get("allergies", []) if a and a.strip()])
+    affinity = {c.lower() for c in (profile.get("cuisine_affinity") or [])}
+    rows = conn.execute(
+        """SELECT r.id, r.title, r.cuisine, r.course, r.meal_complete, r.ingredients_json,
+                  (n.recipe_id IS NOT NULL) AS has_nutrition
+           FROM recipes r LEFT JOIN nutrition n ON n.recipe_id = r.id
+           WHERE r.course IN ('main', 'breakfast', 'unknown')"""
+    ).fetchall()
+
+    scored: list[tuple[float, bool, int]] = []
+    seen_titles = set(exclude_titles)
+    for r in rows:
+        if r["id"] in exclude_ids:
+            continue
+        nt = optimizer.norm_title(r["title"])
+        if nt in seen_titles:
+            continue
+        ingredients = json.loads(r["ingredients_json"])
+        if optimizer.is_menu_ineligible(r["title"], ingredients, r["course"]):
+            continue
+        blob = " ".join(ingredients).lower() + " " + r["title"].lower()
+        if allergies and any(a in blob for a in allergies):
+            continue
+        m_ings = optimizer.meaningful_ingredients(ingredients)
+        overlap = len(m_ings & seed_ingredients)
+        pantry_hits = sum(1 for i in m_ings if any(p in i or i in p for p in pantry)) if pantry else 0
+        score = 2.0 * overlap + 1.0 * pantry_hits
+        if affinity and (r["cuisine"] or "").lower() in affinity:
+            score += 1.5
+        if r["meal_complete"]:
+            score += 0.5
+        if r["course"] == "unknown":
+            score -= 0.5
+        seen_titles.add(nt)
+        scored.append((score, bool(r["has_nutrition"]), r["id"]))
+
+    scored.sort(key=lambda t: (-t[0], not t[1], t[2]))
+    picked: list[int] = []
+    uncached = 0
+    for _, cached, rid in scored:
+        if len(picked) >= want:
+            break
+        if not cached:
+            if uncached >= uncached_cap:
+                continue
+            uncached += 1
+        picked.append(rid)
+    if not picked:
+        return []
+    # _load_candidates returns DB order; keep the overlap ranking.
+    by_id = {c["id"]: c for c in _load_candidates(conn, config, picked)}
+    return [by_id[rid] for rid in picked if rid in by_id]
+
+
+def _merge_results(kept: dict, kept_days: set[int], sub: dict) -> dict:
+    """Combine the kept days of one select_menu result with the re-planned
+    days of another into one result-shaped dict."""
+    picks = [p for p in kept["picks"] if p.day in kept_days] + list(sub["picks"])
+    picks.sort(key=lambda p: (p.day, p.meal, p.role != "main"))
+    totals = [t for t in kept["daily_totals"] if t["day"] in kept_days] + list(sub["daily_totals"])
+    totals.sort(key=lambda t: t["day"])
+    constraints = dict(kept.get("constraints_met") or {})
+    for kw, n in (sub.get("constraints_met") or {}).items():
+        constraints[kw] = constraints.get(kw, 0) + n
+    overlap = optimizer.compute_overlap_score(picks)
+    off = [t for t in totals if t.get("macro_status") == "off"]
+    reasons = [f"day {t['day']}: " + ("; ".join(t.get("gap_notes") or []) or "misses target") for t in off]
+    reasons += [r for r in sub.get("infeasible_reasons", []) if not r.startswith("day ")]
+    return {
+        "picks": picks,
+        "feasible": not reasons,
+        "infeasible_reasons": reasons,
+        "overlap_score": overlap,
+        "overlap_floor_met": overlap >= optimizer.MIN_OVERLAP_SCORE,
+        "macro_fit_avg": round(sum(p.macro_fit for p in picks) / len(picks), 2) if picks else 0.0,
+        "constraints_met": constraints,
+        "daily_totals": totals,
+    }
+
+
+def _failed_days(
+    result: dict, wanted_days: list[int], meals_per_day: int, include_unknown: bool = False,
+) -> list[int]:
+    """Days that missed target, have too few dishes, or are missing entirely.
+
+    include_unknown: also count days with no nutrition data. Only sensible
+    when the pool actually contains dishes WITH data (otherwise every day is
+    unknown and re-planning can't change that) — a known-macro day beats an
+    unknown one, so the repair pass swaps unknowns out when it can."""
+    by_day: dict[int, int] = {}
+    for p in result["picks"]:
+        if p.role == "main":
+            by_day[p.day] = by_day.get(p.day, 0) + 1
+    status = {t["day"]: t.get("macro_status") for t in result["daily_totals"]}
+    bad = {"off", "unknown"} if include_unknown else {"off"}
+    return [
+        d for d in wanted_days
+        if by_day.get(d, 0) < meals_per_day or status.get(d) in bad
+    ]
+
+
+def _repair_failed_days(
+    conn: sqlite3.Connection,
+    config: Config,
+    profile: dict,
+    pantry: set[str],
+    result: dict,
+    candidates: list[dict],
+    wanted_days: list[int],
+    *,
+    meals_per_day: int,
+    avg_kcal: float,
+    target_macros: dict | None,
+    constraints: dict | None,
+    exclude_ids: set[int],
+    exclude_titles: set[str],
+    seed_ingredients: set[str],
+) -> tuple[dict, list[dict], list[str]]:
+    """When the first pass leaves days off target, keep the days that landed
+    and re-plan only the failed ones from a progressively wider corpus pool,
+    scoring every replacement for overlap with the ingredients the plan
+    already uses. Returns (best result, all candidates seen, notes).
+
+    This replaces the old "refuse the whole plan" behavior: a 7-day request
+    now comes back as 7 days, with any day that still couldn't be brought
+    fully on target after the last round flagged in its daily_totals
+    (macro_status "off" + gap_notes) and in `repair_notes` — never a plan
+    missing days, never a table hidden behind a refusal."""
+    notes: list[str] = []
+    all_candidates = list(candidates)
+    seen_ids = set(exclude_ids) | {c["id"] for c in candidates}
+    seen_titles = set(exclude_titles) | {optimizer.norm_title(c["title"]) for c in candidates}
+    best = result
+
+    def _has_known() -> bool:
+        return any(c.get("confidence") != "low" for c in all_candidates)
+
+    for round_no, (want, uncached_cap) in enumerate(zip(REPAIR_ROUNDS, REPAIR_UNCACHED_CAP), 1):
+        failed = _failed_days(best, wanted_days, meals_per_day, include_unknown=_has_known())
+        if not failed:
+            break
+        kept_days = set(wanted_days) - set(failed)
+        kept_picks = [p for p in best["picks"] if p.day in kept_days]
+        seeds = set(seed_ingredients)
+        for p in kept_picks:
+            seeds |= optimizer.meaningful_ingredients(p.ingredients)
+        kept_ids = {p.recipe_id for p in kept_picks}
+        kept_titles = {optimizer.norm_title(p.title) for p in kept_picks}
+
+        extra = _widen_pool(
+            conn, config, profile, pantry,
+            exclude_ids=seen_ids | kept_ids, exclude_titles=seen_titles | kept_titles,
+            seed_ingredients=seeds, want=want, uncached_cap=uncached_cap,
+        )
+        for c in extra:
+            seen_ids.add(c["id"])
+            seen_titles.add(optimizer.norm_title(c["title"]))
+        all_candidates.extend(extra)
+
+        pool = [
+            c for c in all_candidates
+            if c["id"] not in kept_ids and optimizer.norm_title(c["title"]) not in kept_titles
+        ]
+        sub = optimizer.select_menu(
+            pool, days=len(failed), pantry=pantry, target_kcal=avg_kcal,
+            diet_modes=profile.get("diet_modes", []), constraints=constraints,
+            cuisine_affinity=profile.get("cuisine_affinity", []),
+            meals_per_day=meals_per_day, target_macros=target_macros,
+            day_numbers=failed, seed_ingredients=seeds,
+        )
+        merged = _merge_results(best, kept_days, sub)
+        known = _has_known()
+        merged_failed = _failed_days(merged, wanted_days, meals_per_day, include_unknown=known)
+        notes.append(
+            f"round {round_no}: re-planned day(s) {', '.join(map(str, failed))} from "
+            f"{len(extra)} added recipes; {len(merged_failed)} still off"
+        )
+        # Keep whichever attempt leaves fewer failed days (ties: the newer,
+        # which had the wider, overlap-ranked pool).
+        if len(merged_failed) <= len(_failed_days(best, wanted_days, meals_per_day, include_unknown=known)):
+            best = merged
+        if not merged_failed:
+            break
+
+    still = _failed_days(best, wanted_days, meals_per_day, include_unknown=_has_known())
+    if still and notes:
+        notes.append(
+            f"day(s) {', '.join(map(str, still))} are the closest the cookbook library "
+            f"gets after {len(notes)} repair round(s) — see gap_notes (or missing nutrition "
+            f"data); a swap or a Macro Kit can close the gap"
+        )
+    return best, all_candidates, notes
+
+
 def _fmt_g(v) -> str:
     try:
         return f"{round(float(v))} g"
@@ -303,6 +526,14 @@ def render_menu_summary(plan: dict) -> str:
             f"shared across recipes: {shared_txt}"
         )
 
+    off_days = [t["day"] for t in totals if t.get("macro_status") == "off"]
+    if off_days:
+        lines.append(
+            f"**Not fully on target:** day{'s' if len(off_days) > 1 else ''} "
+            f"{', '.join(map(str, off_days))} — closest the library gets (see Status); "
+            "swap the day or use a Macro Kit to close the gap."
+        )
+
     low = plan.get("low_confidence_nutrition") or []
     if low:
         titles = {d["recipe_id"]: d.get("title") for d in days}
@@ -337,6 +568,14 @@ def plan_menu(
     Persists the plan as a draft menu and returns it with a menu_id for later
     swap/shopping-list calls. See engines/optimizer.py for the scoring shape
     and task.md §7.
+
+    Self-repair: days the first pass leaves off target are re-planned from a
+    progressively wider corpus pool (REPAIR_ROUNDS), keeping the days that
+    landed and ranking replacements by shared ingredients with them. The
+    plan always comes back with every requested day; a day that still
+    misses after the last round is delivered flagged (daily_totals
+    macro_status "off" + gap_notes, repair_notes), not hidden. cannot_build
+    is reserved for slots that can't be filled at all.
 
     extend_menu_id: continue an existing draft instead of starting a new one.
     `days` then means *additional* days: they are numbered from that menu's
@@ -388,21 +627,45 @@ def plan_menu(
         c for c in _load_candidates(conn, config, candidate_ids)
         if c["id"] not in exclude_ids and optimizer.norm_title(c["title"]) not in exclude_titles
     ]
-    low_confidence_ids = [c["id"] for c in candidates if c["confidence"] == "low"]
+    # Ingredients already committed (an extended menu's existing days): new
+    # picks are scored for overlap with them from slot one.
+    existing_ings: dict[int, list[str]] = {}
+    seed_ingredients: set[str] = set()
+    if existing is not None:
+        existing_ings = _ingredients_for(conn, [d["recipe_id"] for d in existing[1].get("days", [])])
+        for ings in existing_ings.values():
+            seed_ingredients |= optimizer.meaningful_ingredients(ings)
+
+    wanted_days = list(range(start_day, start_day + int(days)))
     result = optimizer.select_menu(
         candidates, days=days, pantry=pantry, target_kcal=avg_kcal,
         diet_modes=profile.get("diet_modes", []), constraints=constraints,
         cuisine_affinity=profile.get("cuisine_affinity", []),
         meals_per_day=meals_per_day, target_macros=target_macros,
-        start_day=start_day,
+        start_day=start_day, seed_ingredients=seed_ingredients,
     )
 
-    # A plan that can't hit the client's calorie + macro targets from this
-    # recipe pool is not delivered as a draft — the agent tells the user what
-    # couldn't be met and offers a Macro Kit or looser constraints instead.
-    # (See prompts.py "cannot_build" handling.) Same for an extension: the
-    # existing days stay exactly as they were, nothing partial is appended.
-    if not result.get("feasible", True):
+    # Days that missed target are re-planned from a wider pool (the model's
+    # hand-built candidate pool is routinely too thin — two searches for a
+    # 14-meal week), keeping the days that landed and favoring dishes that
+    # share ingredients with them. See _repair_failed_days.
+    # (Returns untouched when every day landed.)
+    result, candidates, repair_notes = _repair_failed_days(
+        conn, config, profile, pantry, result, candidates, wanted_days,
+        meals_per_day=meals_per_day, avg_kcal=avg_kcal, target_macros=target_macros,
+        constraints=constraints, exclude_ids=exclude_ids, exclude_titles=exclude_titles,
+        seed_ingredients=seed_ingredients,
+    )
+    low_confidence_ids = [c["id"] for c in candidates if c["confidence"] == "low"]
+
+    # Only a plan with EMPTY slots is refused now — the library genuinely has
+    # nothing eligible left even after widening. Days that are merely off
+    # target are delivered flagged (daily_totals macro_status/gap_notes +
+    # repair_notes) so the user sees the whole week and can swap, not a
+    # refusal that hides every meal. For an extension the existing days
+    # stay exactly as they were, nothing partial is appended.
+    filled_days = {p.day for p in result["picks"] if p.role == "main"}
+    if any(d not in filled_days for d in wanted_days):
         out = {
             "error": "cannot_build",
             "reasons": result.get("infeasible_reasons", []),
@@ -441,7 +704,6 @@ def plan_menu(
             list(existing_plan.get("daily_totals", [])) + list(result["daily_totals"]),
             key=lambda t: t["day"],
         )
-        existing_ings = _ingredients_for(conn, [d["recipe_id"] for d in existing_plan.get("days", [])])
         all_ingredient_lists = [
             existing_ings.get(d["recipe_id"], []) for d in existing_plan.get("days", [])
         ] + [p.ingredients for p in result["picks"]]
@@ -474,6 +736,7 @@ def plan_menu(
             "ingredient_summary": _ingredient_summary(all_ingredient_lists),
             "targets": targets,
             "low_confidence_nutrition": low_conf,
+            "repair_notes": repair_notes,
         }
         plan["summary_markdown"] = render_menu_summary({"menu_id": mid, **plan})
         _update_menu(conn, client_id, mid, plan)
@@ -499,6 +762,10 @@ def plan_menu(
         # failed) — calorie math involving these days is unreliable and the
         # daily_totals status will say "unknown".
         "low_confidence_nutrition": low_confidence_ids,
+        # What the self-repair pass did, and which days (if any) are still
+        # short — surfaced in the summary so an approximate day is never
+        # presented as if it landed.
+        "repair_notes": repair_notes,
         "micro_coverage": None,  # Phase 4
         "gaps": [],  # Phase 4
     }

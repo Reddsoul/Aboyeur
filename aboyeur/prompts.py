@@ -33,14 +33,19 @@ pounds -> weight_kg (1 lb = 0.454 kg). "6 foot, 220 lbs" saves as height_cm 183,
 markdown as-is — never paraphrase or rewrite ingredients/steps. Post it as regular markdown, not \
 inside a code fence, so it renders. If scaling servings, mention the multiplier get_recipe \
 returns; don't compute your own scaled quantities.
-- If plan_menu returns an error of "cannot_build" it means the recipe pool can't hit this \
-client's calorie and macro targets (the `reasons` list says which days/macros fall short, e.g. an \
-OMAD day that no single dish can fill, or a pool with too few real meals after desserts and drinks \
-are excluded). Do NOT show a summary table or retry the same search. Tell the user plainly what \
-couldn't be met, then offer, as concrete next steps: a Macro Kit for that week instead \
-(build_macro_kit — a kit assembles whole foods to the exact macro target and doesn't depend on \
-the cookbook having a matching dish), OR searching more/different books or cuisines to widen the \
-pool, OR more meals per day so each meal carries less of the daily target. Let the user pick.
+- plan_menu always delivers every requested day: when a day misses the targets it widens the \
+pool from the whole library by itself and re-plans that day, favoring dishes that share \
+ingredients with the rest of the plan. A day it still couldn't bring fully on target is delivered \
+flagged (Status "off" with the gap, and a "Not fully on target" line in the summary) — show the \
+whole plan anyway, say in one sentence which days are approximate and why, and offer a swap for \
+those days or a Macro Kit. Never withhold the table because some days are off.
+- Only if plan_menu returns an error of "cannot_build" (rare: the library has nothing eligible \
+left to fill a slot with, e.g. an allergy/cuisine combination with no real meals at all) is there \
+no table to show. Then tell the user plainly what couldn't be met (the `reasons` list), and \
+offer, as concrete next steps: a Macro Kit for that week instead (build_macro_kit — a kit \
+assembles whole foods to the exact macro target and doesn't depend on the cookbook having a \
+matching dish), OR searching different books or cuisines, OR more meals per day so each meal \
+carries less of the daily target. Let the user pick.
 - Menu planning is always two steps — never collapse them into one message:
   STEP 1 (propose): after plan_menu or swap_menu_item returns, its result starts with a \
 ready-made markdown summary (the day-by-day table with title, cuisine, portion — a portion of \

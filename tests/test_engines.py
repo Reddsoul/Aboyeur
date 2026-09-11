@@ -1025,3 +1025,33 @@ def test_day_solver_leaves_unresolved_dishes_at_one_serving():
         {"kcal": 800},
     )
     assert mults == [1.0]
+
+
+def test_select_menu_seed_ingredients_steer_the_first_pick():
+    """Re-planning a failed day (or extending a menu) scores every pick for
+    overlap with what the plan already uses — so the first slot, which used
+    to be a pure pantry/macro pick, now reaches for the shared ingredients."""
+    shares = _candidate(1, "Lamb Rogan Josh", "A", ["lamb", "ginger", "garlic", "yogurt"])
+    loner = _candidate(2, "Grilled Chicken", "B", ["chicken", "lemon", "dill"])
+    plain = optimizer.select_menu([loner, shares], days=1, pantry=set(), target_kcal=500)
+    seeded = optimizer.select_menu(
+        [loner, shares], days=1, pantry=set(), target_kcal=500,
+        seed_ingredients={"ginger", "yogurt", "garlic"},  # garlic is a staple: ignored
+    )
+    assert plain["picks"][0].recipe_id == 2  # tie-break: input order
+    assert seeded["picks"][0].recipe_id == 1
+    assert seeded["picks"][0].shared_ingredients == ["ginger", "yogurt"]
+    assert "shares 2 ingredients" in seeded["picks"][0].pick_reason
+
+
+def test_select_menu_day_numbers_relabel_a_non_contiguous_repair():
+    candidates = [_candidate(i, f"Dish {i}", "B", [f"ing{i}", "onion"]) for i in range(1, 7)]
+    result = optimizer.select_menu(
+        candidates, days=3, pantry=set(), target_kcal=500, meals_per_day=2, day_numbers=[2, 5, 7],
+    )
+    assert sorted({p.day for p in result["picks"]}) == [2, 5, 7]
+    assert [t["day"] for t in result["daily_totals"]] == [2, 5, 7]
+    assert all(p.meal in (1, 2) for p in result["picks"])
+    import pytest
+    with pytest.raises(ValueError):
+        optimizer.select_menu(candidates, days=2, pantry=set(), target_kcal=500, day_numbers=[1])
