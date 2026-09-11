@@ -72,6 +72,31 @@ def _tool_result_text(name: str, result: dict) -> str:
         # Same verbatim-echo contract as get_recipe; headings are already in
         # the markdown, so hand it over as plain text.
         return result["markdown"]
+    if name in ("plan_menu", "swap_menu_item") and "summary_markdown" in result:
+        # STEP-1 table: rendered in code (tools/menu.py render_menu_summary),
+        # echoed by the model. Hand the markdown over as plain text so the
+        # model doesn't parrot JSON escapes, and follow it with only the
+        # compact fields it still needs to reason with (menu_id for the
+        # follow-up calls, scores, flags) — the day table, totals and
+        # ingredient summary are already in the markdown, and repeating
+        # them as JSON is what tempted the model to re-transcribe them.
+        meta = {
+            k: v for k, v in result.items()
+            if k not in ("summary_markdown", "days", "daily_totals", "ingredient_summary",
+                         "targets", "micro_coverage", "gaps")
+        }
+        picked = {d["recipe_id"] for d in result.get("days", [])}
+        meta["day_numbers"] = sorted({d["day"] for d in result.get("days", [])})
+        # Only the low-confidence ids actually on the plan matter here — the
+        # full list covers every candidate and can run to hundreds of ids.
+        meta["low_confidence_nutrition"] = [
+            rid for rid in result.get("low_confidence_nutrition") or [] if rid in picked
+        ]
+        return (
+            result["summary_markdown"]
+            + "\n\n(show the table above verbatim; do not rebuild it)\n"
+            + "plan_meta: " + json.dumps(meta, default=str)
+        )
     if name == "get_recipe" and "markdown" in result:
         header_lines = [f"# {result.get('title', '')} (id {result.get('id')})"]
         if result.get("path"):
@@ -155,6 +180,7 @@ def _dispatch(
             conn, config, client_id, args["candidate_ids"], args["days"],
             meals_per_day=args.get("meals_per_day", 1),
             constraints=args.get("constraints"),
+            extend_menu_id=args.get("extend_menu_id"),
         )
 
     if name == "swap_menu_item":

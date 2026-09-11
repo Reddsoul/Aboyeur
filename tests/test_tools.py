@@ -1146,3 +1146,190 @@ def test_set_macro_strategy_ignores_an_unknown_strategy(
 ):
     profile = update_profile(db_conn, client_id, {"set_macro_strategy": "carnivore"})
     assert "macro_strategy" not in profile
+
+
+# ---------------------------------------------------------------------------
+# plan_menu continuation (extend_menu_id) + the code-rendered STEP-1 summary
+# ---------------------------------------------------------------------------
+
+def test_plan_menu_extends_an_existing_menu_in_place(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    """'Give me the remaining 2 days' — the new days join the same menu_id,
+    numbered after the existing ones, with no dish repeated across the
+    merged plan and plan-wide numbers covering all 7 days."""
+    from aboyeur.tools.menu import plan_menu
+    ids = _all_ids(db_conn)
+    first = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=5)
+    assert "error" not in first
+    mid = first["menu_id"]
+    assert sorted({d["day"] for d in first["days"]}) == [1, 2, 3, 4, 5]
+    menus_before = db_conn.execute("SELECT COUNT(*) AS n FROM menus").fetchone()["n"]
+
+    merged = plan_menu(
+        db_conn, config, client_id, candidate_ids=ids, days=2, extend_menu_id=mid,
+    )
+    assert "error" not in merged, merged
+    assert merged["menu_id"] == mid  # same row, not a new one
+    assert merged["appended_days"] == [6, 7]
+    assert sorted({d["day"] for d in merged["days"]}) == [1, 2, 3, 4, 5, 6, 7]
+    assert db_conn.execute("SELECT COUNT(*) AS n FROM menus").fetchone()["n"] == menus_before
+
+    # The original five days are exactly what was shown before.
+    old_slots = {(d["day"], d["meal"], d["role"]): d["recipe_id"] for d in first["days"]}
+    kept = {(d["day"], d["meal"], d["role"]): d["recipe_id"] for d in merged["days"] if d["day"] <= 5}
+    assert kept == old_slots
+
+    # Dedup holds across the whole merged plan, by id and by normalized title.
+    recipe_ids = [d["recipe_id"] for d in merged["days"]]
+    assert len(recipe_ids) == len(set(recipe_ids))
+    titles = [optimizer.norm_title(d["title"]) for d in merged["days"]]
+    assert len(titles) == len(set(titles))
+
+    # Plan-wide fields reflect all seven days.
+    assert [t["day"] for t in merged["daily_totals"]] == [1, 2, 3, 4, 5, 6, 7]
+    assert merged["macro_fit_avg"] == pytest.approx(
+        sum(d["macro_fit"] for d in merged["days"]) / len(merged["days"]), abs=0.01
+    )
+    assert merged["ingredient_summary"]["total_unique"] >= first["ingredient_summary"]["total_unique"]
+    for e in merged["ingredient_summary"]["shared"]:
+        assert e["recipes"] >= 2
+
+    # ...and that's what is persisted under the original id.
+    row = db_conn.execute("SELECT days_json FROM menus WHERE id = ?", (mid,)).fetchone()
+    stored = json.loads(row["days_json"])
+    assert sorted({d["day"] for d in stored["days"]}) == [1, 2, 3, 4, 5, 6, 7]
+    assert "days 1-7" in stored["summary_markdown"]
+
+
+def test_plan_menu_extend_unknown_menu_errors(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    from aboyeur.tools.menu import plan_menu
+    ids = _all_ids(db_conn)
+    out = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2, extend_menu_id=999_999)
+    assert "error" in out and "999999" in out["error"]
+
+
+def test_plan_menu_extend_infeasible_leaves_existing_menu_untouched(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    """A continuation that can't be built surfaces as cannot_build, exactly
+    like a fresh plan — the days already planned are neither shortened nor
+    partially appended to."""
+    from aboyeur.tools.menu import plan_menu
+    ids = _all_ids(db_conn)
+    first = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
+    mid = first["menu_id"]
+    before = db_conn.execute("SELECT days_json FROM menus WHERE id = ?", (mid,)).fetchone()["days_json"]
+
+    dessert_ids = [
+        r["id"] for r in db_conn.execute(
+            "SELECT id FROM recipes WHERE lower(title) LIKE '%cake%' OR lower(title) LIKE '%glaze%'"
+        ).fetchall()
+    ]
+    out = plan_menu(db_conn, config, client_id, candidate_ids=dessert_ids, days=2, extend_menu_id=mid)
+    assert out["error"] == "cannot_build"
+    assert out["menu_id"] == mid
+    assert out["existing_days_kept"] == 3
+    assert out["reasons"]
+    after = db_conn.execute("SELECT days_json FROM menus WHERE id = ?", (mid,)).fetchone()["days_json"]
+    assert after == before
+
+
+def test_plan_menu_fresh_call_is_unaffected_by_extension_support(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    from aboyeur.tools.menu import plan_menu
+    ids = _all_ids(db_conn)
+    first = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
+    second = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2)
+    assert second["menu_id"] != first["menu_id"]
+    assert sorted({d["day"] for d in second["days"]}) == [1, 2]  # restarts at day 1
+    assert "appended_days" not in second
+    assert [t["day"] for t in second["daily_totals"]] == [1, 2]
+
+
+def test_render_menu_summary_has_correct_day_numbers_from_code(
+    db_conn: sqlite3.Connection, config: Config, client_id: int,
+):
+    """The STEP-1 table is generated, not transcribed: every slot's row
+    carries the day the plan actually assigned it, and plan_menu ships the
+    markdown alongside the JSON."""
+    from aboyeur.tools.menu import plan_menu, render_menu_summary
+    ids = _all_ids(db_conn)
+    plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=3)
+    md = plan["summary_markdown"]
+    assert md == render_menu_summary(plan)
+    assert md.startswith(f"## Menu #{plan['menu_id']} — days 1-3, 1 meal/day")
+    for d in plan["days"]:
+        prefix = "+ " if d["role"] == "top-up" else ""
+        assert f"| {d['day']} | {prefix}{d['title']} (id {d['recipe_id']})" in md
+    assert "**Daily totals vs target**" in md
+    for t in plan["daily_totals"]:
+        assert f"| {t['day']} | {t['kcal']} / {plan['daily_target_kcal']} |" in md
+    assert f"{plan['daily_target_kcal']} kcal" in md
+    assert "**Ingredients:**" in md
+
+
+def test_render_menu_summary_multi_meal_and_portions():
+    from aboyeur.tools.menu import render_menu_summary
+    plan = {
+        "menu_id": 7,
+        "meals_per_day": 2,
+        "daily_target_kcal": 2000,
+        "daily_target_macros": {"protein_g": 150, "carb_g": 200, "fat_g": 70, "fiber_g": 30},
+        "days": [
+            {"day": 3, "meal": 2, "role": "main", "recipe_id": 2, "title": "Lentil Stew",
+             "cuisine": None, "portion_multiplier": 1.0, "macro_fit": 0.5},
+            {"day": 3, "meal": 1, "role": "main", "recipe_id": 1, "title": "Eggs",
+             "cuisine": "French", "portion_multiplier": 1.5, "recipe_servings": 4, "macro_fit": 0.9},
+            {"day": 3, "meal": 1, "role": "top-up", "recipe_id": 9, "title": "Toast",
+             "cuisine": "French", "portion_multiplier": 1.0, "macro_fit": 0.4},
+        ],
+        "daily_totals": [
+            {"day": 3, "kcal": 1500, "protein_g": 100, "carb_g": 150, "fat_g": 50, "fiber_g": 20,
+             "target_kcal": 2000, "status": "under", "macro_status": "off",
+             "gap_notes": ["protein 50 g under"]},
+        ],
+        "overlap_score": 10, "overlap_floor_met": False, "macro_fit_avg": 0.6,
+        "ingredient_summary": {"total_unique": 5, "shared_count": 1,
+                               "shared": [{"ingredient": "egg", "recipes": 2}]},
+        "low_confidence_nutrition": [9],
+    }
+    md = render_menu_summary(plan)
+    lines = md.split("\n")
+    assert lines[0] == "## Menu #7 — day 3, 2 meals/day"
+    assert "| Day | Meal | Dish |" in md
+    # Sorted by meal then main-before-top-up, regardless of input order.
+    order = [l for l in lines if l.startswith("| 3 |")]
+    assert "Eggs (id 1)" in order[0] and "1.5 servings (recipe makes 4)" in order[0]
+    assert "+ Toast (id 9) — second dish" in order[1]
+    assert "Lentil Stew (id 2)" in order[2] and "| — |" in order[2]
+    assert "| 3 | 1500 / 2000 | 100 / 150 g |" in md
+    assert "off — protein 50 g under" in md
+    assert "below the 25 floor" in md
+    assert "egg (2)" in md
+    assert "**Nutrition uncertain for:** Toast (id 9)" in md
+
+
+def test_agent_hands_the_model_the_summary_markdown_not_the_table_json():
+    from aboyeur.agent import _tool_result_text
+    result = {
+        "menu_id": 4, "summary_markdown": "## Menu #4 — days 1-2, 1 meal/day\n| Day | ...",
+        "days": [{"day": 1, "recipe_id": 11}, {"day": 2, "recipe_id": 12}],
+        "daily_totals": [{"day": 1}, {"day": 2}],
+        "ingredient_summary": {"total_unique": 3}, "targets": {"x": 1},
+        "overlap_score": 30, "macro_fit_avg": 0.7,
+        "low_confidence_nutrition": [12, 500, 501],  # trimmed to picked ids
+        "meals_per_day": 1, "appended_days": [2],
+    }
+    text = _tool_result_text("plan_menu", result)
+    assert text.startswith("## Menu #4 — days 1-2, 1 meal/day\n| Day | ...")  # real newlines
+    assert '"days": [' not in text and '"daily_totals"' not in text
+    assert '"menu_id": 4' in text and '"day_numbers": [1, 2]' in text
+    assert '"appended_days": [2]' in text
+    assert '"low_confidence_nutrition": [12]' in text
+    # swap_menu_item shares the contract; a cannot_build result stays JSON.
+    assert _tool_result_text("swap_menu_item", result).startswith("## Menu #4")
+    assert _tool_result_text("plan_menu", {"error": "cannot_build", "reasons": []}).startswith("{")

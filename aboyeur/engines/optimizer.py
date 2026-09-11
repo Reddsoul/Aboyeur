@@ -444,6 +444,7 @@ def select_menu(
     cuisine_affinity: list[str] | None = None,
     meals_per_day: int = 1,
     target_macros: dict | None = None,
+    start_day: int = 1,
 ) -> dict:
     """Greedy selection: `days * meals_per_day` picks, each maximizing
     overlap+pantry+macro fit against what's already chosen, minus same-book
@@ -466,12 +467,18 @@ def select_menu(
                  exact match against each candidate's cuisine), same "never starve"
                  fallback as the dessert/drink filter — if too few candidates match,
                  the filter is dropped rather than returning an empty/short plan.
+    start_day: the day number the first pick gets. 1 for a fresh plan; an
+                 existing plan being extended passes its max day + 1 so every
+                 pick, top-up note, daily total and infeasibility reason
+                 carries the real day number instead of restarting at 1
+                 (see tools/menu.py plan_menu's extend_menu_id).
     """
     diet_modes = diet_modes or []
     vegetarian = "vegetarian" in diet_modes or "vegan" in diet_modes
     constraints = constraints or {}
     cuisine_affinity = [c.lower() for c in (cuisine_affinity or [])]
     meals_per_day = max(1, int(meals_per_day or 1))
+    start_day = max(1, int(start_day or 1))
     total_picks = days * meals_per_day
     daily_target = (target_kcal or 0) * meals_per_day
 
@@ -569,7 +576,7 @@ def select_menu(
                 ingredients=best["ingredients"], shared_ingredients=shared,
                 macro_fit=round(macro_fit(best.get("macros", {}), target_kcal, target_macros), 2),
                 pick_reason=reason,
-                day=slot // meals_per_day + 1, meal=slot % meals_per_day + 1,
+                day=slot // meals_per_day + start_day, meal=slot % meals_per_day + 1,
                 kcal=float(best.get("macros", {}).get("calories") or 0),
                 protein_g=float(best.get("macros", {}).get("protein_g") or 0),
                 carb_g=float(best.get("macros", {}).get("carb_g") or 0),

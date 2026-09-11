@@ -224,7 +224,15 @@ TOOL_SCHEMAS: list[dict] = [
                 "the plan. If the pool can't meet the client's targets it returns instead "
                 "{'error': 'cannot_build', 'reasons': [...], 'suggest': 'macro_kit'} and persists "
                 "nothing — don't show a table; say what fell short and offer a Macro Kit or a "
-                "wider recipe search."
+                "wider recipe search. The result carries summary_markdown: the finished "
+                "day-by-day proposal table, rendered in code with the correct day numbers — "
+                "show it verbatim, never rebuild it from the numbers. "
+                "TO EXTEND a plan already shown ('the rest of the week', 'the remaining 2 "
+                "days', 'add 3 more days'): pass extend_menu_id = that plan's menu_id and set "
+                "days to the number of ADDITIONAL days. The new days are numbered after the "
+                "existing ones (a 5-day menu + 2 becomes days 1-7), use no dish already in "
+                "the plan, and are saved to the same menu_id — do NOT start a fresh plan for "
+                "this; it would restart at day 1 and be unrelated to what was shown."
             ),
             "parameters": {
                 "type": "object",
@@ -244,6 +252,15 @@ TOOL_SCHEMAS: list[dict] = [
                         "description": (
                             "Optional keyword->minimum-count nudges, e.g. {'fish': 2} for "
                             "'2 fish nights'. Best-effort, not a hard guarantee."
+                        ),
+                    },
+                    "extend_menu_id": {
+                        "type": "integer",
+                        "description": (
+                            "Continue an existing draft menu instead of starting a new one: "
+                            "the menu_id of the plan already shown. `days` then means how "
+                            "many days to ADD (numbered after the plan's last day), reusing "
+                            "that menu's meals_per_day and targets. Omit for a new plan."
                         ),
                     },
                 },

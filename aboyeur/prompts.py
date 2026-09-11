@@ -42,20 +42,18 @@ couldn't be met, then offer, as concrete next steps: a Macro Kit for that week i
 the cookbook having a matching dish), OR searching more/different books or cuisines to widen the \
 pool, OR more meals per day so each meal carries less of the daily target. Let the user pick.
 - Menu planning is always two steps — never collapse them into one message:
-  STEP 1 (propose): after plan_menu (or an edit round below) returns, show ONLY the day-by-day \
-summary table (recipe title, cuisine, macro fit, and each slot's portion_multiplier when it \
-isn't 1.0 — it means "eat that many servings of the dish", e.g. 2.1 servings; recipe_servings \
-is the batch size as written, so a serves-10 recipe at multiplier 2 means cooking 1/5 of the \
-batch) plus, from the plan_menu result: the daily \
-calorie target (daily_target_kcal — if the member's goal is "lose"/"gain" note it's their \
-maintenance adjusted for that goal, using targets' maintenance_kcal), the daily macro targets \
-(daily_target_macros: protein/carb/fat AND fiber grams), each day's actual totals vs target (daily_totals \
-has kcal AND protein_g/carb_g/fat_g, plus macro_status: "ok" means the day hits calories and \
-every macro, "off" means it misses one — read that day's gap_notes and state the gap), the \
-overlap/macro-fit score, and the ingredient summary \
-(ingredient_summary: total_unique distinct ingredients, and which ingredients are shared across \
-multiple recipes). Do NOT call get_recipe or show any recipe markdown at this stage. End by asking the user to confirm the plan \
-or ask for changes (swap a day, different cuisine, more/fewer days or meals, etc.).
+  STEP 1 (propose): after plan_menu or swap_menu_item returns, its result starts with a \
+ready-made markdown summary (the day-by-day table with title, cuisine, portion — a portion of \
+"2.1 servings" means eat that many servings of the dish; "recipe makes 10" is the batch size as \
+written, so cooking 1/5 of it — and macro fit; then each day's totals vs the daily calorie and \
+protein/carb/fat/fiber targets with its status and any gap; then the overlap/macro-fit scores \
+and the ingredient summary). Show that markdown VERBATIM as the proposal — do NOT rebuild, \
+reorder, renumber, shorten or paraphrase the table, and never write your own day numbers; the \
+day numbers in it are the real ones. Around it, add only short framing: if the member's goal is \
+"lose"/"gain" note the calorie target is their maintenance adjusted for that goal (targets' \
+maintenance_kcal), call out any day whose status is "off" or "unknown" in a sentence, and end \
+by asking the user to confirm the plan or ask for changes (swap a day, different cuisine, \
+more/fewer days or meals, etc.). Do NOT call get_recipe or show any recipe markdown at this stage.
   STEP 2 (deliver): only once the user confirms — recognize plain confirmation like "looks good", \
 "yes", "go ahead", "show me the recipes", not just an exact keyword — call get_menu_recipes ONCE \
 (pass the current plan's menu_id) and show the markdown it returns verbatim. It already contains \
@@ -67,6 +65,15 @@ day/meal (pass `meal` too when the plan has more than one meal/day), or fresh se
 plan_menu for bigger changes like a different cuisine or day count — then go back to STEP 1 with \
 the updated summary and ask again. Never jump straight to full recipe markdown on an edit round; \
 only a confirmed plan gets recipe text.
+- To ADD days to a plan already shown ("the rest of the week", "the remaining 2 days", "add \
+3 more days", "finish the 7 days"): build a candidate pool as usual, then call plan_menu with \
+extend_menu_id = that plan's menu_id and days = the number of days to ADD (not the new total). \
+It appends days numbered after the existing ones under the same menu_id, never repeats a dish \
+already in the plan, and returns the whole merged plan's summary — show that (STEP 1 again). \
+Never start a fresh plan_menu for this: a fresh plan restarts at day 1 and has nothing to do \
+with the days the user already saw. If the extension comes back cannot_build, the days already \
+planned are untouched — say the extra days couldn't be filled and why, and offer the same \
+options as any cannot_build.
 - Macro Kits are a different deliverable from menus. If the user wants a mix-and-match GROCERY set \
 rather than specific dishes — "give me foods to hit my macros", "groceries I can combine", "what \
 should I buy to hit my protein", a training or cutting food list, meal-prep components — call \

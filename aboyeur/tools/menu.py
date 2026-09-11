@@ -142,6 +142,180 @@ def _update_menu(conn: sqlite3.Connection, client_id: int, menu_id: int, plan: d
     conn.commit()
 
 
+def _picks_to_days(picks: list[optimizer.MenuPick], cuisine_by_id: dict[int, str | None]) -> list[dict]:
+    return [
+        {
+            "day": p.day, "meal": p.meal, "role": p.role,
+            "recipe_id": p.recipe_id, "title": p.title, "book": p.book, "path": p.path,
+            "cuisine": cuisine_by_id.get(p.recipe_id),
+            "kcal": p.kcal,
+            "protein_g": p.protein_g, "carb_g": p.carb_g, "fat_g": p.fat_g,
+            "fiber_g": p.fiber_g,
+            # Servings of the dish to eat (kcal/macros above already include
+            # it). recipe_servings is the batch size as written, so "eat 2
+            # servings of a serves-10 recipe" = cook 1/5 of the batch.
+            "portion_multiplier": p.portion_multiplier,
+            "recipe_servings": p.servings,
+            "shared_ingredients": p.shared_ingredients, "macro_fit": p.macro_fit,
+            "pick_reason": p.pick_reason,
+        }
+        for p in picks
+    ]
+
+
+def _ingredients_for(conn: sqlite3.Connection, recipe_ids: list[int]) -> dict[int, list[str]]:
+    ids = sorted(set(recipe_ids))
+    if not ids:
+        return {}
+    placeholders = ",".join("?" * len(ids))
+    rows = conn.execute(
+        f"SELECT id, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids
+    ).fetchall()
+    return {r["id"]: json.loads(r["ingredients_json"]) for r in rows}
+
+
+def _fmt_g(v) -> str:
+    try:
+        return f"{round(float(v))} g"
+    except (TypeError, ValueError):
+        return "?"
+
+
+def render_menu_summary(plan: dict) -> str:
+    """The STEP-1 proposal table, built in code from the plan dict.
+
+    The model used to transcribe this table by hand from plan_menu's JSON —
+    day numbers, titles, multipliers and totals — and a mid-size local model
+    observably gets that wrong (a 7-day plan summarized as days 3-7, day
+    numbers that match nothing real). Same fix get_menu_recipes already
+    applied to STEP 2: deterministic markdown the model echoes verbatim, with
+    the day numbering guaranteed by code. Tolerates older persisted plans
+    that lack cuisine/fiber/gap fields.
+    """
+    days = sorted(
+        plan.get("days", []),
+        key=lambda d: (d["day"], d.get("meal", 1), d.get("role", "main") != "main"),
+    )
+    meals_per_day = max(1, int(plan.get("meals_per_day") or 1))
+    multi_meal = meals_per_day > 1
+    day_numbers = sorted({d["day"] for d in days})
+    lines: list[str] = []
+
+    span = ""
+    if day_numbers:
+        span = (
+            f"day {day_numbers[0]}" if len(day_numbers) == 1
+            else f"days {day_numbers[0]}-{day_numbers[-1]}"
+        )
+    head = f"## Menu #{plan.get('menu_id', '?')}"
+    if span:
+        head += f" — {span}, {meals_per_day} meal{'s' if multi_meal else ''}/day"
+    lines.append(head)
+
+    target_kcal = plan.get("daily_target_kcal")
+    tm = plan.get("daily_target_macros") or {}
+    if target_kcal:
+        tline = f"**Daily target:** {round(target_kcal)} kcal"
+        if tm:
+            tline += (
+                f" · protein {_fmt_g(tm.get('protein_g'))} · carbs {_fmt_g(tm.get('carb_g'))}"
+                f" · fat {_fmt_g(tm.get('fat_g'))}"
+            )
+            if tm.get("fiber_g") is not None:
+                tline += f" · fiber {_fmt_g(tm.get('fiber_g'))}"
+        lines.append(tline)
+
+    cols = ["Day"] + (["Meal"] if multi_meal else []) + ["Dish", "Cuisine", "Portion", "Macro fit"]
+    lines.append("")
+    lines.append("| " + " | ".join(cols) + " |")
+    lines.append("|" + "|".join("---" for _ in cols) + "|")
+    for d in days:
+        dish = f"{d.get('title', '')} (id {d.get('recipe_id')})"
+        if d.get("role") == "top-up":
+            dish = "+ " + dish + " — second dish"
+        pm = d.get("portion_multiplier") or 1.0
+        if abs(pm - 1.0) >= 0.005:
+            portion = f"{pm} servings"
+            if d.get("recipe_servings"):
+                portion += f" (recipe makes {d['recipe_servings']})"
+        else:
+            portion = "1 serving"
+        fit = d.get("macro_fit")
+        row = [str(d["day"])] + ([str(d.get("meal", 1))] if multi_meal else []) + [
+            dish, d.get("cuisine") or "—", portion,
+            f"{fit:.2f}" if isinstance(fit, (int, float)) else "—",
+        ]
+        lines.append("| " + " | ".join(row) + " |")
+
+    totals = sorted(plan.get("daily_totals", []), key=lambda t: t["day"])
+    if totals:
+        lines.append("")
+        lines.append("**Daily totals vs target**")
+        lines.append("")
+        lines.append("| Day | kcal | Protein | Carbs | Fat | Fiber | Status |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for t in totals:
+            tk = t.get("target_kcal") or target_kcal
+            kcal = f"{t.get('kcal', '?')} / {round(tk)}" if tk else str(t.get("kcal", "?"))
+
+            def _vs(key: str) -> str:
+                have = t.get(key)
+                want = tm.get(key)
+                if have is None:
+                    return "—"
+                return f"{round(have)} / {round(want)} g" if want is not None else f"{round(have)} g"
+
+            ms = t.get("macro_status") or t.get("status") or "unknown"
+            status = ms
+            notes = t.get("gap_notes") or []
+            if ms == "off" and notes:
+                status = "off — " + "; ".join(notes)
+            elif ms == "unknown":
+                status = "unknown (nutrition data missing)"
+            lines.append(
+                f"| {t['day']} | {kcal} | {_vs('protein_g')} | {_vs('carb_g')} | "
+                f"{_vs('fat_g')} | {_vs('fiber_g')} | {status} |"
+            )
+
+    lines.append("")
+    score_bits = []
+    if plan.get("overlap_score") is not None:
+        floor = plan.get("overlap_floor_met")
+        score_bits.append(
+            f"Ingredient overlap {plan['overlap_score']}/100"
+            + ("" if floor is None else (" (floor met)" if floor else " (below the 25 floor)"))
+        )
+    if plan.get("macro_fit_avg") is not None:
+        score_bits.append(f"macro fit avg {plan['macro_fit_avg']}")
+    if score_bits:
+        lines.append("**Scores:** " + " · ".join(score_bits))
+
+    summ = plan.get("ingredient_summary") or {}
+    if summ:
+        shared = summ.get("shared") or []
+        shared_txt = ", ".join(
+            f"{e['ingredient']} ({e['recipes']})" for e in shared[:12]
+        ) or "none"
+        if len(shared) > 12:
+            shared_txt += f", +{len(shared) - 12} more"
+        lines.append(
+            f"**Ingredients:** {summ.get('total_unique', '?')} distinct; "
+            f"shared across recipes: {shared_txt}"
+        )
+
+    low = plan.get("low_confidence_nutrition") or []
+    if low:
+        titles = {d["recipe_id"]: d.get("title") for d in days}
+        picked_low = [rid for rid in low if rid in titles]
+        if picked_low:
+            lines.append(
+                "**Nutrition uncertain for:** "
+                + ", ".join(f"{titles[rid]} (id {rid})" for rid in picked_low)
+                + " — totals involving these are estimates at best."
+            )
+    return "\n".join(lines)
+
+
 def plan_menu(
     conn: sqlite3.Connection,
     config: Config,
@@ -150,6 +324,7 @@ def plan_menu(
     days: int,
     meals_per_day: int = 1,
     constraints: dict[str, int] | None = None,
+    extend_menu_id: int | None = None,
 ) -> dict:
     """Optimize `candidate_ids` (should be >= 2x `days * meals_per_day`) down to
     a `days * meals_per_day`-length plan maximizing ingredient/pantry overlap
@@ -162,30 +337,73 @@ def plan_menu(
     Persists the plan as a draft menu and returns it with a menu_id for later
     swap/shopping-list calls. See engines/optimizer.py for the scoring shape
     and task.md §7.
+
+    extend_menu_id: continue an existing draft instead of starting a new one.
+    `days` then means *additional* days: they are numbered from that menu's
+    last day + 1, planned against the same targets and meals_per_day the
+    menu already has, deduplicated against every dish already in it, merged
+    into its `days`, and saved back to the SAME menu_id (plan-wide totals,
+    overlap, macro fit and the ingredient summary are recomputed over the
+    whole merged plan). "Give me the remaining 2 days" is this call — before
+    it existed the only option was a disconnected fresh plan whose day
+    numbers restarted at 1. If the extra days can't be built the call returns
+    cannot_build exactly like a fresh plan does and the existing menu is left
+    untouched — never a silently shorter extension.
     """
     profile = get_profile(conn, client_id)
     pantry_rows = conn.execute("SELECT item FROM pantry WHERE client_id = ?", (client_id,)).fetchall()
     pantry = {r["item"] for r in pantry_rows}
 
     targets = profile["targets"]
+
+    existing: tuple[int, dict] | None = None
+    start_day = 1
+    exclude_ids: set[int] = set()
+    exclude_titles: set[str] = set()
+    if extend_menu_id is not None:
+        existing = _load_menu(conn, client_id, extend_menu_id)
+        if existing is None:
+            return {"error": f"no menu with id {extend_menu_id} to extend — call plan_menu without extend_menu_id to start a new one"}
+        existing_plan = existing[1]
+        existing_days = existing_plan.get("days", [])
+        # The menu's own meal count wins: a 3-meal plan can't grow 1-meal days.
+        meals_per_day = max(1, int(existing_plan.get("meals_per_day") or 1))
+        start_day = max((d["day"] for d in existing_days), default=0) + 1
+        exclude_ids = {d["recipe_id"] for d in existing_days}
+        exclude_titles = {optimizer.norm_title(d.get("title", "")) for d in existing_days}
+
     meals_per_day = max(1, int(meals_per_day or 1))
     avg_kcal, target_macros = _menu_meal_targets(targets, meals_per_day)
+    if existing is not None:
+        # Grade the new days against the targets the existing days were
+        # graded against, so one plan isn't half old-target, half new.
+        stored_kcal = existing[1].get("daily_target_kcal")
+        stored_macros = existing[1].get("daily_target_macros")
+        if stored_kcal:
+            avg_kcal = float(stored_kcal) / meals_per_day
+        if stored_macros:
+            target_macros = {k: float(v) / meals_per_day for k, v in stored_macros.items()}
 
-    candidates = _load_candidates(conn, config, candidate_ids)
+    candidates = [
+        c for c in _load_candidates(conn, config, candidate_ids)
+        if c["id"] not in exclude_ids and optimizer.norm_title(c["title"]) not in exclude_titles
+    ]
     low_confidence_ids = [c["id"] for c in candidates if c["confidence"] == "low"]
     result = optimizer.select_menu(
         candidates, days=days, pantry=pantry, target_kcal=avg_kcal,
         diet_modes=profile.get("diet_modes", []), constraints=constraints,
         cuisine_affinity=profile.get("cuisine_affinity", []),
         meals_per_day=meals_per_day, target_macros=target_macros,
+        start_day=start_day,
     )
 
     # A plan that can't hit the client's calorie + macro targets from this
     # recipe pool is not delivered as a draft — the agent tells the user what
     # couldn't be met and offers a Macro Kit or looser constraints instead.
-    # (See prompts.py "cannot_build" handling.)
+    # (See prompts.py "cannot_build" handling.) Same for an extension: the
+    # existing days stay exactly as they were, nothing partial is appended.
     if not result.get("feasible", True):
-        return {
+        out = {
             "error": "cannot_build",
             "reasons": result.get("infeasible_reasons", []),
             "daily_totals": result.get("daily_totals", []),
@@ -196,24 +414,74 @@ def plan_menu(
             ),
             "suggest": "macro_kit",
         }
+        if existing is not None:
+            out["menu_id"] = existing[0]
+            out["existing_days_kept"] = start_day - 1
+        return out
 
-    days_out = [
-        {
-            "day": p.day, "meal": p.meal, "role": p.role,
-            "recipe_id": p.recipe_id, "title": p.title, "book": p.book, "path": p.path,
-            "kcal": p.kcal,
-            "protein_g": p.protein_g, "carb_g": p.carb_g, "fat_g": p.fat_g,
-            "fiber_g": p.fiber_g,
-            # Servings of the dish to eat (kcal/macros above already include
-            # it). recipe_servings is the batch size as written, so "eat 2
-            # servings of a serves-10 recipe" = cook 1/5 of the batch.
-            "portion_multiplier": p.portion_multiplier,
-            "recipe_servings": p.servings,
-            "shared_ingredients": p.shared_ingredients, "macro_fit": p.macro_fit,
-            "pick_reason": p.pick_reason,
+    cuisine_by_id = {c["id"]: c.get("cuisine") for c in candidates}
+    days_out = _picks_to_days(result["picks"], cuisine_by_id)
+
+    daily_target_kcal = round(avg_kcal * meals_per_day)
+    daily_target_macros = (
+        {k: round(v * meals_per_day, 1) for k, v in target_macros.items()}
+        if target_macros else None
+    )
+
+    if existing is not None:
+        # Append: the new days join the existing ones under the same menu_id,
+        # and every plan-wide field that depends on the full day set is
+        # recomputed over all of them — never just the new slice.
+        mid, existing_plan = existing
+        all_days = sorted(
+            list(existing_plan.get("days", [])) + days_out,
+            key=lambda d: (d["day"], d.get("meal", 1), d.get("role", "main") != "main"),
+        )
+        all_totals = sorted(
+            list(existing_plan.get("daily_totals", [])) + list(result["daily_totals"]),
+            key=lambda t: t["day"],
+        )
+        existing_ings = _ingredients_for(conn, [d["recipe_id"] for d in existing_plan.get("days", [])])
+        all_ingredient_lists = [
+            existing_ings.get(d["recipe_id"], []) for d in existing_plan.get("days", [])
+        ] + [p.ingredients for p in result["picks"]]
+        overlap_score = optimizer.compute_overlap_score([
+            optimizer.MenuPick(
+                recipe_id=0, title="", book="", path="", ingredients=ings,
+                shared_ingredients=[], macro_fit=0.0, pick_reason="",
+            )
+            for ings in all_ingredient_lists
+        ])
+        merged_constraints = dict(existing_plan.get("constraints_met") or {})
+        for kw, n in (result["constraints_met"] or {}).items():
+            merged_constraints[kw] = merged_constraints.get(kw, 0) + n
+        low_conf = sorted(
+            set(existing_plan.get("low_confidence_nutrition") or []) | set(low_confidence_ids)
+        )
+        plan = {
+            **existing_plan,
+            "days": all_days,
+            "meals_per_day": meals_per_day,
+            "overlap_score": overlap_score,
+            "overlap_floor_met": overlap_score >= optimizer.MIN_OVERLAP_SCORE,
+            "macro_fit_avg": (
+                round(sum(d["macro_fit"] for d in all_days) / len(all_days), 2) if all_days else 0.0
+            ),
+            "constraints_met": merged_constraints,
+            "daily_totals": all_totals,
+            "daily_target_kcal": daily_target_kcal,
+            "daily_target_macros": daily_target_macros,
+            "ingredient_summary": _ingredient_summary(all_ingredient_lists),
+            "targets": targets,
+            "low_confidence_nutrition": low_conf,
         }
-        for p in result["picks"]
-    ]
+        plan["summary_markdown"] = render_menu_summary({"menu_id": mid, **plan})
+        _update_menu(conn, client_id, mid, plan)
+        return {
+            "menu_id": mid,
+            "appended_days": [start_day + i for i in range(days)],
+            **plan,
+        }
 
     plan = {
         "days": days_out,
@@ -223,11 +491,8 @@ def plan_menu(
         "macro_fit_avg": result["macro_fit_avg"],
         "constraints_met": result["constraints_met"],
         "daily_totals": result["daily_totals"],
-        "daily_target_kcal": round(avg_kcal * meals_per_day),
-        "daily_target_macros": (
-            {k: round(v * meals_per_day, 1) for k, v in target_macros.items()}
-            if target_macros else None
-        ),
+        "daily_target_kcal": daily_target_kcal,
+        "daily_target_macros": daily_target_macros,
         "ingredient_summary": _ingredient_summary([p.ingredients for p in result["picks"]]),
         "targets": targets,
         # Recipes whose nutrition didn't resolve (no USDA key, or lookups
@@ -238,6 +503,11 @@ def plan_menu(
         "gaps": [],  # Phase 4
     }
     menu_id = _save_menu(conn, client_id, plan)
+    # The day-by-day table is rendered here, in code, and stored with the
+    # plan — the model echoes it, it never transcribes the JSON into a table
+    # itself (see render_menu_summary).
+    plan["summary_markdown"] = render_menu_summary({"menu_id": menu_id, **plan})
+    _update_menu(conn, client_id, menu_id, plan)
     return {"menu_id": menu_id, **plan}
 
 
@@ -326,7 +596,7 @@ def swap_menu_item(
 
     placeholders = ",".join("?" * len(ids))
     rows = conn.execute(
-        f"SELECT id, title, book, path, servings, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
+        f"SELECT id, title, book, path, cuisine, servings, ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
     ).fetchall()
     by_id = {r["id"]: r for r in rows}
     if replacement_id not in by_id:
@@ -380,20 +650,7 @@ def swap_menu_item(
     for dps in picks_by_day.values():
         optimizer.solve_day_portions(dps, daily_target, avg_kcal, target_macros)
 
-    new_days = [
-        {
-            "day": p.day, "meal": p.meal, "role": p.role,
-            "recipe_id": p.recipe_id, "title": p.title, "book": p.book,
-            "path": p.path, "kcal": p.kcal,
-            "protein_g": p.protein_g, "carb_g": p.carb_g, "fat_g": p.fat_g,
-            "fiber_g": p.fiber_g,
-            "portion_multiplier": p.portion_multiplier,
-            "recipe_servings": p.servings,
-            "shared_ingredients": p.shared_ingredients, "macro_fit": p.macro_fit,
-            "pick_reason": p.pick_reason,
-        }
-        for p in new_picks
-    ]
+    new_days = _picks_to_days(new_picks, {rid: by_id[rid]["cuisine"] for rid in ids})
 
     daily_totals = []
     for dnum in sorted(picks_by_day):
@@ -428,5 +685,6 @@ def swap_menu_item(
         "daily_totals": daily_totals,
         "ingredient_summary": _ingredient_summary(list(ing_by_id.values())),
     }
+    new_plan["summary_markdown"] = render_menu_summary({"menu_id": mid, **new_plan})
     _update_menu(conn, client_id, mid, new_plan)
     return {"menu_id": mid, **new_plan}
