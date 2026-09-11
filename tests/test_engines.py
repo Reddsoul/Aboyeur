@@ -305,9 +305,55 @@ def test_compute_overlap_score_needs_two_plus_picks():
     assert optimizer.compute_overlap_score(one) == 0
 
 
-def _candidate(id_, title, book, ingredients, kcal=500, cuisine=None):
+def _candidate(id_, title, book, ingredients, kcal=500, cuisine=None, course=None):
     return {"id": id_, "title": title, "book": book, "ingredients": ingredients,
-            "macros": {"calories": kcal}, "cuisine": cuisine}
+            "macros": {"calories": kcal}, "cuisine": cuisine, "course": course}
+
+
+def test_is_meal_main_eligible():
+    assert optimizer.is_meal_main_eligible(_candidate(1, "Roast Chicken", "B", ["chicken"], course="main"))
+    assert optimizer.is_meal_main_eligible(_candidate(2, "Oatmeal", "B", ["oats"], course="breakfast"))
+    assert not optimizer.is_meal_main_eligible(_candidate(3, "Buttered Peas", "B", ["peas"], course="side"))
+    # Unclassified (or a dish the classifier couldn't place) stays eligible —
+    # no reliable "is this a side" keyword heuristic exists, and gating on
+    # has_protein would wrongly demote a genuine meat-free main.
+    assert optimizer.is_meal_main_eligible(_candidate(4, "Nut Roast", "B", ["walnut", "breadcrumb"], course=None))
+    assert optimizer.is_meal_main_eligible(_candidate(5, "Nut Roast", "B", ["walnut", "breadcrumb"], course="unknown"))
+
+
+def test_select_menu_never_lets_a_classified_side_anchor_a_day():
+    # A side that fits the macro target better than the actual main must
+    # still lose the primary slot — it can only ever be a top-up.
+    candidates = [
+        _candidate(1, "Buttered Rice", "BookA", ["rice", "butter"], kcal=500, course="side"),
+        _candidate(2, "Grilled Chicken", "BookB", ["chicken", "lemon", "herbs"], kcal=350, course="main"),
+    ]
+    result = optimizer.select_menu(candidates, days=1, pantry=set(), target_kcal=500)
+    mains = [p for p in result["picks"] if p.role == "main"]
+    assert len(mains) == 1
+    assert mains[0].title == "Grilled Chicken"
+
+
+def test_select_menu_reports_infeasible_when_pool_is_all_sides():
+    candidates = [
+        _candidate(i, f"Side {i}", f"Book{i}", [f"veg_{i}"], course="side") for i in range(3)
+    ]
+    result = optimizer.select_menu(candidates, days=3, pantry=set(), target_kcal=500)
+    assert result["feasible"] is False
+    assert any("main-eligible" in r for r in result["infeasible_reasons"])
+
+
+def test_select_menu_pairs_a_side_topup_with_the_main():
+    # One main under the day target; a side (not another main) should be
+    # pulled in to close the gap when it fits at least as well.
+    candidates = [
+        _candidate(1, "Grilled Chicken", "BookA", ["chicken", "lemon"], kcal=300, course="main"),
+        _candidate(2, "Roasted Potatoes", "BookB", ["potato", "oil"], kcal=200, course="side"),
+    ]
+    result = optimizer.select_menu(candidates, days=1, pantry=set(), target_kcal=500)
+    titles_by_role = {p.role: p.title for p in result["picks"]}
+    assert titles_by_role.get("main") == "Grilled Chicken"
+    assert titles_by_role.get("top-up") == "Roasted Potatoes"
 
 
 def test_select_menu_excludes_desserts_from_dinner_pool():

@@ -60,11 +60,6 @@ DAILY_KCAL_TOLERANCE = 0.15
 DAILY_MACRO_TOLERANCE = 0.25
 MAX_DISHES_PER_MEAL = 2
 
-# A dish can only fill a meal's main slot if its (pre-scaling) per-serving
-# estimate is at least this fraction of the per-meal kcal target — a 30 kcal
-# pickle relish is not a dinner no matter how far you scale it. Smaller
-# dishes are still eligible as top-ups.
-MAIN_MIN_KCAL_FRACTION = 0.55
 # A whole meal (every dish in one day+meal slot, after portion scaling) is
 # "coffee only" — and its day infeasible — when it lands under BOTH this
 # fraction of the per-meal target AND this absolute floor. The absolute floor
@@ -282,6 +277,27 @@ def has_protein(ingredients: list[str]) -> bool:
     return any(p in joined for p in _PROTEIN_WORDS)
 
 
+# A "side" is menu-eligible (not dessert/drink/component) but is not itself a
+# dinner — pairing one with an actual main is the point of this distinction
+# (see select_menu's main_pool / accompaniment_pool split).
+_ACCOMPANIMENT_COURSES = {"side"}
+
+
+def is_meal_main_eligible(candidate: dict) -> bool:
+    """True if this candidate can anchor a meal (be the role="main" pick),
+    not just accompany one.
+
+    Only a classified 'side' is demoted — dessert/drink/component are already
+    dropped from the pool upstream by is_menu_ineligible before this ever
+    runs. 'unknown' (unclassified, or a unit-test candidate with no course at
+    all) stays eligible: there's no reliable title/ingredient heuristic for
+    "is this a side" the way there is for "is this a dessert", and gating on
+    has_protein would wrongly demote a genuine meat-free main (a nut roast,
+    a bean stew) that just doesn't use one of the tracked protein words."""
+    course = (candidate.get("course") or "").strip().lower()
+    return course not in _ACCOMPANIMENT_COURSES
+
+
 def main_protein(ingredients: list[str]) -> str | None:
     joined = " ".join(i.lower() for i in ingredients)
     for p in _MAIN_PROTEINS:
@@ -495,8 +511,22 @@ def select_menu(
         if len(cuisine_pool) >= total_picks:
             base_pool = cuisine_pool
 
+    # A meal's primary (role="main") pick must be able to anchor a meal — a
+    # side dish is menu-eligible but is an accompaniment, not a dinner on its
+    # own (this is what let "Curried Rice"/"Deviled Eggs" become a day's only
+    # dish before). Sides stay in the wider pool for _fill_daily_kcal's
+    # top-ups, where pairing one with the chosen main is exactly the point.
+    main_pool = [c for c in base_pool if is_meal_main_eligible(c)]
+    accompaniment_pool = [c for c in base_pool if not is_meal_main_eligible(c)]
+    if len(main_pool) < total_picks:
+        infeasible_reasons.append(
+            f"only {len(main_pool)} main-eligible dishes for {total_picks} meal "
+            f"slots — classified sides can accompany a meal but can't anchor "
+            f"one; search more recipes or widen the books/cuisines"
+        )
+
     def _greedy(overlap_weight: float) -> tuple[list[MenuPick], list[dict], dict[str, int], set[str]]:
-        pool = list(base_pool)
+        pool = list(main_pool)
         picks: list[MenuPick] = []
         selected_meaningful: set[str] = set()
         book_counts: dict[str, int] = {}
@@ -573,8 +603,13 @@ def select_menu(
             break
     (picks, leftover_pool, constraint_counts, selected_meaningful), _ = best_attempt
 
+    # Top-ups draw from unpicked mains AND the accompaniment pool (sides etc.)
+    # — a side is exactly what should fill out a meal that's short on kcal
+    # next to an already-chosen main.
+    topup_pool = leftover_pool + accompaniment_pool
+
     picks, daily_totals = _fill_daily_kcal(
-        picks, leftover_pool, selected_meaningful,
+        picks, topup_pool, selected_meaningful,
         days=days, meals_per_day=meals_per_day, daily_target=daily_target,
         target_macros=target_macros, per_meal_kcal=target_kcal,
     )
@@ -851,7 +886,11 @@ def _fill_daily_kcal(
                 kcal = float(c["macros"]["calories"])
                 closeness = max(0.0, 1.0 - abs(gap - kcal) / gap)
                 overlap = len(meaningful_ingredients(c["ingredients"]) & selected_meaningful)
-                return W_MACRO_FIT * closeness + W_INGREDIENT_OVERLAP * overlap
+                # A side pairs naturally with whatever main already anchors the
+                # meal — nudge toward that realistic plate shape, but it's a
+                # tie-breaker: kcal fit and overlap still decide most picks.
+                side_bonus = 0.5 if (c.get("course") or "").lower() == "side" else 0.0
+                return W_MACRO_FIT * closeness + W_INGREDIENT_OVERLAP * overlap + side_bonus
 
             best = max(pool, key=top_up_score)
             best_kcal = float(best["macros"]["calories"])

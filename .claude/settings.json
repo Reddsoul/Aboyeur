@@ -115,7 +115,10 @@
       "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, client_id, substr\\(days_json,1,60\\) FROM menus WHERE client_id=2 ORDER BY id DESC LIMIT 3;\")",
       "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT id, CASE WHEN substr\\(ltrim\\(days_json\\),1,1\\)='{' THEN 'dict' WHEN substr\\(ltrim\\(days_json\\),1,1\\)='[' THEN 'list' ELSE '?' END shape, COUNT\\(*\\) FROM menus GROUP BY shape;\")",
       "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT SUM\\(classified_at IS NOT NULL\\) done, COUNT\\(*\\) total, COUNT\\(*\\)-SUM\\(classified_at IS NOT NULL\\) remaining FROM recipes;\")",
-      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT course, COUNT\\(*\\) FROM recipes WHERE classified_at IS NOT NULL GROUP BY course ORDER BY 2 DESC;\")"
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT course, COUNT\\(*\\) FROM recipes WHERE classified_at IS NOT NULL GROUP BY course ORDER BY 2 DESC;\")",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT course, COUNT\\(*\\), round\\(100.0*COUNT\\(*\\)/\\(SELECT COUNT\\(*\\) FROM recipes\\),1\\)||'%' FROM recipes GROUP BY course ORDER BY 2 DESC;\")",
+      "Bash(sqlite3 ~/.local/share/aboyeur/aboyeur.db \"SELECT course, meal_complete, title FROM recipes WHERE title IN \\('Orange Filling','French Coffee','Ginger Snaps','Cracker-Jack','Deviled Eggs','Cut Corn','New Potatoes','Curried Rice','Chocolate Cake'\\) OR title LIKE 'Chicken Curry%' LIMIT 12;\")",
+      "Bash(.venv/bin/python -m pytest tests/test_engines.py -q -k \"main_eligible or classified_side or all_sides or pairs_a_side\")"
     ]
   }
 }

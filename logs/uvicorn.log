@@ -872,3 +872,547 @@ INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
 INFO:     100.71.143.90:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
 INFO:     100.71.143.90:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
 INFO:     100.71.143.90:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/messages?session_id=1 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/1/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/account HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages?session_id=1 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/1/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes/facets HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/recipes?client_id=4&offset=0&limit=24 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages?session_id=1 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/1/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages?session_id=7 HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=savoury+herbs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+roux&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=green+peas&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=asparagus&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beetroot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beetroot&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cornflour&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cornflour&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=flageolet+beans&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=king+oyster&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mushroom+broth&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.474425 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=plain+white+tofu&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=baby+leeks&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sichuan+chilli+bean+paste&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=fermented+black+beans&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+chillies&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetarian+stock&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=potato+flour+mixed+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=roasted+sichuan+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.407210 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shiitake+mushroom&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chillies&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chillies&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sichuan+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=ya+cai&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=ya+cai&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=shallots&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mild+fresh+chilies&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=classic+rice&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=red+bell+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=napa+cabbage&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bamboo+shoots&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spring+roll+wrappers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages?session_id=8 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/8/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "DELETE /api/clients/2/sessions/8 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages?session_id=5 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+carcasses&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=devilled+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=gherkins&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=gherkins&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sultana+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.385074 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sharp+cheddar+cheese&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=toothpicks&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=toothpicks&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=egg+milk&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=dill+pickle&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.415623 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=servings&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=burdock+roots&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mirin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mirin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sak&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sak&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pink+pickled+ginger+shoots&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bell+pepper&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=skewers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=skewers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cooking+spray&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.421066 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rice+syrup&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+thighs+drumsticks&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=seasoned+scallions&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.385312 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rib+eye&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=banana+peppers&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=green+thai+long+chiles&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=thin+soy+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=yellow&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.424155 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.401414 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salt+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=boiled+salmon+garnish&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sauces+boiled+salmon&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=salmon+liver&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.417821 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=parsley+pur+e&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages?session_id=8 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/8/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "DELETE /api/clients/2/sessions/8 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages?session_id=5 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/sessions/5/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "POST /chat HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chow+mein+noodles&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.451899 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=vegetable+oil&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cornstarch&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=lean&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=poultry+seasoning&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chickens&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+palate&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=truffles&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+kidneys&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+wing+fillets&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=chicken+breast+fillets&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rooster+combs&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=crab&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rooster+comb&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.437364 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=cream+mushroom+soup&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.493079 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=almond+liqueur&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=pizza+sauce&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=mozzarella+cheese&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=parkerhouse+rolls&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=flour+mixture&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=crumb+mixture&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sauterne&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=sauterne&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=bottled+salad+dressing&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=saltpetre&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=saltpetre&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+steak&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+suet&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+heart&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=apples&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=white+wine&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=rose+water&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=citron&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=citron&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=top+round+beef&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=blanc&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=blanc&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=upper+fillet+beef&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=ribs+beef&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.459259 seconds
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+trimmings+suet&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+meat&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.426838 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef+shin&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=spice&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=beef&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:openai._base_client:Retrying request to /chat/completions in 0.438505 seconds
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://api.nal.usda.gov/fdc/v1/foods/search?query=brussels+sprouts&pageSize=10&api_key=NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug&dataType=Foundation%2CSR+Legacy "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://spark-50a1.flicker-harmonic.ts.net:4000/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     100.104.60.89:0 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/profile HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/sessions/8/feedback HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/sessions/8/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/messages?session_id=8 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/events?days=7&limit=300 HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/events?days=7&limit=300 HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/messages HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/clients/2/sessions HTTP/1.1" 200 OK
+INFO:     100.104.60.89:0 - "GET /api/sessions/8/feedback HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/llm-settings HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/messages HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/clients/4/sessions HTTP/1.1" 200 OK
+INFO:     100.68.148.28:0 - "GET /api/sessions/7/feedback HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+INFO:     100.71.143.90:0 - "GET /api/admin/overview HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [94556]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73474]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73474]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73505]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73505]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73524]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73524]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73564]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73564]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73697]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73697]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73720]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73720]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73740]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'tests/test_engines.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73740]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73790]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'tests/test_engines.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73790]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73851]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'aboyeur/engines/optimizer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73851]
+WARNING:aboyeur:COOKIE_SECURE=false — session cookies are sent over plain HTTP. Local dev only.
+INFO:aboyeur:MCP mounted at /mcp (SSE: /mcp/sse)
+INFO:     Started server process [73961]
+INFO:     Waiting for application startup.
+INFO:aboyeur:Aboyeur up. Recipes in Chroma: 0
+INFO:     Application startup complete.
