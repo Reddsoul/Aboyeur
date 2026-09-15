@@ -1,0 +1,13 @@
+39043 recipes (main, breakfast, side) without a nutrition row
+[parse] 43262 unique lines across 39043 recipes; 42648 to parse (614 cached)
+[parse] 10/1067 batches · 339 parsed · 61 failed · 374.6 min · ~39562 min left
+[parse] 20/1067 batches · 662 parsed · 138 failed · 720.2 min · ~37672 min left
+[parse] 30/1067 batches · 931 parsed · 269 failed · 1204.5 min · ~41604 min left
+[parse] 40/1067 batches · 1185 parsed · 415 failed · 1666.7 min · ~42760 min left
+[parse] 50/1067 batches · 1459 parsed · 541 failed · 2126.5 min · ~43220 min left
+[parse] 60/1067 batches · 1717 parsed · 683 failed · 2603.7 min · ~43663 min left
+[parse] 70/1067 batches · 1966 parsed · 834 failed · 3107.7 min · ~44227 min left
+[parse] 80/1067 batches · 2205 parsed · 995 failed · 3599.4 min · ~44372 min left
+[parse] 90/1067 batches · 2460 parsed · 1140 failed · 4108.8 min · ~44566 min left
+[parse] 100/1067 batches · 2695 parsed · 1305 failed · 4608.3 min · ~44526 min left
+[parse] 110/1067 batches · 3009 parsed · 1391 failed · 4986.3 min · ~43345 min left

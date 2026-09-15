@@ -158,6 +158,19 @@ def test_update_profile_add_member_computes_targets(db_conn: sqlite3.Connection,
     assert profile["targets"]["adult_1"]["source"] == "bmr"
 
 
+def test_get_profile_passes_bmr_kcal_through(db_conn: sqlite3.Connection, client_id: int):
+    update_profile(db_conn, client_id, {"add_member": [
+        {"id": "adult_1", "sex": "m", "age": 30, "height_cm": 178, "weight_kg": 80},
+        {"id": "kid_1", "daily_kcal": 1600},
+    ]})
+    profile = get_profile(db_conn, client_id)
+    engine_targets = nutrition_engine.household_targets(profile)
+    for mid in ("adult_1", "kid_1"):
+        assert profile["targets"][mid]["bmr_kcal"] == engine_targets[mid]["bmr_kcal"]
+    assert profile["targets"]["adult_1"]["bmr_kcal"] == round(nutrition_engine.bmr_mifflin("m", 30, 178, 80))
+    assert profile["targets"]["kid_1"]["bmr_kcal"] is None
+
+
 def test_update_profile_unrelated_field_never_touches_allergies(db_conn: sqlite3.Connection, client_id: int):
     update_profile(db_conn, client_id, {"add_allergies": ["peanut"]})
     update_profile(db_conn, client_id, {"set_meals_per_day": 4})

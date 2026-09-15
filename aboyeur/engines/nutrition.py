@@ -122,6 +122,26 @@ _DEFAULT_KCAL_BY_SEX = {"f": 1800.0, "m": 2300.0}
 _DEFAULT_KCAL_UNKNOWN = 2000.0
 
 
+_ANTHRO_KEYS = ("sex", "age", "height_cm", "weight_kg")
+
+
+def has_anthropometrics(member: dict) -> bool:
+    """True when every field Mifflin-St Jeor needs is present."""
+    return all(member.get(k) is not None for k in _ANTHRO_KEYS)
+
+
+def bmr_for_member(member: dict) -> float | None:
+    """Raw Mifflin-St Jeor BMR (kcal/day) for a member, or None.
+
+    None whenever any of sex/age/height_cm/weight_kg is missing — never a
+    guessed or fallback BMR, matching the "don't invent anthropometrics"
+    house rule. This is the resting cost; maintenance is BMR x activity.
+    """
+    if not has_anthropometrics(member):
+        return None
+    return bmr_mifflin(member["sex"], member["age"], member["height_cm"], member["weight_kg"])
+
+
 def maintenance_kcal_for_member(member: dict) -> float:
     """Resolve a household member's maintenance kcal (no goal adjustment).
 
@@ -129,8 +149,8 @@ def maintenance_kcal_for_member(member: dict) -> float:
     daily_kcal. Else a sex-aware generic default — never a guessed age or
     other invented anthropometric to force the BMR path.
     """
-    if all(member.get(k) is not None for k in ("sex", "age", "height_cm", "weight_kg")):
-        b = bmr_mifflin(member["sex"], member["age"], member["height_cm"], member["weight_kg"])
+    b = bmr_for_member(member)
+    if b is not None:
         return tdee(b, member.get("activity", "moderate"))
     if member.get("daily_kcal") is not None:
         return float(member["daily_kcal"])
@@ -151,23 +171,27 @@ def daily_kcal_for_member(member: dict) -> float:
 def household_targets(profile: dict) -> dict:
     """Per-person per-meal targets for the whole household.
 
-    Returns {member_id: {label, daily_kcal, source, per_meal:{...}}}.
+    Returns {member_id: {label, bmr_kcal, maintenance_kcal, daily_kcal,
+    source, per_meal:{...}}}. bmr_kcal is None when source == "fallback".
     """
     household_meals = profile.get("meals_per_day", 3)
     out = {}
     for m in profile.get("household", []):
+        bmr = bmr_for_member(m)
         maintenance = maintenance_kcal_for_member(m)
         daily = daily_kcal_for_member(m)
-        has_anthro = all(m.get(k) is not None for k in ("sex", "age", "height_cm", "weight_kg"))
         meals = m.get("meals_per_day", household_meals)
         out[m["id"]] = {
             "label": m.get("label", m["id"]),
             "goal": (m.get("goal") or "maintain").strip().lower(),
             "goal_weight_kg": m.get("goal_weight_kg"),
             "goal_adjust_kcal": round(goal_adjust_kcal(m)),
+            # bmr_kcal = resting cost; maintenance_kcal = BMR x activity (TDEE).
+            # bmr_kcal is None under exactly the condition source == "fallback".
+            "bmr_kcal": round(bmr) if bmr is not None else None,
             "maintenance_kcal": round(maintenance),
             "daily_kcal": round(daily),
-            "source": "bmr" if has_anthro else "fallback",
+            "source": "bmr" if bmr is not None else "fallback",
             "per_meal": per_meal_target(daily, meals),
             "daily_macros": per_meal_target(daily, 1),
         }

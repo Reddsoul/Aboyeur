@@ -77,8 +77,10 @@ TOOL_SCHEMAS: list[dict] = [
             "name": "get_profile",
             "description": (
                 "Get the household: members, computed per-member daily/per-meal calorie and "
-                "macro targets (BMR/TDEE-based), allergies, dislikes, likes, cuisine affinity, "
-                "diet modes. Each member's per_meal target already accounts for their own "
+                "macro targets, allergies, dislikes, likes, cuisine affinity, diet modes. Each "
+                "member's targets entry carries bmr_kcal (resting BMR, Mifflin-St Jeor) and "
+                "maintenance_kcal (BMR x activity = TDEE); bmr_kcal is null and source is "
+                "'fallback' until the member has full sex/age/height_cm/weight_kg. Each member's per_meal target already accounts for their own "
                 "meals_per_day if they have a personal override (falls back to the household "
                 "default otherwise) — don't assume every member eats on the same schedule. "
                 "Always check this before planning a menu — it drives targets and the hard "

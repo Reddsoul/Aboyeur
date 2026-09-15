@@ -145,6 +145,31 @@ def test_household_targets_labels_source_correctly():
     assert targets["kid_1"]["daily_kcal"] == 1600
 
 
+def test_household_targets_expose_raw_bmr_when_anthro_present():
+    member = {"id": "adult_1", "sex": "m", "age": 30, "height_cm": 178, "weight_kg": 80, "activity": "moderate"}
+    t = nutrition.household_targets({"meals_per_day": 3, "household": [member]})["adult_1"]
+    expected = nutrition.bmr_mifflin("m", 30, 178, 80)
+    assert t["bmr_kcal"] == round(expected)
+    assert nutrition.bmr_for_member(member) == expected
+    # maintenance = BMR x activity factor (>= 1.2), so BMR is strictly lower.
+    assert t["bmr_kcal"] < t["maintenance_kcal"]
+    assert t["maintenance_kcal"] == round(nutrition.tdee(expected, "moderate"))
+    assert t["source"] == "bmr"
+
+
+def test_household_targets_bmr_is_none_when_any_anthro_missing():
+    full = {"sex": "f", "age": 28, "height_cm": 165, "weight_kg": 60}
+    for missing in full:
+        member = {"id": "m", **{k: v for k, v in full.items() if k != missing}}
+        assert nutrition.bmr_for_member(member) is None, missing
+        t = nutrition.household_targets({"meals_per_day": 3, "household": [member]})["m"]
+        assert t["bmr_kcal"] is None, missing
+        assert t["source"] == "fallback", missing
+        # Still gets a usable fallback calorie target.
+        assert t["maintenance_kcal"] > 0
+        assert t["daily_kcal"] > 0
+
+
 def test_household_targets_member_meals_per_day_overrides_household_default():
     profile = {
         "meals_per_day": 1,  # household default: OMAD
