@@ -6,23 +6,32 @@ Single source of truth for the Chroma collection — imported by both the backen
 import os
 from typing import Optional
 
-import chromadb
-from chromadb.utils import embedding_functions
-
+# chromadb is imported lazily: the live app (aboyeur.agent over FTS5) never
+# touches it, and the package pulls in onnxruntime + a model download. It's
+# no longer a declared dependency — every entry point below raises a clear
+# ImportError if something still reaches for it.
 CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "recipes")
 
-# Local ONNX MiniLM (offline, no API). Runs client-side on both backend + watcher.
-_EMBED_FN = embedding_functions.DefaultEmbeddingFunction()
-
+_EMBED_FN = None
 _client = None
 _collection = None
+
+
+def _embed_fn():
+    """Local ONNX MiniLM (offline, no API). Built on first use."""
+    global _EMBED_FN
+    if _EMBED_FN is None:
+        from chromadb.utils import embedding_functions
+        _EMBED_FN = embedding_functions.DefaultEmbeddingFunction()
+    return _EMBED_FN
 
 
 def get_client():
     global _client
     if _client is None:
+        import chromadb
         _client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     return _client
 
@@ -46,7 +55,7 @@ def get_collection():
     if _collection is None:
         _collection = get_client().get_or_create_collection(
             name=CHROMA_COLLECTION,
-            embedding_function=_EMBED_FN,
+            embedding_function=_embed_fn(),
             metadata={"hnsw:space": "cosine"},
         )
     return _collection

@@ -224,8 +224,12 @@ def test_migration_folds_each_household_into_its_own_client(tmp_path):
 
     rows = {r["user_id"]: r for r in conn.execute("SELECT * FROM clients")}
     assert len(rows) == 2
-    assert rows[1]["name"] == "Jose"          # named from the primary member
-    assert rows[2]["name"] == "Me"            # ...or the account owner's own client
+    # Names are written encrypted (aboyeur/crypto.py encrypt_field) — read
+    # them back the way the app does.
+    from aboyeur.crypto import decrypt_field
+    assert rows[1]["name"].startswith("enc:")
+    assert decrypt_field(rows[1]["name"]) == "Jose"   # named from the primary member
+    assert decrypt_field(rows[2]["name"]) == "Me"     # ...or the account owner's own client
 
     assert conn.execute("SELECT client_id FROM menus WHERE id = 7").fetchone()[0] == rows[1]["id"]
     assert conn.execute("SELECT client_id FROM kits WHERE id = 3").fetchone()[0] == rows[2]["id"]

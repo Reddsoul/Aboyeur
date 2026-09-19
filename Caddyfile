@@ -1,0 +1,37 @@
+# Aboyeur edge. APP_DOMAIN=localhost -> self-signed cert (local smoke test);
+# a real hostname -> Let's Encrypt. Behind Cloudflare use "Full (strict)"
+# and an Origin CA cert, or leave Let's Encrypt with DNS-01 — see DEPLOYMENT.md.
+{$APP_DOMAIN} {
+    encode zstd gzip
+
+    # Every backend route the SPA talks to. The legacy pre-agent routes
+    # (/books, /pantry, /menu, /search, ...) and the OpenAI-compat shim
+    # (/v1) are deliberately NOT exposed.
+    @api path /api/* /auth/* /chat /chat/* /profile/* /health
+    handle @api {
+        reverse_proxy backend:8000 {
+            # SSE: don't buffer the chat stream.
+            flush_interval -1
+        }
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}

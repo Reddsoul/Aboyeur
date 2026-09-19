@@ -168,8 +168,28 @@ CREATE TABLE IF NOT EXISTS users (
     -- granted out-of-band with `aboyeur set-admin <email>` — there is no
     -- route, CLI flag aside, that can promote an account from inside the app.
     is_admin       INTEGER NOT NULL DEFAULT 0,
-    created_at     TEXT NOT NULL
+    created_at     TEXT NOT NULL,
+    -- SaaS columns (billing / hosted LLM / privacy). Mirrored in
+    -- aboyeur.migrate._USER_SAAS_COLUMNS for DBs that predate them; keep
+    -- the two lists in step.
+    billing_status TEXT NOT NULL DEFAULT 'free',    -- free | active | past_due | canceled | comp
+    plan           TEXT NOT NULL DEFAULT 'free',    -- free | pro
+    country        TEXT,                            -- ISO-3166 alpha-2, user-editable
+    stripe_customer_id     TEXT,                    -- unique via idx_users_stripe_customer
+    stripe_subscription_id TEXT,
+    paid_months    INTEGER NOT NULL DEFAULT 0,      -- consecutive paid months (loyalty tenure)
+    loyalty_tier   TEXT,                            -- ladder step id; NULL = base price
+    llm_mode       TEXT NOT NULL DEFAULT 'byok',    -- byok | hosted
+    llm_provider_id INTEGER REFERENCES llm_providers(id),   -- NULL = platform default
+    credit_cents   INTEGER NOT NULL DEFAULT 0,      -- hosted-LLM wallet
+    email_verified_at TEXT,
+    tos_version    TEXT,
+    tos_accepted_at TEXT,
+    deleted_at     TEXT,                            -- soft delete; purged after 30d
+    low_balance_emailed_at TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id);
 
 -- The people a practitioner plans for. THE subject key: profile, pantry,
 -- menus and kits all hang off a client, never off the account directly, so
@@ -282,7 +302,11 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     session_id  INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
     role        TEXT NOT NULL,            -- user | assistant
     content     TEXT NOT NULL,
-    created_at  TEXT NOT NULL
+    created_at  TEXT NOT NULL,
+    -- aboyeur/sensitivity.py: NULL (unclassified) | none | sensitive | unknown,
+    -- and the classifier's category list. Never a summary of the content.
+    sensitivity      TEXT,
+    sensitivity_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS interactions (
@@ -345,6 +369,139 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 
 CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status, created_at);
+
+-- ---------------------------------------------------------------------------
+-- SaaS: billing, hosted LLM, privacy. All post-practitioner, so CREATE TABLE
+-- IF NOT EXISTS is the whole story for the new tables; the new columns on
+-- users / chat_messages are added by aboyeur.migrate (ALTER TABLE).
+-- ---------------------------------------------------------------------------
+
+-- Free-form operator KV: cached Stripe Product ids, feature switches. Not
+-- config — config is env. This is state the app creates for itself.
+CREATE TABLE IF NOT EXISTS settings (
+    key    TEXT PRIMARY KEY,
+    value  TEXT
+);
+
+-- Source of truth for what a plan costs where. Each row maps to exactly one
+-- Stripe Price (immutable there, so an edit here archives the row and makes
+-- a new one). country is ISO-3166 alpha-2 or '*' for the default.
+-- Uniqueness of the *active* row per combo is a partial index below, not a
+-- table constraint: UNIQUE(plan, interval, country, active) would forbid a
+-- second archived row for the same combo, and every edit makes one.
+CREATE TABLE IF NOT EXISTS plan_prices (
+    id               INTEGER PRIMARY KEY,
+    plan             TEXT NOT NULL,
+    interval         TEXT NOT NULL,             -- month | year
+    country          TEXT NOT NULL,
+    amount_cents     INTEGER NOT NULL,          -- USD
+    stripe_price_id  TEXT,                      -- created lazily on first checkout
+    active           INTEGER NOT NULL DEFAULT 1,
+    updated_at       TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_plan_prices_active
+    ON plan_prices(plan, interval, country) WHERE active = 1;
+
+-- Tenure ladder: after `min_paid_months` consecutive paid months the user's
+-- subscription carries this tier's coupon. Lapse resets tenure (billing.py).
+CREATE TABLE IF NOT EXISTS loyalty_ladder (
+    id               INTEGER PRIMARY KEY,
+    tier             TEXT NOT NULL UNIQUE,      -- m3 | m6 | m12
+    min_paid_months  INTEGER NOT NULL,
+    percent_off      INTEGER NOT NULL,          -- 0-100
+    stripe_coupon_id TEXT,                      -- created lazily (duration=forever)
+    active           INTEGER NOT NULL DEFAULT 1
+);
+
+-- Hosted LLM endpoints we pay for and re-bill. The key is Fernet-encrypted
+-- (aboyeur/crypto.py); prices are OUR cost in cents per million tokens, and
+-- markup_pct is what the user pays on top.
+CREATE TABLE IF NOT EXISTS llm_providers (
+    id                  INTEGER PRIMARY KEY,
+    name                TEXT NOT NULL UNIQUE,
+    base_url            TEXT NOT NULL,
+    model               TEXT NOT NULL,
+    api_key_encrypted   TEXT NOT NULL,
+    price_in_per_mtok   INTEGER NOT NULL,
+    price_out_per_mtok  INTEGER NOT NULL,
+    markup_pct          INTEGER NOT NULL DEFAULT 30,
+    is_default          INTEGER NOT NULL DEFAULT 0,
+    enabled             INTEGER NOT NULL DEFAULT 1,
+    updated_at          TEXT NOT NULL
+);
+
+-- Every movement of a user's prepaid credit: turns debit, top-ups credit,
+-- refunds and admin adjustments do either. cost_cents is our cost at the
+-- time; charge_cents is what actually moved on users.credit_cents.
+CREATE TABLE IF NOT EXISTS usage_ledger (
+    id             INTEGER PRIMARY KEY,
+    ts             TEXT NOT NULL,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id       INTEGER,
+    provider_id    INTEGER REFERENCES llm_providers(id),
+    model          TEXT NOT NULL,
+    tokens_in      INTEGER NOT NULL,
+    tokens_out     INTEGER NOT NULL,
+    cost_cents     INTEGER NOT NULL,
+    charge_cents   INTEGER NOT NULL,
+    kind           TEXT NOT NULL                -- chat_turn | chat_turn_est | classify | topup | adjust | refund
+);
+CREATE INDEX IF NOT EXISTS idx_usage_user_ts ON usage_ledger(user_id, ts);
+
+-- Webhook idempotency: Stripe retries until it sees a 2xx, and can deliver
+-- the same event twice regardless. PK on the event id makes the second
+-- delivery a no-op before any handler runs.
+CREATE TABLE IF NOT EXISTS stripe_events (
+    id          TEXT PRIMARY KEY,
+    type        TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    processed   INTEGER NOT NULL DEFAULT 0,
+    error       TEXT
+);
+
+-- Who did what in the console. Transcript reveals, comp toggles, price
+-- edits — anything a user would want to know an operator did.
+CREATE TABLE IF NOT EXISTS admin_audit (
+    id        INTEGER PRIMARY KEY,
+    ts        TEXT NOT NULL,
+    admin_id  INTEGER NOT NULL,
+    action    TEXT NOT NULL,
+    target    TEXT,                             -- user:12 / session:44 / price:3
+    meta_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_target ON admin_audit(target, ts);
+
+-- Email verification + password reset. Single-use, short-lived.
+CREATE TABLE IF NOT EXISTS email_tokens (
+    token      TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purpose    TEXT NOT NULL,                   -- verify | reset
+    expires_at TEXT NOT NULL,
+    used_at    TEXT
+);
+
+-- SIGNUP_MODE=invite: a code the signup form must carry. max_uses NULL =
+-- unlimited until expiry.
+CREATE TABLE IF NOT EXISTS invite_codes (
+    code        TEXT PRIMARY KEY,
+    created_by  INTEGER,
+    created_at  TEXT NOT NULL,
+    expires_at  TEXT,
+    max_uses    INTEGER,
+    uses        INTEGER NOT NULL DEFAULT 0,
+    note        TEXT
+);
+
+-- Operator's record that a support reveal happened, surfaced to the user on
+-- their Account page. Denormalized from admin_audit on purpose: the audit
+-- table is 2-year retention and admin-only; this is the user-facing view.
+CREATE TABLE IF NOT EXISTS support_access (
+    id          INTEGER PRIMARY KEY,
+    ts          TEXT NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_id  INTEGER NOT NULL,
+    admin_id    INTEGER NOT NULL
+);
 """
 
 

@@ -10,3 +10,5 @@ __pycache__/
 .pytest_cache/
 backend/__pycache__/
 thoughts/
+# Server-side copy of the recipe corpus (docker-compose bind mount)
+/corpus/

@@ -1,0 +1,14 @@
+.venv
+.git
+__pycache__
+*.pyc
+.pytest_cache
+logs
+data
+books
+thoughts
+corpus
+frontend/node_modules
+frontend/dist
+*.pdf
+OPUS_TASK_*.md

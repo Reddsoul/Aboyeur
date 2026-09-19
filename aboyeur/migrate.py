@@ -13,6 +13,8 @@ import json
 import sqlite3
 import time
 
+from aboyeur.crypto import encrypt_field, is_encrypted_field
+
 # The existing single household's data folds under this account. Change
 # before running if a different owner is wanted.
 SEED_USER_EMAIL = "thepartycaravan@gmail.com"
@@ -169,6 +171,112 @@ def _add_is_admin_column(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# SaaS columns on users. Every one is nullable or defaulted so an existing
+# beta account comes out of the migration as a `free` BYOK user with no
+# Stripe objects — exactly the state it was in, just named.
+_USER_SAAS_COLUMNS = {
+    "billing_status": "TEXT NOT NULL DEFAULT 'free'",   # free | active | past_due | canceled | comp
+    "plan": "TEXT NOT NULL DEFAULT 'free'",             # free | pro
+    "country": "TEXT",                                  # ISO-3166 alpha-2, user-editable
+    "stripe_customer_id": "TEXT",                       # UNIQUE via index below (ADD COLUMN can't)
+    "stripe_subscription_id": "TEXT",
+    "paid_months": "INTEGER NOT NULL DEFAULT 0",        # consecutive paid months (loyalty tenure)
+    "loyalty_tier": "TEXT",                             # ladder step id; NULL = base price
+    "llm_mode": "TEXT NOT NULL DEFAULT 'byok'",         # byok | hosted
+    "llm_provider_id": "INTEGER REFERENCES llm_providers(id)",  # NULL = platform default
+    "credit_cents": "INTEGER NOT NULL DEFAULT 0",       # hosted-LLM wallet
+    "email_verified_at": "TEXT",
+    "tos_version": "TEXT",
+    "tos_accepted_at": "TEXT",
+    "deleted_at": "TEXT",                               # soft delete; `aboyeur purge` hard-deletes after 30d
+    "low_balance_emailed_at": "TEXT",                   # throttle for the < 100¢ email
+}
+
+_CHAT_MESSAGE_SAAS_COLUMNS = {
+    "sensitivity": "TEXT",        # NULL (unclassified) | none | sensitive | unknown
+    "sensitivity_json": "TEXT",   # classifier categories only — never content
+}
+
+
+def _add_saas_columns(conn: sqlite3.Connection) -> None:
+    """Billing / hosted-LLM / privacy columns (see _USER_SAAS_COLUMNS). Plain
+    ADD COLUMNs, one per missing column, so a partially-applied earlier run
+    picks up where it stopped."""
+    if _table_exists(conn, "users"):
+        existing = _column_names(conn, "users")
+        for column, decl in _USER_SAAS_COLUMNS.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE users ADD COLUMN {column} {decl}")
+        if "email_verified_at" not in existing:
+            # Accounts that predate verification were provisioned by the
+            # operator by hand (aboyeur create-user) — the operator knew the
+            # address. Treat them as verified rather than locking every beta
+            # tester out of chat on the day this ships.
+            conn.execute("UPDATE users SET email_verified_at = created_at "
+                         "WHERE email_verified_at IS NULL")
+        # UNIQUE can't ride on ADD COLUMN; a unique index is the same promise.
+        # SQLite treats NULLs as distinct, so unlinked accounts don't collide.
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_stripe_customer "
+            "ON users(stripe_customer_id)"
+        )
+    if _table_exists(conn, "chat_messages"):
+        existing = _column_names(conn, "chat_messages")
+        for column, decl in _CHAT_MESSAGE_SAAS_COLUMNS.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE chat_messages ADD COLUMN {column} {decl}")
+    conn.commit()
+
+
+# Placeholders — both editable in the admin console. Seeded only when the
+# table is empty so an operator's edits are never overwritten on restart.
+_LOYALTY_SEED = (("m3", 3, 10), ("m6", 6, 15), ("m12", 12, 25))
+_PRICE_SEED = (("pro", "month", "*", 1000), ("pro", "year", "*", 8000))
+
+
+def _seed_billing_tables(conn: sqlite3.Connection) -> None:
+    if not _table_exists(conn, "loyalty_ladder") or not _table_exists(conn, "plan_prices"):
+        return
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if conn.execute("SELECT COUNT(*) FROM loyalty_ladder").fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT INTO loyalty_ladder (tier, min_paid_months, percent_off) VALUES (?, ?, ?)",
+            _LOYALTY_SEED,
+        )
+    if conn.execute("SELECT COUNT(*) FROM plan_prices").fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT INTO plan_prices (plan, interval, country, amount_cents, updated_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            [(*row, now) for row in _PRICE_SEED],
+        )
+    conn.commit()
+
+
+def _encrypt_pii_rows(conn: sqlite3.Connection) -> None:
+    """Encrypt existing clients.name/email/phone/notes and profile.data_json
+    under DATA_KEY. Idempotent by the `enc:` prefix: already-encrypted rows
+    are skipped, so a re-run (or an interrupted first run) is safe."""
+    if _table_exists(conn, "clients"):
+        for row in conn.execute("SELECT id, name, email, phone, notes FROM clients").fetchall():
+            if all(v is None or is_encrypted_field(v)
+                   for v in (row["name"], row["email"], row["phone"], row["notes"])):
+                continue
+            conn.execute(
+                "UPDATE clients SET name = ?, email = ?, phone = ?, notes = ? WHERE id = ?",
+                (encrypt_field(row["name"]), encrypt_field(row["email"]),
+                 encrypt_field(row["phone"]), encrypt_field(row["notes"]), row["id"]),
+            )
+    if _table_exists(conn, "profile") and "client_id" in _column_names(conn, "profile"):
+        for row in conn.execute("SELECT client_id, data_json FROM profile").fetchall():
+            if is_encrypted_field(row["data_json"]):
+                continue
+            conn.execute(
+                "UPDATE profile SET data_json = ? WHERE client_id = ?",
+                (encrypt_field(row["data_json"]), row["client_id"]),
+            )
+    conn.commit()
+
+
 def _ensure_clients_is_self(conn: sqlite3.Connection) -> None:
     """clients.is_self marks the practitioner's own record. On an account that
     predates the flag it's the client the household was folded into — the
@@ -224,7 +332,7 @@ def _self_client_ids(conn: sqlite3.Connection) -> dict[int, int]:
         cur = conn.execute(
             "INSERT INTO clients (user_id, name, status, is_self, created_at, updated_at) "
             "VALUES (?, ?, 'active', 1, ?, ?)",
-            (user_id, _client_name_for(conn, user_id), now, now),
+            (user_id, encrypt_field(_client_name_for(conn, user_id)), now, now),
         )
         out[user_id] = cur.lastrowid
     return out
@@ -381,6 +489,11 @@ def migrate(conn: sqlite3.Connection) -> int:
     _add_recipe_classification_columns(conn)
     _add_nutrition_servings_est(conn)
     _migrate_chat_sessions(conn)
+    # After _migrate_chat_sessions: it rebuilds chat_messages, and the
+    # sensitivity columns must land on the rebuilt table, not the old one.
+    _add_saas_columns(conn)
+    _seed_billing_tables(conn)
+    _encrypt_pii_rows(conn)
     # Deliberately not in db.py's static SCHEMA — see the comment above the
     # menus table there. Safe to run every time: the scoping column is
     # guaranteed to exist by this point, whether the table was just rebuilt

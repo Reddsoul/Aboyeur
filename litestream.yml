@@ -1,0 +1,15 @@
+# Litestream sidecar config. Values come from .env (compose passes it as
+# env_file). Restore with:
+#   litestream restore -config /etc/litestream.yml -o /data/aboyeur.db /data/aboyeur.db
+addr: ":9090"      # Prometheus metrics; /health reads litestream_lag_s from here
+dbs:
+  - path: /data/aboyeur.db
+    replicas:
+      - type: s3
+        bucket: ${LITESTREAM_B2_BUCKET}
+        path: ${LITESTREAM_B2_PATH}
+        endpoint: ${LITESTREAM_B2_ENDPOINT}
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        retention: 168h
+        sync-interval: 10s

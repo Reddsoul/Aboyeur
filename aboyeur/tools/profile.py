@@ -12,6 +12,7 @@ import sqlite3
 import time
 
 from aboyeur.engines import nutrition
+from aboyeur.crypto import decrypt_field, encrypt_field
 
 DEFAULT_PROFILE = {
     "household": [],
@@ -44,7 +45,8 @@ def _load_raw(conn: sqlite3.Connection, client_id: int, guest: dict | None) -> d
     row = conn.execute("SELECT data_json FROM profile WHERE client_id = ?", (client_id,)).fetchone()
     if row is None:
         return dict(DEFAULT_PROFILE)
-    return json.loads(row["data_json"])
+    # Encrypted at rest (health data) — see aboyeur/crypto.py encrypt_field.
+    return json.loads(decrypt_field(row["data_json"]))
 
 
 def _save_raw(conn: sqlite3.Connection, client_id: int, profile: dict, guest: dict | None) -> None:
@@ -59,7 +61,7 @@ def _save_raw(conn: sqlite3.Connection, client_id: int, profile: dict, guest: di
     conn.execute(
         "INSERT INTO profile (client_id, data_json, updated_at) VALUES (?, ?, ?) "
         "ON CONFLICT(client_id) DO UPDATE SET data_json=excluded.data_json, updated_at=excluded.updated_at",
-        (client_id, json.dumps(profile), now),
+        (client_id, encrypt_field(json.dumps(profile)), now),
     )
     conn.commit()
 

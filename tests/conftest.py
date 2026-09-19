@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import sqlite3
 from pathlib import Path
 
 import pytest
+
+# backend.main reads these at import time. Rate limits are off so a test
+# file can hit /chat more than 30 times; a test that checks a limit flips
+# `backend.main._limiter.enabled` itself. COOKIE_SECURE=false keeps
+# config.check_deploy_secrets from refusing to boot with empty keys.
+os.environ.setdefault("RATE_LIMIT", "off")
+os.environ.setdefault("COOKIE_SECURE", "false")
+os.environ.setdefault("JSON_LOGS", "false")
+os.environ.setdefault("SIGNUP_MODE", "invite")
 
 from aboyeur.config import Config
 from aboyeur.db import connect

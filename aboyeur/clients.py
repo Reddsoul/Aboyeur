@@ -13,7 +13,16 @@ from __future__ import annotations
 import sqlite3
 import time
 
+from aboyeur.crypto import decrypt_field, encrypt_field
+
 SELF_CLIENT_NAME = "Me"
+
+# name/email/phone/notes are Fernet-encrypted at rest under DATA_KEY
+# (aboyeur/crypto.py encrypt_field). Every read of those columns goes
+# through client_row_to_dict / client_name below, and every write through
+# create_client / update_client — no other module touches the raw columns,
+# so a leaked DB file shows `enc:...`, not people.
+PII_COLUMNS = ("name", "email", "phone", "notes")
 
 __all__ = [
     "SELF_CLIENT_NAME",
@@ -29,6 +38,8 @@ __all__ = [
     "resolve_client",
     "default_client_id",
     "client_row_to_dict",
+    "client_name",
+    "PII_COLUMNS",
 ]
 
 
@@ -51,10 +62,10 @@ def _now() -> str:
 def client_row_to_dict(row: sqlite3.Row) -> dict:
     return {
         "id": row["id"],
-        "name": row["name"],
-        "email": row["email"],
-        "phone": row["phone"],
-        "notes": row["notes"],
+        "name": decrypt_field(row["name"]),
+        "email": decrypt_field(row["email"]),
+        "phone": decrypt_field(row["phone"]),
+        "notes": decrypt_field(row["notes"]),
         "status": row["status"],
         "is_self": bool(row["is_self"]),
         "created_at": row["created_at"],
@@ -78,8 +89,9 @@ def create_client(
     cur = conn.execute(
         "INSERT INTO clients (user_id, name, email, phone, notes, status, is_self, "
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)",
-        (user_id, name, (email or "").strip() or None, (phone or "").strip() or None,
-         (notes or "").strip() or None, 1 if is_self else 0, now, now),
+        (user_id, encrypt_field(name), encrypt_field((email or "").strip() or None),
+         encrypt_field((phone or "").strip() or None), encrypt_field((notes or "").strip() or None),
+         1 if is_self else 0, now, now),
     )
     conn.commit()
     return get_client(conn, user_id, cur.lastrowid)
@@ -89,8 +101,17 @@ def list_clients(conn: sqlite3.Connection, user_id: int, include_archived: bool 
     sql = "SELECT * FROM clients WHERE user_id = ?"
     if not include_archived:
         sql += " AND status = 'active'"
-    sql += " ORDER BY status = 'archived', LOWER(name)"
-    return [client_row_to_dict(r) for r in conn.execute(sql, (user_id,))]
+    rows = [client_row_to_dict(r) for r in conn.execute(sql, (user_id,))]
+    # Sorted here, not in SQL: the name column is ciphertext.
+    rows.sort(key=lambda c: (c["status"] == "archived", (c["name"] or "").lower()))
+    return rows
+
+
+def client_name(conn: sqlite3.Connection, client_id: int) -> str | None:
+    """The one sanctioned way to read a client's name by id (no ownership
+    check — callers have already resolved the id)."""
+    row = conn.execute("SELECT name FROM clients WHERE id = ?", (client_id,)).fetchone()
+    return decrypt_field(row["name"]) if row is not None else None
 
 
 def get_client(conn: sqlite3.Connection, user_id: int, client_id: int) -> dict:
@@ -171,12 +192,12 @@ def update_client(conn: sqlite3.Connection, user_id: int, client_id: int, patch:
         if not name:
             raise ClientError("a client needs a name")
         sets.append("name = ?")
-        values.append(name)
+        values.append(encrypt_field(name))
     for field in ("email", "phone", "notes"):
         if field in patch:
             value = patch[field]
             sets.append(f"{field} = ?")
-            values.append((str(value).strip() or None) if value is not None else None)
+            values.append(encrypt_field((str(value).strip() or None) if value is not None else None))
     if "status" in patch:
         status = str(patch["status"]).strip().lower()
         if status not in _STATUSES:

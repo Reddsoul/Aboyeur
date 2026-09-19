@@ -15,14 +15,18 @@ dependencies = [
     "cryptography>=42",
     # backend/main.py's runtime deps — previously installed ad hoc into the
     # venv (never declared here), so a plain `uv sync` silently uninstalled
-    # them. Kept loose to match what was already running; see
-    # backend/requirements.txt for the Docker image's own pin of these.
+    # them. Kept loose to match what was already running. uv.lock is the
+    # pin the Docker image builds from (docker/backend.Dockerfile).
     "fastapi>=0.111",
     "uvicorn[standard]>=0.29",
     "sqlalchemy>=2.0",
     "pydantic>=2.0",
-    "chromadb>=0.5",
+    # chromadb dropped: chat runs on the FTS5 DB, and backend/rag.py imports
+    # it lazily for the legacy /search route only.
     "fastmcp>=0.4",
+    "stripe>=10",
+    "slowapi>=0.1.9",
+    "sentry-sdk[fastapi]>=2",
 ]
 
 [project.optional-dependencies]

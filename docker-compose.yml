@@ -1,45 +1,101 @@
+# Aboyeur hosted topology — one box, four containers.
+#
+#   caddy      :80/:443  TLS (Let's Encrypt, or self-signed for localhost),
+#                        serves the SPA from ./dist and proxies the API.
+#   backend    (no host port) uvicorn, ONE worker. SQLite lives on the
+#                        named volume `data` — never a bind-mount over SMB/NFS.
+#   litestream sidecar   streams /data/aboyeur.db WAL to Backblaze B2.
+#   frontend   build-only stage; its dist/ is copied into the caddy image.
+#
+# `docker compose up --build` on a clean Ubuntu box with .env filled in is
+# the whole deploy — see DEPLOYMENT.md. APP_DOMAIN=localhost gives a
+# self-signed cert for a local smoke test.
+
 services:
+
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy.Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
-      - ./books:/app/books
-      - ./backend:/app/backend   # live backend code (no rebuild needed for edits)
+      context: .
+      dockerfile: docker/backend.Dockerfile
     env_file: .env
-    depends_on:
-      - chromadb
-    restart: unless-stopped
-
-  chromadb:
-    image: chromadb/chroma:latest
-    ports:
-      - "8001:8000"       # Chroma's internal port is 8000; exposed as 8001 on host.
+    environment:
+      DB_PATH: /data/aboyeur.db
+      RECIPES_DIR: /corpus
+      COOKIE_SECURE: "true"
+      LITESTREAM_METRICS_URL: http://litestream:9090/metrics
+      APP_VERSION: ${APP_VERSION:-compose}
     volumes:
-      - ./data/chroma:/chroma/chroma
-    # No healthcheck: the chroma image ships no curl/wget/python to probe with.
-    # backend + watcher wait for chroma client-side (rag.wait_ready / lazy connect).
+      - data:/data
+      # Recipe markdown, rsync'd from the indexing machine (DEPLOYMENT.md).
+      # Read-only: the app only ever reads recipes; nutrition writeback is a
+      # Mac-side batch job.
+      - ./corpus:/corpus:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status < 500 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
-  watcher:
+  litestream:
+    image: litestream/litestream:0.3
+    command: replicate -config /etc/litestream.yml
+    env_file: .env
+    volumes:
+      - data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+    # Prometheus metrics for /health's litestream_lag_s (see litestream.yml).
+    expose:
+      - "9090"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Daily retention + account purge. `aboyeur purge` also runs at backend
+  # boot, so this is belt-and-braces; a real cron on the host works too.
+  cron:
     build:
-      context: ./ingest
-      dockerfile: Dockerfile
-    volumes:
-      - ./data:/app/data
-      - ./books:/app/books
-      - ./ingest:/app/ingest     # live ingest code (watcher, chunk_and_index, reindex)
-      - ./backend:/app/backend   # watcher imports the backend package (models, rag, utils, macro_engine)
+      context: .
+      dockerfile: docker/backend.Dockerfile
     env_file: .env
+    environment:
+      DB_PATH: /data/aboyeur.db
+      COOKIE_SECURE: "true"
+    volumes:
+      - data:/data
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          aboyeur purge --after-days 30 || true
+          aboyeur purge-events || true
+          sleep 86400
+        done
     depends_on:
-      - chromadb
+      - backend
     restart: unless-stopped
 
-# No frontend service. Odysseus (santo-domingo:7860) is the UI.
-# Backend MCP endpoint: http://santo-domingo:8000/mcp/sse — register in Odysseus.
-
-volumes: {}
+volumes:
+  data:
+  caddy_data:
+  caddy_config:
