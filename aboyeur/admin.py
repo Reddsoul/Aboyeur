@@ -22,6 +22,8 @@ import json
 import sqlite3
 import time
 
+from aboyeur.sensitivity import is_redacted_label, mask_pii
+
 # Anything longer is a traceback nobody reads in a table cell; the full text
 # is still in logs/uvicorn.log for the rare case it matters.
 _ERROR_DETAIL_MAX = 4000
@@ -285,6 +287,13 @@ def overview(conn: sqlite3.Connection) -> dict:
 _USER_ROWS = """
 SELECT
     u.id, u.email, u.name, u.practice, u.is_admin, u.created_at,
+    u.plan, u.billing_status, u.country, u.paid_months, u.loyalty_tier,
+    u.llm_mode, u.llm_provider_id, u.credit_cents, u.email_verified_at,
+    u.deleted_at, u.stripe_customer_id IS NOT NULL AS has_stripe_customer,
+    (SELECT COUNT(DISTINCT m.session_id) FROM chat_messages m
+        JOIN chat_sessions s ON s.id = m.session_id
+        JOIN clients c ON c.id = s.client_id
+        WHERE c.user_id = u.id AND m.sensitivity IN ('sensitive','unknown')) AS sensitive_sessions,
     (SELECT COUNT(*) FROM clients c WHERE c.user_id = u.id) AS client_count,
     (SELECT COUNT(*) FROM chat_sessions s
         JOIN clients c ON c.id = s.client_id WHERE c.user_id = u.id) AS session_count,
@@ -313,6 +322,18 @@ def _user_dict(row: sqlite3.Row) -> dict:
         "message_count": row["message_count"],
         "last_active": row["last_active"],
         "errors_7d": row["errors_7d"],
+        "plan": row["plan"],
+        "billing_status": row["billing_status"],
+        "country": row["country"],
+        "paid_months": row["paid_months"],
+        "loyalty_tier": row["loyalty_tier"],
+        "llm_mode": row["llm_mode"],
+        "llm_provider_id": row["llm_provider_id"],
+        "credit_cents": row["credit_cents"],
+        "email_verified": bool(row["email_verified_at"]),
+        "deleted_at": row["deleted_at"],
+        "has_stripe_customer": bool(row["has_stripe_customer"]),
+        "sensitive_sessions": row["sensitive_sessions"] or 0,
     }
 
 
@@ -329,17 +350,19 @@ def get_user(conn: sqlite3.Connection, user_id: int) -> dict:
     if row is None:
         raise AdminError("no such user")
     user = _user_dict(row)
+    # Client names are the practitioner's clients' PII — the console shows
+    # ids only (see docs/privacy-posture.md).
     user["clients"] = [
         {
             "id": c["id"],
-            "name": c["name"],
             "status": c["status"],
             "is_self": bool(c["is_self"]),
             "created_at": c["created_at"],
             "session_count": c["session_count"],
         }
         for c in conn.execute(
-            "SELECT c.*, (SELECT COUNT(*) FROM chat_sessions s WHERE s.client_id = c.id) "
+            "SELECT c.id, c.status, c.is_self, c.created_at, "
+            "(SELECT COUNT(*) FROM chat_sessions s WHERE s.client_id = c.id) "
             "AS session_count FROM clients c WHERE c.user_id = ? ORDER BY c.id",
             (user_id,),
         )
@@ -351,9 +374,10 @@ def get_user(conn: sqlite3.Connection, user_id: int) -> dict:
 def list_sessions_for_user(conn: sqlite3.Connection, user_id: int, limit: int = 100) -> list[dict]:
     rows = conn.execute(
         "SELECT s.id, s.title, s.created_at, s.updated_at, c.id AS client_id, "
-        "c.name AS client_name, "
         "(SELECT COUNT(*) FROM chat_messages m WHERE m.session_id = s.id) AS message_count, "
-        "(SELECT MAX(m.created_at) FROM chat_messages m WHERE m.session_id = s.id) AS last_message_at "
+        "(SELECT MAX(m.created_at) FROM chat_messages m WHERE m.session_id = s.id) AS last_message_at, "
+        "(SELECT COUNT(*) FROM chat_messages m WHERE m.session_id = s.id "
+        "   AND m.sensitivity IN ('sensitive','unknown')) AS sensitive_count "
         "FROM chat_sessions s JOIN clients c ON c.id = s.client_id "
         "WHERE c.user_id = ? ORDER BY s.updated_at DESC LIMIT ?",
         (user_id, limit),
@@ -361,28 +385,52 @@ def list_sessions_for_user(conn: sqlite3.Connection, user_id: int, limit: int = 
     return [
         {
             "id": r["id"],
-            "title": r["title"] or "Untitled conversation",
+            # Titles are derived from the first user message; mask like a line.
+            "title": mask_pii(r["title"]) or "Untitled conversation",
             "client_id": r["client_id"],
-            "client_name": r["client_name"],
             "created_at": r["created_at"],
             "updated_at": r["updated_at"],
             "message_count": r["message_count"],
             "last_message_at": r["last_message_at"],
+            "sensitive": bool(r["sensitive_count"]),
         }
         for r in rows
     ]
 
 
-def get_transcript(conn: sqlite3.Connection, session_id: int) -> dict:
+def get_transcript(conn: sqlite3.Connection, session_id: int, *,
+                   reveal: bool = False, admin_id: int | None = None) -> dict:
+    """A conversation as the operator sees it.
+
+    Default: every message flagged sensitive/unknown by the classifier comes
+    back as {"redacted": true}; unflagged lines still have emails/phones/keys
+    masked. reveal=True returns the flagged content verbatim — and that is
+    recorded in admin_audit AND in support_access, which the affected user
+    sees on their Account page ("Support viewed session N on <date>").
+    """
     head = conn.execute(
         "SELECT s.id, s.title, s.created_at, s.updated_at, c.id AS client_id, "
-        "c.name AS client_name, u.id AS user_id, u.email "
+        "u.id AS user_id, u.email "
         "FROM chat_sessions s JOIN clients c ON c.id = s.client_id "
         "JOIN users u ON u.id = c.user_id WHERE s.id = ?",
         (session_id,),
     ).fetchone()
     if head is None:
         raise AdminError("no such conversation")
+    if reveal:
+        if admin_id is None:
+            raise AdminError("reveal needs an admin id")
+        now = _now()
+        conn.execute(
+            "INSERT INTO admin_audit (ts, admin_id, action, target, meta_json) "
+            "VALUES (?, ?, 'reveal_transcript', ?, ?)",
+            (now, admin_id, f"session:{session_id}", json.dumps({"user_id": head["user_id"]})),
+        )
+        conn.execute(
+            "INSERT INTO support_access (ts, user_id, session_id, admin_id) VALUES (?, ?, ?, ?)",
+            (now, head["user_id"], session_id, admin_id),
+        )
+        conn.commit()
 
     # Thumbs land on the transcript beside the turn that earned them, so the
     # admin reading a complaint sees the message it was about in place.
@@ -393,30 +441,47 @@ def get_transcript(conn: sqlite3.Connection, session_id: int) -> dict:
             (session_id,),
         )
     }
-    messages = [
-        {
+    messages = []
+    redacted_count = 0
+    # A user message's flag covers the assistant reply that follows it: the
+    # reply quotes the question. Track the last user label.
+    last_user_label: str | None = None
+    for m in conn.execute(
+        "SELECT id, role, content, created_at, sensitivity, sensitivity_json "
+        "FROM chat_messages WHERE session_id = ? ORDER BY id",
+        (session_id,),
+    ):
+        if m["role"] == "user":
+            last_user_label = m["sensitivity"]
+        label = m["sensitivity"] if m["role"] == "user" else (m["sensitivity"] or last_user_label)
+        categories = json.loads(m["sensitivity_json"]) if m["sensitivity_json"] else []
+        entry = {
             "id": m["id"],
             "role": m["role"],
-            "content": m["content"],
             "created_at": m["created_at"],
             "feedback": thumbs.get(m["id"]),
+            "sensitivity": label,
+            "categories": categories,
         }
-        for m in conn.execute(
-            "SELECT id, role, content, created_at FROM chat_messages "
-            "WHERE session_id = ? ORDER BY id",
-            (session_id,),
-        )
-    ]
+        if is_redacted_label(label) and not reveal:
+            entry["redacted"] = True
+            entry["content"] = None
+            redacted_count += 1
+        else:
+            entry["redacted"] = False
+            entry["content"] = m["content"] if reveal else mask_pii(m["content"])
+        messages.append(entry)
     return {
         "id": head["id"],
-        "title": head["title"] or "Untitled conversation",
+        "title": mask_pii(head["title"]) or "Untitled conversation",
         "client_id": head["client_id"],
-        "client_name": head["client_name"],
         "user_id": head["user_id"],
         "email": head["email"],
         "created_at": head["created_at"],
         "updated_at": head["updated_at"],
         "messages": messages,
+        "redacted_count": redacted_count,
+        "revealed": bool(reveal),
     }
 
 
@@ -510,10 +575,11 @@ def _feedback_dict(row: sqlite3.Row) -> dict:
     keys = row.keys()
     if "email" in keys:
         out["email"] = row["email"]
-    if "client_name" in keys:
-        out["client_name"] = row["client_name"]
     if "message_excerpt" in keys:
-        out["message_excerpt"] = row["message_excerpt"]
+        # Feedback lands on assistant turns; redact if the turn was flagged,
+        # mask otherwise — same rule as the transcript view.
+        flagged = "sensitivity" in keys and is_redacted_label(row["sensitivity"])
+        out["message_excerpt"] = "[redacted]" if flagged else mask_pii(row["message_excerpt"])
     return out
 
 
@@ -528,10 +594,9 @@ def list_feedback(conn: sqlite3.Connection, status: str | None = None,
         params.append(status)
     params.append(max(1, min(limit, 1000)))
     rows = conn.execute(
-        "SELECT f.*, u.email, c.name AS client_name, "
-        "substr(m.content, 1, 400) AS message_excerpt "
+        "SELECT f.*, u.email, "
+        "substr(m.content, 1, 400) AS message_excerpt, m.sensitivity "
         "FROM feedback f LEFT JOIN users u ON u.id = f.user_id "
-        "LEFT JOIN clients c ON c.id = f.client_id "
         "LEFT JOIN chat_messages m ON m.id = f.message_id "
         f"WHERE {' AND '.join(where)} "
         # Thumb-downs first inside each time slice: a complaint is the row
@@ -566,3 +631,68 @@ def update_feedback(conn: sqlite3.Connection, feedback_id: int,
     return _feedback_dict(
         conn.execute("SELECT * FROM feedback WHERE id = ?", (feedback_id,)).fetchone()
     )
+
+
+# ---------------------------------------------------------------------------
+# Hosted-LLM economics (usage_ledger)
+# ---------------------------------------------------------------------------
+
+
+def hosted_usage(conn: sqlite3.Connection, days: int = 1) -> dict:
+    """Tokens, our cost, what we charged, margin — over the last `days`.
+    Only chat/classify rows (positive charges); top-ups and refunds are
+    money movements, not usage."""
+    cutoff = since(days)
+    row = conn.execute(
+        "SELECT COALESCE(SUM(tokens_in),0) tin, COALESCE(SUM(tokens_out),0) tout, "
+        "COALESCE(SUM(cost_cents),0) cost, COALESCE(SUM(charge_cents),0) charged, "
+        "COUNT(*) turns, SUM(kind LIKE '%_est') estimated "
+        "FROM usage_ledger WHERE ts >= ? AND kind IN "
+        "('chat_turn','chat_turn_est','classify','classify_est')",
+        (cutoff,),
+    ).fetchone()
+    charged, cost = row["charged"], row["cost"]
+    top = [
+        {"user_id": r["user_id"], "email": r["email"], "charge_cents": r["charged"]}
+        for r in conn.execute(
+            "SELECT l.user_id, u.email, SUM(l.charge_cents) charged FROM usage_ledger l "
+            "LEFT JOIN users u ON u.id = l.user_id WHERE l.ts >= ? AND l.charge_cents > 0 "
+            "GROUP BY l.user_id ORDER BY charged DESC LIMIT 10",
+            (cutoff,),
+        )
+    ]
+    return {
+        "days": days,
+        "tokens_in": row["tin"],
+        "tokens_out": row["tout"],
+        "cost_cents": cost,
+        "charged_cents": charged,
+        "gross_margin_pct": round((charged - cost) / charged * 100, 1) if charged else None,
+        "turns": row["turns"],
+        "estimated_rows": row["estimated"] or 0,
+        "top_users": top,
+    }
+
+
+def sanitize_log_lines(lines: list[str]) -> list[str]:
+    return [mask_pii(line) or "" for line in lines]
+
+
+def audit_log(conn: sqlite3.Connection, limit: int = 200) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        "SELECT a.*, u.email AS admin_email FROM admin_audit a "
+        "LEFT JOIN users u ON u.id = a.admin_id ORDER BY a.ts DESC, a.id DESC LIMIT ?",
+        (max(1, min(limit, 1000)),),
+    )]
+
+
+def purge_stripe_events(conn: sqlite3.Connection, keep_days: int = 365) -> int:
+    cur = conn.execute("DELETE FROM stripe_events WHERE received_at < ?", (since(keep_days),))
+    conn.commit()
+    return cur.rowcount
+
+
+def purge_admin_audit(conn: sqlite3.Connection, keep_days: int = 730) -> int:
+    cur = conn.execute("DELETE FROM admin_audit WHERE ts < ?", (since(keep_days),))
+    conn.commit()
+    return cur.rowcount

@@ -1,0 +1,7 @@
+Confirm your email for Aboyeur
+
+Click the link below within 24 hours to verify this address:
+
+$link
+
+If you didn't create an Aboyeur account, ignore this email.

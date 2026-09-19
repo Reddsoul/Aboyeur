@@ -1,0 +1,6 @@
+Your Aboyeur account is scheduled for deletion
+
+We received a request to delete the account for $email. Your data is now
+inaccessible and will be permanently erased on $purge_date.
+
+If this wasn't you, reply to this email before that date.

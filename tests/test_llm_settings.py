@@ -193,10 +193,10 @@ def test_chat_nudges_an_unconfigured_user_instead_of_500ing(backend_main, backen
     client = TestClient(backend_main.app)
     client.cookies.set(backend_main._SESSION_COOKIE, auth.issue_token(backend_user))
     res = client.post("/chat", json={"message": "plan my week"})
-    assert res.status_code == 200
-    body = res.text
-    assert backend_main.NEEDS_LLM_SETUP_MESSAGE in body
-    assert body.rstrip().endswith("data: [DONE]")
+    # A 409 with a machine-readable reason (not a 500, not a fake assistant
+    # bubble): the Chat screen renders it as the setup nudge.
+    assert res.status_code == 409
+    assert res.json()["detail"]["error"] == "llm_unconfigured"
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +315,8 @@ def test_each_client_gets_its_own_agent_session(backend_main, api):
 def test_chat_without_a_client_id_falls_back_to_the_default_client(backend_main, api):
     user_id = _as(backend_main, api, "default-client@example.com")
     res = api.post("/chat", json={"message": "hello"})
-    assert res.status_code == 200  # not a 404: the account gets a default client
+    # Not a 404: the account gets a default client. (409 = no LLM yet.)
+    assert res.status_code == 409
     conn = backend_main._profile_conn()
     try:
         from aboyeur import clients as clients_mod

@@ -316,17 +316,119 @@ def cmd_set_admin(args: argparse.Namespace) -> int:
 
 
 def cmd_purge_events(args: argparse.Namespace) -> int:
-    """Event-log retention. Point cron at this — the table is one row per
-    agent turn, so it grows forever otherwise (slowly, but forever)."""
+    """Retention for the log-shaped tables. Point cron at this — events is
+    one row per agent turn and grows forever otherwise. Defaults match
+    docs/privacy-posture.md: events 90d, stripe_events 1y, admin_audit 2y."""
     from aboyeur import admin as admin_mod
 
     config = Config.load()
     conn = connect(config.db_path)
     try:
         deleted = admin_mod.purge_events(conn, args.keep_days)
+        stripe_gone = admin_mod.purge_stripe_events(conn, args.keep_stripe_days)
+        audit_gone = admin_mod.purge_admin_audit(conn, args.keep_audit_days)
     finally:
         conn.close()
-    console.print(f"[bold green]purged[/bold green] {deleted} event(s) older than {args.keep_days}d")
+    console.print(f"[bold green]purged[/bold green] {deleted} event(s) older than {args.keep_days}d, "
+                  f"{stripe_gone} stripe event(s) older than {args.keep_stripe_days}d, "
+                  f"{audit_gone} audit row(s) older than {args.keep_audit_days}d")
+    return 0
+
+
+def cmd_purge(args: argparse.Namespace) -> int:
+    """Hard-delete accounts that were soft-deleted more than N days ago.
+    Also runs at backend startup; this is the cron-able form."""
+    from aboyeur import account
+    from aboyeur.db import init_db, schema_lock
+    from aboyeur.migrate import migrate
+
+    config = Config.load()
+    conn = connect(config.db_path)
+    try:
+        with schema_lock(config.db_path):
+            init_db(conn)
+            migrate(conn)
+        ids = account.purge_deleted(conn, args.after_days)
+    finally:
+        conn.close()
+    console.print(f"[bold green]purged[/bold green] {len(ids)} account(s): {ids or '-'}")
+    return 0
+
+
+def cmd_invite(args: argparse.Namespace) -> int:
+    """Mint an invite code for SIGNUP_MODE=invite. Same thing the admin
+    console's Invites tab does, for the first admin who has no console yet."""
+    from aboyeur import account
+    from aboyeur.db import init_db, schema_lock
+    from aboyeur.migrate import migrate
+
+    config = Config.load()
+    conn = connect(config.db_path)
+    try:
+        with schema_lock(config.db_path):
+            init_db(conn)
+            migrate(conn)
+        invite = account.create_invite(
+            conn, None, max_uses=args.uses, expires_days=args.expires_days, note=args.note,
+        )
+    finally:
+        conn.close()
+    console.print(f"[bold green]invite[/bold green] {invite['code']}  "
+                  f"uses={invite['max_uses'] or 'unlimited'} expires={invite['expires_at'] or 'never'}")
+    console.print(f"{config.app_base_url}/signup?invite={invite['code']}")
+    return 0
+
+
+def cmd_reencrypt_pii(args: argparse.Namespace) -> int:
+    """Rotate DATA_KEY: decrypt every PII field with OLD_DATA_KEY (env) and
+    re-encrypt with the current DATA_KEY. Stop the backend first."""
+    import os
+
+    from cryptography.fernet import Fernet, InvalidToken
+
+    from aboyeur import crypto
+    from aboyeur.db import schema_lock
+
+    old_key = os.environ.get("OLD_DATA_KEY")
+    if not old_key:
+        console.print("[bold red]error:[/bold red] set OLD_DATA_KEY (the key the rows are encrypted with)")
+        return 1
+    old = Fernet(old_key.encode("ascii"))
+    prefix = crypto.FIELD_PREFIX
+
+    def swap(value):
+        if value is None or not value.startswith(prefix):
+            return value
+        try:
+            plain = old.decrypt(value[len(prefix):].encode("ascii")).decode("utf-8")
+        except InvalidToken:
+            # Already on the new key? Leave it.
+            crypto.decrypt_field(value)
+            return value
+        return crypto.encrypt_field(plain)
+
+    config = Config.load()
+    conn = connect(config.db_path)
+    n = 0
+    try:
+        with schema_lock(config.db_path):
+            conn.execute("BEGIN IMMEDIATE")
+            for r in conn.execute("SELECT id, name, email, phone, notes FROM clients").fetchall():
+                conn.execute("UPDATE clients SET name=?, email=?, phone=?, notes=? WHERE id=?",
+                             (swap(r["name"]), swap(r["email"]), swap(r["phone"]), swap(r["notes"]), r["id"]))
+                n += 1
+            for r in conn.execute("SELECT client_id, data_json FROM profile").fetchall():
+                conn.execute("UPDATE profile SET data_json=? WHERE client_id=?",
+                             (swap(r["data_json"]), r["client_id"]))
+                n += 1
+            conn.execute("COMMIT")
+    except Exception as e:
+        conn.execute("ROLLBACK")
+        console.print(f"[bold red]error:[/bold red] {type(e).__name__}: {e}")
+        return 1
+    finally:
+        conn.close()
+    console.print(f"[bold green]re-encrypted[/bold green] {n} row(s)")
     return 0
 
 
@@ -363,9 +465,25 @@ def build_parser() -> argparse.ArgumentParser:
                                help="also grant the /admin console")
     p_create_user.set_defaults(func=cmd_create_user)
 
-    p_purge = sub.add_parser("purge-events", help="drop admin event rows older than N days")
+    p_purge = sub.add_parser("purge-events", help="retention for events / stripe_events / admin_audit")
     p_purge.add_argument("--keep-days", type=int, default=90)
+    p_purge.add_argument("--keep-stripe-days", type=int, default=365)
+    p_purge.add_argument("--keep-audit-days", type=int, default=730)
     p_purge.set_defaults(func=cmd_purge_events)
+
+    p_purge_acc = sub.add_parser("purge", help="hard-delete accounts soft-deleted more than N days ago")
+    p_purge_acc.add_argument("--after-days", type=int, default=30)
+    p_purge_acc.set_defaults(func=cmd_purge)
+
+    p_invite = sub.add_parser("invite", help="mint a signup invite code")
+    p_invite.add_argument("--uses", type=int, default=1, help="0 = unlimited")
+    p_invite.add_argument("--expires-days", type=int, default=30, help="0 = never")
+    p_invite.add_argument("--note")
+    p_invite.set_defaults(func=lambda a: cmd_invite(argparse.Namespace(
+        uses=a.uses or None, expires_days=a.expires_days or None, note=a.note)))
+
+    p_rekey = sub.add_parser("reencrypt-pii", help="rotate DATA_KEY (needs OLD_DATA_KEY in env)")
+    p_rekey.set_defaults(func=cmd_reencrypt_pii)
 
     p_set_admin = sub.add_parser("set-admin", help="grant/revoke the /admin console")
     p_set_admin.add_argument("email")

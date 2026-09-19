@@ -1,0 +1,6 @@
+Your Aboyeur credit is running low
+
+Your hosted-model balance is $balance. Once it reaches zero, chat turns on
+Aboyeur's models pause until you add credit (or switch to your own API key).
+
+Add credit: $link

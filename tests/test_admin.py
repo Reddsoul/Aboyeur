@@ -200,7 +200,9 @@ def test_triage_flow_and_transcript_deep_link(backend_main, api):
     items = api.get("/api/admin/feedback?status=open").json()["feedback"]
     row = next(f for f in items if f["message_id"] == message_id)
     assert row["email"] == "complainer@example.com"
-    assert row["client_name"] == "Edsger"
+    # Client names are the practitioner's clients' PII: the console never
+    # gets them (docs/privacy-posture.md), only the account holder's email.
+    assert "client_name" not in row
     # The excerpt is what makes the board readable without opening every turn.
     assert "week of dinners" in row["message_excerpt"]
 

@@ -18,9 +18,11 @@ from pathlib import Path
 from typing import Iterator, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
 
 from backend import llm, macro_engine, menu_engine, preference_engine, rag
 from backend.models import (
@@ -28,8 +30,44 @@ from backend.models import (
 )
 from backend.utils import categorize_ingredient, slugify
 
-logging.basicConfig(level=logging.INFO)
+from aboyeur import logging_setup as _logging_setup
+from aboyeur.config import check_deploy_secrets as _check_deploy_secrets, env_flag as _env_flag
+
+# Refuse to boot behind HTTPS with empty signing/encryption keys — before
+# anything below reads them and quietly falls back to a derived default.
+_check_deploy_secrets()
+
+_logging_setup.configure(json_logs=_env_flag("JSON_LOGS", True))
 logger = logging.getLogger("aboyeur")
+
+APP_VERSION = os.environ.get("APP_VERSION") or "dev"
+
+# Error reporting. send_default_pii=False keeps request bodies, cookies and
+# user emails out; before_send strips the few fields that could still carry
+# a transcript line or a key if some log statement slipped.
+_SENTRY_DSN = os.environ.get("SENTRY_DSN") or None
+if _SENTRY_DSN:
+    import sentry_sdk
+
+    _SCRUB_KEYS = {"content", "email", "api_key", "authorization", "cookie", "password",
+                   "message", "body", "notes", "phone", "name"}
+
+    def _scrub(obj):
+        if isinstance(obj, dict):
+            return {k: ("[scrubbed]" if str(k).lower() in _SCRUB_KEYS else _scrub(v))
+                    for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_scrub(v) for v in obj]
+        return obj
+
+    def _before_send(event, hint):
+        for key in ("request", "extra", "contexts", "breadcrumbs", "user"):
+            if key in event:
+                event[key] = _scrub(event[key])
+        return event
+
+    sentry_sdk.init(dsn=_SENTRY_DSN, send_default_pii=False, before_send=_before_send,
+                    traces_sample_rate=0.0, release=APP_VERSION)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BOOKS_DIR = PROJECT_ROOT / "books"
@@ -46,6 +84,51 @@ BASE_SYSTEM = (
 
 app = FastAPI(title="Aboyeur", version="1.0.0")
 
+# Only behind Cloudflare: the edge sets CF-Connecting-IP / CF-IPCountry and
+# strips any a client sent. Anywhere else those headers are attacker-chosen.
+_TRUST_CF = _env_flag("TRUST_CF_HEADERS", False)
+
+
+def _client_ip(request: Request) -> str:
+    if _TRUST_CF:
+        cf = request.headers.get("cf-connecting-ip")
+        if cf:
+            return cf.strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_key(request: Request) -> str:
+    """User id when the session cookie verifies, else the client IP. Read
+    directly rather than via the dependency so an invalid cookie doesn't
+    401 a login attempt before the limiter sees it."""
+    token = request.cookies.get("aboyeur_session")
+    if token:
+        try:
+            from aboyeur import auth as _auth
+            return f"u:{_auth.verify_token(token)}"
+        except Exception:
+            pass
+    return f"ip:{_client_ip(request)}"
+
+
+def _ip_key(request: Request) -> str:
+    return f"ip:{_client_ip(request)}"
+
+
+# RATE_LIMIT=off disables enforcement (the test suite; a load test). The
+# decorators stay in place so the limits are documented at the route.
+_limiter = Limiter(key_func=_rate_key, enabled=_env_flag("RATE_LIMIT", True),
+                   headers_enabled=True)
+app.state.limiter = _limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+def _rate_limited(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        {"detail": f"rate limit exceeded: {exc.detail}", "error": "rate_limited"}, status_code=429,
+    )
+
+
 # In-memory current draft menu (single-user, self-hosted). Approved menus persist to DB.
 _DRAFT: dict = {}
 
@@ -58,12 +141,19 @@ def _startup():
     if not log.exists():
         log.parent.mkdir(parents=True, exist_ok=True)
         log.touch()
+    logger.info("Aboyeur up", extra={"event": "startup"})
+    # Deleted accounts past their grace period: purge on boot as well as via
+    # `aboyeur purge` so a box with no cron still honours the 30-day promise.
     try:
-        logger.info("Aboyeur up. Recipes in Chroma: %s", rag.count())
-    except Exception as e:
-        # Chroma isn't running bare-metal (chat now runs on aboyeur.agent's
-        # FTS5 DB instead) — don't let an unreachable vector store block boot.
-        logger.warning("Chroma unreachable at boot (non-fatal): %s", e)
+        conn = _profile_conn()
+        try:
+            purged = _aboyeur_account.purge_deleted(conn)
+        finally:
+            conn.close()
+        if purged:
+            logger.info("purged %d deleted account(s)", len(purged), extra={"event": "purge"})
+    except Exception:
+        logger.exception("startup purge failed")
 
 
 # ===========================================================================
@@ -559,15 +649,21 @@ class ChatBody(BaseModel):
 
 import threading
 
-from dataclasses import replace as _dc_replace
-
+from aboyeur import account as _aboyeur_account
 from aboyeur import admin as _aboyeur_admin
 from aboyeur import auth as _aboyeur_auth
+from aboyeur import billing as _aboyeur_billing
 from aboyeur import chat_history as _aboyeur_chat_history
 from aboyeur import clients as _aboyeur_clients
+from aboyeur import legal as _aboyeur_legal
+from aboyeur import llm_providers as _aboyeur_providers
 from aboyeur import llm_settings as _aboyeur_llm_settings
+from aboyeur import mail as _aboyeur_mail
+from aboyeur import sensitivity as _aboyeur_sensitivity
 from aboyeur.agent import Agent as _AboyeurAgent
 from aboyeur.config import Config as _AboyeurConfig
+from aboyeur.stripe_client import StripeClient as _StripeClient, StripeError as _StripeError, \
+    StripeNotConfigured as _StripeNotConfigured
 from aboyeur.db import (
     connect as _aboyeur_connect,
     init_db as _aboyeur_init_db,
@@ -599,6 +695,11 @@ with _aboyeur_schema_lock(_aboyeur_config.db_path):
 # existed.
 _SEED_USER_ID = _aboyeur_auth.get_or_create_user(_aboyeur_conn, _SEED_USER_EMAIL)
 
+# One Stripe client for the process. Tests swap it for a recorder via
+# `backend.main._stripe = FakeStripe()`; billing.py only ever sees the
+# argument it's handed, so nothing here needs re-import.
+_stripe = _StripeClient(_aboyeur_config.stripe_secret_key, _aboyeur_config.stripe_webhook_secret)
+
 # /chat holds one live Agent per authenticated user (not a client-supplied
 # session_id — that was never authenticated, so anyone could read/steer
 # another account's conversation by guessing its id). Each Agent gets its
@@ -624,36 +725,43 @@ _turns = _TurnRegistry()
 
 
 # Each account brings its own LLM endpoint + key (the Settings screen, stored
-# encrypted by aboyeur/llm_settings.py). Env LLM_* is only a fallback, and
-# only for the two paths that have no logged-in user of their own: the CLI
-# and the OpenWebUI shim's seed household.
-NEEDS_LLM_SETUP_MESSAGE = (
-    "Set up your AI model in Settings before chatting — Aboyeur needs an LLM "
-    "endpoint and key to answer."
-)
+# encrypted by aboyeur/llm_settings.py) or opts into a hosted provider
+# (aboyeur/llm_providers.py). Env LLM_* is only a fallback, and only for the
+# two paths that have no logged-in user of their own: the CLI and the
+# OpenWebUI shim's seed household — and only when LLM_BASE_URL is set.
+
+
+def _resolve_llm(user_id: int) -> _aboyeur_providers.ResolvedLlm:
+    """Which LLM this user's turn runs on — BYOK (their key, unmetered) or
+    hosted (our provider, metered against their credit). Raises
+    HTTPException with the billing/setup reason; see llm_providers.resolve_llm.
+
+    The seed account keeps the env-level LLM_* fallback the CLI uses, but
+    only when one is configured — an empty LLM_BASE_URL is "no fallback",
+    never a private default."""
+    conn = _profile_conn()
+    try:
+        user = _aboyeur_billing.get_user(conn, user_id)
+        try:
+            return _aboyeur_providers.resolve_llm(conn, _aboyeur_config, user)
+        except _aboyeur_providers.ProviderError as e:
+            if (e.status == 409 and user_id == _SEED_USER_ID
+                    and _aboyeur_config.has_platform_llm):
+                return _aboyeur_providers.ResolvedLlm(
+                    config=_aboyeur_config, provider=None, billable=False)
+            raise HTTPException(e.status, {"message": str(e), **e.extra})
+    except _aboyeur_billing.BillingError as e:
+        raise HTTPException(e.status, {"message": str(e), **e.extra})
+    finally:
+        conn.close()
 
 
 def _effective_config(user_id: int) -> Optional[_AboyeurConfig]:
-    """The Config this user's agent/tools should run with.
-
-    None means "this user has no LLM configured" — the caller shows the setup
-    nudge rather than building an agent that would fail on its first round trip.
-    """
-    conn = _profile_conn()
+    """Back-compat shim for callers that only want a Config or None."""
     try:
-        stored = _aboyeur_llm_settings.get_llm_settings(conn, user_id)
-    finally:
-        conn.close()
-    if stored is not None:
-        return _dc_replace(
-            _aboyeur_config,
-            llm_base_url=stored["base_url"],
-            llm_model=stored["model"],
-            llm_api_key=stored["api_key"],
-        )
-    if user_id == _SEED_USER_ID:
-        return _aboyeur_config
-    return None
+        return _resolve_llm(user_id).config
+    except HTTPException:
+        return None
 
 
 def _stored_history(chat_session_id: int) -> list[dict]:
@@ -670,10 +778,10 @@ def _stored_history(chat_session_id: int) -> list[dict]:
 def _client_name(client_id: int) -> str:
     conn = _profile_conn()
     try:
-        row = conn.execute("SELECT name FROM clients WHERE id = ?", (client_id,)).fetchone()
+        name = _aboyeur_clients.client_name(conn, client_id)
     finally:
         conn.close()
-    return row["name"] if row is not None else "this client"
+    return name or "this client"
 
 
 def _get_session_agent(user_id: int, client_id: int,
@@ -682,30 +790,30 @@ def _get_session_agent(user_id: int, client_id: int,
         key = (user_id, client_id, chat_session_id)
         agent = _aboyeur_session_agents.get(key)
         if agent is None:
-            config = _effective_config(user_id)
-            if config is None:
-                return None
+            resolved = _resolve_llm(user_id)
             agent = _AboyeurAgent(
-                _profile_conn(), config, client_id,
+                _profile_conn(), resolved.config, client_id,
                 history=_stored_history(chat_session_id),
                 client_name=_client_name(client_id),
             )
+            # Which provider (if any) to meter this agent's turns against.
+            # Set once at build time; a provider switch drops the agent
+            # (_drop_session_agent), so the next turn re-resolves.
+            agent.resolved = resolved
             _aboyeur_session_agents[key] = agent
         return agent
 
 
 def _reset_session_agent(user_id: int, client_id: int, chat_session_id: int,
                          guest: bool = False) -> Optional[_AboyeurAgent]:
-    config = _effective_config(user_id)
-    if config is None:
-        _drop_session_agent(user_id, client_id)
-        return None
+    resolved = _resolve_llm(user_id)
     with _aboyeur_sessions_lock:
         agent = _AboyeurAgent(
-            _profile_conn(), config, client_id,
+            _profile_conn(), resolved.config, client_id,
             guest_profile=_make_guest_profile() if guest else None,
             client_name=_client_name(client_id),
         )
+        agent.resolved = resolved
         _aboyeur_session_agents[(user_id, client_id, chat_session_id)] = agent
         return agent
 
@@ -762,9 +870,36 @@ def get_current_user(request: Request) -> int:
     if not token:
         raise HTTPException(401, "not logged in")
     try:
-        return _aboyeur_auth.verify_token(token)
+        user_id = _aboyeur_auth.verify_token(token)
     except _aboyeur_auth.AuthError as e:
         raise HTTPException(401, str(e))
+    # A soft-deleted account's cookie may still be valid for 30 days; the
+    # account isn't. One indexed read per request.
+    conn = _profile_conn()
+    try:
+        if _aboyeur_account.is_deleted(conn, user_id):
+            raise HTTPException(401, "account deleted")
+    finally:
+        conn.close()
+    return user_id
+
+
+def _billing_user(user_id: int) -> dict:
+    conn = _profile_conn()
+    try:
+        return _aboyeur_billing.get_user(conn, user_id)
+    finally:
+        conn.close()
+
+
+def require_verified(user_id: int = Depends(get_current_user)) -> int:
+    """Unverified accounts can log in and look around, but not start turns
+    or pay. 403 with error=unverified so the SPA can offer a resend."""
+    user = _billing_user(user_id)
+    if not user["email_verified_at"]:
+        raise HTTPException(403, {"message": "verify your email address first",
+                                  "error": "unverified"})
+    return user_id
 
 
 class LoginBody(BaseModel):
@@ -773,10 +908,13 @@ class LoginBody(BaseModel):
 
 
 @app.post("/auth/login")
-def auth_login(body: LoginBody, response: Response):
+@_limiter.limit("10/minute", key_func=_ip_key)
+def auth_login(body: LoginBody, request: Request, response: Response):
     conn = _profile_conn()
     try:
         user_id = _aboyeur_auth.verify_login(conn, body.email, body.password)
+        if _aboyeur_account.is_deleted(conn, user_id):
+            raise HTTPException(401, "invalid email or password")
     except _aboyeur_auth.AuthError:
         raise HTTPException(401, "invalid email or password")
     finally:
@@ -815,11 +953,21 @@ def auth_me(user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
         admin = _aboyeur_admin.is_admin(conn, user_id)
+        user = _aboyeur_billing.get_user(conn, user_id)
+        tos = _aboyeur_account.tos_status(conn, user_id)
     finally:
         conn.close()
     # The frontend hides the admin nav on this flag. It is a convenience, not
     # the gate — every /admin route re-checks server-side.
-    return {"user_id": user_id, "is_admin": admin}
+    return {
+        "user_id": user_id,
+        "is_admin": admin,
+        "email_verified": bool(user["email_verified_at"]),
+        "plan": user["plan"],
+        "billing_status": user["billing_status"],
+        "llm_mode": user["llm_mode"],
+        "tos": tos,
+    }
 
 
 def _sse(data: str) -> str:
@@ -902,11 +1050,16 @@ def _run_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
             user_id=user_id, client_id=client_id, session_id=record_for,
             agent=agent, latency_ms=latency_ms, ok=not errored,
             error_type=error_type, error_detail=error_detail,
+            answer_chars=len(answer), prompt_chars=len(message),
         )
     finally:
         # Readers unblock only once persistence is done, so "the stream ended"
         # always means "the transcript has it".
         turn.finish(error=errored)
+    # Off the critical path: readers are already unblocked. Still on this
+    # thread so a slow classifier can't hold up anything but itself.
+    if record_for is not None and user_id is not None:
+        _classify_session_messages(agent, user_id, record_for)
 
 
 def _start_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
@@ -942,21 +1095,114 @@ def _record_turn_event(*, user_id: Optional[int], client_id: Optional[int],
                        session_id: Optional[int], agent: _AboyeurAgent,
                        latency_ms: int, ok: bool,
                        error_type: Optional[str] = None,
-                       error_detail: Optional[str] = None) -> None:
+                       error_detail: Optional[str] = None,
+                       answer_chars: int = 0, prompt_chars: int = 0) -> None:
+    """The turn's `events` row and — for a hosted (billable) agent — its
+    usage_ledger debit, in one transaction so a crash between the two can't
+    leave a turn recorded but unbilled or billed but unrecorded."""
     tokens_in, tokens_out = getattr(agent, "last_usage", None) or (None, None)
+    resolved = getattr(agent, "resolved", None)
+    billable = bool(resolved and resolved.billable and user_id is not None)
     conn = _profile_conn()
     try:
-        _aboyeur_admin.record_event(
-            conn, "chat_turn",
-            user_id=user_id, client_id=client_id, session_id=session_id,
-            model=getattr(agent.config, "llm_model", None),
-            latency_ms=latency_ms,
-            tool_calls=getattr(agent, "last_tool_calls", None),
-            tokens_in=tokens_in, tokens_out=tokens_out,
-            ok=ok, error_type=error_type, error_detail=error_detail,
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.execute(
+            "INSERT INTO events (ts, kind, user_id, client_id, session_id, model, "
+            "latency_ms, tool_calls, tokens_in, tokens_out, ok, error_type, "
+            "error_detail, meta_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "chat_turn",
+                user_id, client_id, session_id, getattr(agent.config, "llm_model", None),
+                latency_ms, getattr(agent, "last_tool_calls", None),
+                tokens_in, tokens_out, 1 if ok else 0, error_type,
+                (error_detail or "")[:4000] or None,
+                json.dumps({"provider_id": resolved.provider_id}) if billable else None,
+            ),
         )
+        event_id = cur.lastrowid
+        if billable:
+            estimated = tokens_in is None and tokens_out is None
+            if estimated:
+                # No usage chunk from the endpoint: charge on a chars/4
+                # estimate and mark the row so admin can see the provider
+                # isn't reporting.
+                tokens_in, tokens_out = prompt_chars // 4, answer_chars // 4
+            user = _aboyeur_billing.get_user(conn, user_id)
+            _aboyeur_billing.ledger_entry(
+                conn, user_id,
+                "chat_turn_est" if estimated else "chat_turn",
+                _turn_charge_for(user, resolved.provider, tokens_in or 0, tokens_out or 0),
+                cost_cents=_aboyeur_billing.turn_charge(
+                    resolved.provider["price_in_per_mtok"], resolved.provider["price_out_per_mtok"],
+                    resolved.provider["markup_pct"], tokens_in or 0, tokens_out or 0)[0],
+                tokens_in=tokens_in or 0, tokens_out=tokens_out or 0,
+                model=resolved.provider["model"], provider_id=resolved.provider_id,
+                event_id=event_id, commit=False,
+            )
+        conn.execute("COMMIT")
     except Exception:  # monitoring must never break the thing it monitors
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
         logger.exception("couldn't record chat_turn event")
+    finally:
+        conn.close()
+    if billable:
+        _maybe_low_balance_email(user_id)
+
+
+def _turn_charge_for(user: dict, provider: dict, tokens_in: int, tokens_out: int) -> int:
+    _, charge = _aboyeur_billing.turn_charge(
+        provider["price_in_per_mtok"], provider["price_out_per_mtok"], provider["markup_pct"],
+        tokens_in, tokens_out,
+    )
+    return 0 if user["billing_status"] == "comp" else charge
+
+
+def _maybe_low_balance_email(user_id: int) -> None:
+    conn = _profile_conn()
+    try:
+        if not _aboyeur_billing.needs_low_balance_email(conn, user_id):
+            return
+        user = _aboyeur_billing.get_user(conn, user_id)
+    finally:
+        conn.close()
+    _aboyeur_mail.send(user["email"], "low_balance", {
+        "balance": f"${max(user['credit_cents'], 0) / 100:.2f}",
+        "link": f"{_aboyeur_config.app_base_url}/app/settings",
+    })
+
+
+def _classify_session_messages(agent: _AboyeurAgent, user_id: int, chat_session_id: int) -> None:
+    """Sensitivity-label every unlabeled user message in this conversation
+    using the agent's own LLM client (BYOK: their key, free; hosted: metered
+    as kind=classify). Any failure -> 'unknown', which the console treats
+    as sensitive. See aboyeur/sensitivity.py."""
+    conn = _profile_conn()
+    try:
+        pending = _aboyeur_sensitivity.unclassified_user_messages(conn, chat_session_id)
+        if not pending:
+            return
+        resolved = getattr(agent, "resolved", None)
+        for msg in pending:
+            label, cats, usage = _aboyeur_sensitivity.classify_text(
+                agent.client, agent.config.llm_model, msg["content"],
+            )
+            _aboyeur_sensitivity.store(conn, msg["id"], label, cats)
+            if resolved and resolved.billable and usage:
+                user = _aboyeur_billing.get_user(conn, user_id)
+                _aboyeur_billing.meter_turn(
+                    conn, user, resolved.provider, usage[0], usage[1],
+                    estimated=False, event_id=None, kind="classify",
+                )
+    except Exception:
+        logger.exception("sensitivity classification failed for session %s", chat_session_id)
+        try:
+            for msg in pending:  # type: ignore[possibly-undefined]
+                _aboyeur_sensitivity.mark_unknown(conn, msg["id"])
+        except Exception:
+            pass
     finally:
         conn.close()
 
@@ -1097,11 +1343,21 @@ def _guest_command(message: str) -> Optional[str]:
 
 
 @app.post("/chat")
-def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_user)):
+@_limiter.limit("30/minute")
+def chat(body: ChatBody, request: Request, user_id: int = Depends(require_verified)):
     conn = _profile_conn()
     try:
         client_id = _require_client(conn, user_id, body.client_id)
         chat_session_id = _require_chat_session(conn, client_id, body.session_id)
+        # Plan quota before anything is reserved or recorded: a 402 here
+        # leaves no orphan user message and no in-flight turn.
+        user = _aboyeur_billing.get_user(conn, user_id)
+        byok = user["llm_mode"] == "byok" and \
+            _aboyeur_llm_settings.get_llm_settings_public(conn, user_id)["configured"]
+        try:
+            _aboyeur_billing.check_turn_quota(conn, user, byok=byok)
+        except _aboyeur_billing.BillingError as e:
+            raise HTTPException(e.status, {"message": str(e), **e.extra})
     finally:
         conn.close()
 
@@ -1135,18 +1391,14 @@ def chat(body: ChatBody, request: Request, user_id: int = Depends(get_current_us
     try:
         if guest is not None:
             agent = _reset_session_agent(user_id, client_id, chat_session_id, guest=True)
-            if agent is None:
-                _turns.release(chat_session_id, turn)
-                return _needs_llm_setup_stream()
             # Guest turns are deliberately not recorded — nothing a guest says is
             # persisted anywhere, transcript included.
             _start_agent_turn(turn, agent, guest or _GUEST_DEFAULT_PROMPT)
             return StreamingResponse(_turn_sse(turn), media_type="text/event-stream")
 
+        # Raises 402/409/503 (billing, setup, no provider) — the except below
+        # releases the reservation so the user can retry once it's fixed.
         agent = _get_session_agent(user_id, client_id, chat_session_id)
-        if agent is None:
-            _turns.release(chat_session_id, turn)
-            return _needs_llm_setup_stream()
         _record_message(chat_session_id, "user", body.message)
         _start_agent_turn(turn, agent, body.message, record_for=chat_session_id,
                           user_id=user_id, client_id=client_id)
@@ -1199,16 +1451,6 @@ def _require_chat_session(conn: sqlite3.Connection, client_id: int,
         return _aboyeur_chat_history.resolve_session(conn, client_id, session_id)
     except _aboyeur_chat_history.UnknownSession:
         raise HTTPException(404, "no such conversation")
-
-
-def _needs_llm_setup_stream() -> StreamingResponse:
-    # A 200 with one assistant message, not a 4xx: the Chat screen renders it
-    # as a normal bubble, and the SSE contract (text chunks then [DONE]) stays
-    # identical for every caller.
-    return StreamingResponse(
-        iter([_sse(NEEDS_LLM_SETUP_MESSAGE), _sse("[DONE]")]),
-        media_type="text/event-stream",
-    )
 
 
 # ===========================================================================
@@ -1284,6 +1526,10 @@ def oa_chat_completions(body: OAChatRequest, request: Request):
     That's what makes concurrent testers safe — two callers never share an
     Agent, a messages list, or a connection.
     """
+    if not _aboyeur_config.has_platform_llm:
+        # No env fallback configured (the hosted deploy). The shim has no
+        # login and therefore no BYOK/hosted resolution of its own.
+        raise HTTPException(503, "no platform LLM configured (LLM_BASE_URL is empty)")
     user_msgs = [m for m in body.messages if m.role == "user"]
     if not user_msgs:
         raise HTTPException(400, "no user message")
@@ -1557,7 +1803,9 @@ class PasswordBody(BaseModel):
 
 def _account(conn: sqlite3.Connection, user_id: int) -> dict:
     row = conn.execute(
-        "SELECT id, email, name, practice, created_at FROM users WHERE id = ?", (user_id,)
+        "SELECT id, email, name, practice, created_at, country, plan, billing_status, "
+        "llm_mode, credit_cents, email_verified_at, tos_version, deleted_at "
+        "FROM users WHERE id = ?", (user_id,)
     ).fetchone()
     if row is None:
         raise HTTPException(404, "account not found")
@@ -1578,8 +1826,22 @@ def _account(conn: sqlite3.Connection, user_id: int) -> dict:
         "client_count": counts["total"] or 0,
         "active_client_count": counts["active"] or 0,
         # The practitioner's own client record — "you, as someone to plan for".
-        "self_client": ({"id": self_client["id"], "name": self_client["name"]}
+        "self_client": ({"id": self_client["id"],
+                         "name": _aboyeur_clients.client_name(conn, self_client["id"])}
                         if self_client is not None else None),
+        "country": row["country"],
+        "plan": row["plan"],
+        "billing_status": row["billing_status"],
+        "llm_mode": row["llm_mode"],
+        "credit_cents": row["credit_cents"],
+        "email_verified": bool(row["email_verified_at"]),
+        "tos": _aboyeur_account.tos_status(conn, user_id),
+        "support_access": [
+            dict(r) for r in conn.execute(
+                "SELECT ts, session_id FROM support_access WHERE user_id = ? "
+                "ORDER BY ts DESC LIMIT 20", (user_id,)
+            )
+        ],
     }
 
 
@@ -1949,7 +2211,17 @@ class LlmSettingsBody(BaseModel):
 def api_llm_settings_get(user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
-        return _aboyeur_llm_settings.get_llm_settings_public(conn, user_id)
+        out = _aboyeur_llm_settings.get_llm_settings_public(conn, user_id)
+        user = _aboyeur_billing.get_user(conn, user_id)
+        out["llm_mode"] = user["llm_mode"]
+        out["plan"] = user["plan"]
+        out["billing_status"] = user["billing_status"]
+        out["is_paid"] = _aboyeur_billing.is_paid(user)
+        out["credit_cents"] = user["credit_cents"]
+        out["hosted_offer"] = _aboyeur_providers.hosted_offer(conn, user)
+        out["billing_enabled"] = _stripe.configured
+        out["topup_amounts"] = list(_aboyeur_billing.TOPUP_AMOUNTS_CENTS)
+        return out
     finally:
         conn.close()
 
@@ -1961,6 +2233,9 @@ def api_llm_settings_put(body: LlmSettingsBody, user_id: int = Depends(get_curre
         public = _aboyeur_llm_settings.save_llm_settings(
             conn, user_id, body.base_url, body.model, body.api_key,
         )
+        # Entering a key is choosing BYOK.
+        conn.execute("UPDATE users SET llm_mode = 'byok' WHERE id = ?", (user_id,))
+        conn.commit()
     except ValueError as e:
         raise HTTPException(400, str(e))
     finally:
@@ -1978,7 +2253,9 @@ class LlmTestBody(BaseModel):
 
 
 @app.post("/api/llm-settings/test")
-def api_llm_settings_test(body: LlmTestBody, user_id: int = Depends(get_current_user)):
+@_limiter.limit("10/hour")
+def api_llm_settings_test(body: LlmTestBody, request: Request,
+                          user_id: int = Depends(get_current_user)):
     """Probe an endpoint before saving it. Never echoes the key back.
 
     An authenticated user can point this at any URL the server can reach —
@@ -2108,7 +2385,12 @@ def api_session_feedback(session_id: int, user_id: int = Depends(get_current_use
 def admin_overview(_: int = Depends(require_admin)):
     conn = _profile_conn()
     try:
-        return _aboyeur_admin.overview(conn)
+        out = _aboyeur_admin.overview(conn)
+        out["billing"] = _aboyeur_billing.billing_health(conn)
+        out["hosted_1d"] = _aboyeur_admin.hosted_usage(conn, 1)
+        out["hosted_7d"] = _aboyeur_admin.hosted_usage(conn, 7)
+        out["estimated_rows_7d"] = _aboyeur_providers.estimated_rows_count(conn, 7)
+        return out
     finally:
         conn.close()
 
@@ -2134,12 +2416,14 @@ def admin_user_detail(target_id: int, _: int = Depends(require_admin)):
 
 
 @app.get("/api/admin/sessions/{session_id}")
-def admin_transcript(session_id: int, _: int = Depends(require_admin)):
-    """Read any conversation on the deploy. Users are told the operator can
-    do this — see the privacy note in admin-monitoring-plan.md."""
+def admin_transcript(session_id: int, reveal: bool = False,
+                     admin_id: int = Depends(require_admin)):
+    """Read a conversation. Messages the classifier flagged come back
+    redacted unless ?reveal=1 — which is audited and shown to the user on
+    their Account page. See docs/privacy-posture.md."""
     conn = _profile_conn()
     try:
-        return _aboyeur_admin.get_transcript(conn, session_id)
+        return _aboyeur_admin.get_transcript(conn, session_id, reveal=reveal, admin_id=admin_id)
     except _aboyeur_admin.AdminError as e:
         raise HTTPException(404, str(e))
     finally:
@@ -2183,7 +2467,8 @@ def admin_log_tail(lines: int = Query(200, ge=1, le=2000),
     # A mid-file seek lands inside a line; drop that first partial one.
     if window < size and tail:
         tail = tail[1:]
-    return {"path": str(log_path), "lines": tail[-lines:]}
+    # Emails / phones / anything key-shaped are masked before leaving.
+    return {"path": str(log_path), "lines": _aboyeur_admin.sanitize_log_lines(tail[-lines:])}
 
 
 @app.get("/api/admin/feedback")
@@ -2212,6 +2497,796 @@ def admin_feedback_update(feedback_id: int, patch: FeedbackPatch,
         raise HTTPException(400, str(e))
     finally:
         conn.close()
+
+
+# ===========================================================================
+# Health — no secrets, no counts that leak tenancy. Litestream's replication
+# lag is read from its metrics endpoint when LITESTREAM_METRICS_URL is set
+# (compose does), else omitted.
+# ===========================================================================
+
+@app.get("/health")
+def health():
+    ok, db_ok = True, True
+    try:
+        conn = _profile_conn()
+        try:
+            conn.execute("SELECT 1").fetchone()
+        finally:
+            conn.close()
+    except Exception:
+        ok = db_ok = False
+    out = {"ok": ok, "db": db_ok, "version": APP_VERSION}
+    metrics_url = os.environ.get("LITESTREAM_METRICS_URL")
+    if metrics_url:
+        try:
+            import httpx as _httpx
+            text = _httpx.get(metrics_url, timeout=2).text
+            lag = _litestream_lag(text)
+            if lag is not None:
+                out["litestream_lag_s"] = lag
+        except Exception:
+            out["litestream_lag_s"] = None
+    return JSONResponse(out, status_code=200 if ok else 503)
+
+
+def _litestream_lag(metrics_text: str) -> Optional[float]:
+    """Seconds since Litestream's last successful sync, from its Prometheus
+    metrics (litestream_replica_sync_time_seconds or ..._last_sync)."""
+    import re as _re
+    latest = None
+    for line in metrics_text.splitlines():
+        if line.startswith("litestream_replica_sync_time_seconds") or \
+                line.startswith("litestream_replica_last_sync"):
+            m = _re.search(r"\s([0-9.eE+-]+)$", line)
+            if m:
+                latest = max(latest or 0.0, float(m.group(1)))
+    if latest is None:
+        return None
+    return round(max(0.0, time.time() - latest), 1)
+
+
+# ===========================================================================
+# Self-serve auth: signup / verify / reset. Login/logout are above.
+# ===========================================================================
+
+class SignupBody(BaseModel):
+    email: str
+    password: str
+    country: Optional[str] = None
+    invite_code: Optional[str] = None
+    tos_version: Optional[str] = None
+
+
+def _account_http(e: _aboyeur_account.AccountError) -> HTTPException:
+    return HTTPException(e.status, {"message": str(e), **e.extra})
+
+
+def _send_verification(user_id: int, email: str) -> None:
+    conn = _profile_conn()
+    try:
+        token = _aboyeur_account.issue_token(conn, user_id, "verify")
+    finally:
+        conn.close()
+    _aboyeur_mail.send(email, "verify", {"link": f"{_aboyeur_config.app_base_url}/verify?token={token}"})
+
+
+@app.post("/auth/signup")
+@_limiter.limit("5/hour", key_func=_ip_key)
+def auth_signup(body: SignupBody, request: Request, response: Response):
+    conn = _profile_conn()
+    try:
+        user_id = _aboyeur_account.signup(
+            conn, email=body.email, password=body.password,
+            signup_mode=_aboyeur_config.signup_mode, invite_code=body.invite_code,
+            country=body.country, tos_version=body.tos_version,
+        )
+        email = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()["email"]
+    except _aboyeur_account.AccountError as e:
+        raise _account_http(e)
+    finally:
+        conn.close()
+    _send_verification(user_id, email)
+    _aboyeur_admin_event("signup", user_id)
+    token = _aboyeur_auth.issue_token(user_id)
+    response.set_cookie(
+        _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=_COOKIE_SECURE,
+        max_age=_aboyeur_auth.JWT_TTL_SECONDS,
+    )
+    return {"user_id": user_id, "email_verified": False}
+
+
+def _aboyeur_admin_event(kind: str, user_id: Optional[int]) -> None:
+    conn = _profile_conn()
+    try:
+        _aboyeur_admin.record_event(conn, kind, user_id=user_id)
+    except Exception:
+        logger.exception("couldn't record %s event", kind)
+    finally:
+        conn.close()
+
+
+@app.get("/auth/signup-mode")
+def auth_signup_mode():
+    return {"mode": _aboyeur_config.signup_mode, "legal_version": _aboyeur_legal.LEGAL_VERSION}
+
+
+class TokenBody(BaseModel):
+    token: str
+
+
+@app.post("/auth/verify")
+def auth_verify(body: TokenBody):
+    conn = _profile_conn()
+    try:
+        user_id = _aboyeur_account.verify_email(conn, body.token)
+    except _aboyeur_account.AccountError as e:
+        raise _account_http(e)
+    finally:
+        conn.close()
+    return {"ok": True, "user_id": user_id}
+
+
+@app.post("/auth/resend-verification")
+@_limiter.limit("5/hour")
+def auth_resend_verification(request: Request, user_id: int = Depends(get_current_user)):
+    user = _billing_user(user_id)
+    if user["email_verified_at"]:
+        return {"ok": True, "already_verified": True}
+    _send_verification(user_id, user["email"])
+    return {"ok": True}
+
+
+class ResetRequestBody(BaseModel):
+    email: str
+
+
+@app.post("/auth/reset")
+@_limiter.limit("5/hour", key_func=_ip_key)
+def auth_reset_request(body: ResetRequestBody, request: Request):
+    """Always 200 — the response must not reveal whether the email exists."""
+    conn = _profile_conn()
+    try:
+        found = _aboyeur_account.request_reset(conn, body.email)
+    finally:
+        conn.close()
+    if found:
+        _, token = found
+        _aboyeur_mail.send(body.email.strip().lower(), "reset", {
+            "email": body.email.strip().lower(),
+            "link": f"{_aboyeur_config.app_base_url}/reset?token={token}",
+        })
+    return {"ok": True}
+
+
+class ResetConfirmBody(BaseModel):
+    token: str
+    new_password: str
+
+
+@app.post("/auth/reset/confirm")
+@_limiter.limit("10/hour", key_func=_ip_key)
+def auth_reset_confirm(body: ResetConfirmBody, request: Request):
+    conn = _profile_conn()
+    try:
+        _aboyeur_account.reset_password(conn, body.token, body.new_password)
+    except _aboyeur_account.AccountError as e:
+        raise _account_http(e)
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
+# ===========================================================================
+# Legal documents — markdown served to the SPA's /legal/<slug> route.
+# ===========================================================================
+
+_LEGAL_DIR = PROJECT_ROOT / "legal"
+
+
+@app.get("/api/legal/{slug}")
+def api_legal(slug: str):
+    if slug not in _aboyeur_legal.LEGAL_DOCS:
+        raise HTTPException(404, "no such document")
+    path = _LEGAL_DIR / f"{slug}.md"
+    if not path.exists():
+        raise HTTPException(404, "document not published")
+    return PlainTextResponse(path.read_text(encoding="utf-8"), media_type="text/markdown")
+
+
+@app.get("/api/legal")
+def api_legal_index():
+    return {"version": _aboyeur_legal.LEGAL_VERSION, "documents": list(_aboyeur_legal.LEGAL_DOCS)}
+
+
+# ===========================================================================
+# Account: ToS, country, export, delete
+# ===========================================================================
+
+class AcceptTosBody(BaseModel):
+    version: str
+
+
+@app.post("/api/account/accept-tos")
+def api_accept_tos(body: AcceptTosBody, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_account.accept_tos(conn, user_id, body.version)
+    except _aboyeur_account.AccountError as e:
+        raise _account_http(e)
+    finally:
+        conn.close()
+
+
+class CountryBody(BaseModel):
+    country: Optional[str] = None
+
+
+@app.put("/api/account/country")
+def api_account_country(body: CountryBody, user_id: int = Depends(get_current_user)):
+    """Changing country never reprices a live subscription — it applies at
+    the next checkout. Stripe's customer metadata is updated then."""
+    country = (body.country or "").strip().upper() or None
+    if country and not (len(country) == 2 and country.isalpha()):
+        raise HTTPException(400, "country must be a two-letter ISO code")
+    conn = _profile_conn()
+    try:
+        conn.execute("UPDATE users SET country = ? WHERE id = ?", (country, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"country": country}
+
+
+@app.get("/api/account/export")
+def api_account_export(user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        data = _aboyeur_account.export_zip(conn, user_id)
+    except _aboyeur_account.AccountError as e:
+        raise _account_http(e)
+    finally:
+        conn.close()
+    return Response(
+        data, media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="aboyeur-export-{user_id}.zip"'},
+    )
+
+
+class DeleteAccountBody(BaseModel):
+    password: Optional[str] = None
+    confirm: str
+
+
+@app.delete("/api/account")
+def api_account_delete(body: DeleteAccountBody, response: Response,
+                       user_id: int = Depends(get_current_user)):
+    """Soft delete now; hard purge after 30 days (`aboyeur purge`, also on
+    boot). The Stripe subscription is canceled at once; the customer is
+    kept for tax records."""
+    if body.confirm.strip().upper() != "DELETE":
+        raise HTTPException(400, "type DELETE to confirm")
+    conn = _profile_conn()
+    try:
+        row = conn.execute("SELECT email, password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+        if row["password_hash"] and not _aboyeur_auth.verify_password(
+                body.password or "", row["password_hash"]):
+            raise HTTPException(403, "password is wrong")
+        result = _aboyeur_account.soft_delete(conn, user_id)
+        sub_id = result.pop("stripe_subscription_id", None)
+        if sub_id:
+            try:
+                _stripe.cancel_subscription(sub_id, prorate=False)
+            except _StripeError as e:
+                logger.warning("delete: couldn't cancel subscription %s: %s", sub_id, e)
+            conn.execute(
+                "UPDATE users SET stripe_subscription_id = NULL, billing_status = 'canceled', "
+                "plan = 'free' WHERE id = ?", (user_id,),
+            )
+            conn.commit()
+        email = row["email"]
+    except _aboyeur_account.AccountError as e:
+        raise _account_http(e)
+    finally:
+        conn.close()
+    _drop_session_agent(user_id)
+    _aboyeur_mail.send(email, "deleted", {"email": email, "purge_date": result["purge_after"]})
+    response.delete_cookie(_SESSION_COOKIE, httponly=True, samesite="lax", secure=_COOKIE_SECURE)
+    return result
+
+
+# ===========================================================================
+# Billing — Stripe Checkout / Portal / webhook. No Stripe JS on the client.
+# ===========================================================================
+
+def _billing_http(e: _aboyeur_billing.BillingError) -> HTTPException:
+    return HTTPException(e.status, {"message": str(e), **e.extra})
+
+
+def _stripe_ready() -> None:
+    if not _stripe.configured:
+        raise HTTPException(503, {"message": "billing isn't enabled on this deploy",
+                                  "error": "billing_disabled"})
+
+
+def _country_for(request: Request, user: dict) -> str:
+    return _aboyeur_billing.resolve_country(user, dict(request.headers), _TRUST_CF)
+
+
+class CheckoutBody(BaseModel):
+    interval: str = "month"
+
+
+@app.post("/api/billing/checkout")
+def api_billing_checkout(body: CheckoutBody, request: Request,
+                         user_id: int = Depends(get_current_user)):
+    _stripe_ready()
+    conn = _profile_conn()
+    try:
+        user = _aboyeur_billing.get_user(conn, user_id)
+        url = _aboyeur_billing.create_subscription_checkout(
+            conn, _stripe, user_id, body.interval, _country_for(request, user),
+            _aboyeur_config.app_base_url,
+        )
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    except _StripeError as e:
+        raise HTTPException(502, {"message": f"Stripe: {e}", "error": "stripe"})
+    finally:
+        conn.close()
+    return {"url": url}
+
+
+class TopupBody(BaseModel):
+    amount_cents: int
+
+
+@app.post("/api/billing/topup")
+def api_billing_topup(body: TopupBody, request: Request, user_id: int = Depends(get_current_user)):
+    _stripe_ready()
+    conn = _profile_conn()
+    try:
+        user = _aboyeur_billing.get_user(conn, user_id)
+        url = _aboyeur_billing.create_topup_checkout(
+            conn, _stripe, user_id, body.amount_cents, _country_for(request, user),
+            _aboyeur_config.app_base_url,
+        )
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    except _StripeError as e:
+        raise HTTPException(502, {"message": f"Stripe: {e}", "error": "stripe"})
+    finally:
+        conn.close()
+    return {"url": url}
+
+
+@app.post("/api/billing/portal")
+def api_billing_portal(user_id: int = Depends(get_current_user)):
+    _stripe_ready()
+    conn = _profile_conn()
+    try:
+        url = _aboyeur_billing.create_portal(conn, _stripe, user_id, _aboyeur_config.app_base_url)
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    except _StripeError as e:
+        raise HTTPException(502, {"message": f"Stripe: {e}", "error": "stripe"})
+    finally:
+        conn.close()
+    return {"url": url}
+
+
+@app.get("/api/billing/me")
+def api_billing_me(request: Request, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        user = _aboyeur_billing.get_user(conn, user_id)
+        out = _aboyeur_billing.billing_me(conn, user_id, _country_for(request, user))
+        out["billing_enabled"] = _stripe.configured
+        out["hosted_offer"] = _aboyeur_providers.hosted_offer(conn, user)
+        return out
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+
+
+@app.post("/api/billing/webhook")
+async def api_billing_webhook(request: Request):
+    """Stripe -> us. Signature verified, event id recorded first (duplicate
+    -> 200 and done), then handled. A handler error is stored on the event
+    row and still answered 200: Stripe would otherwise retry for days, and
+    the admin console lists unprocessed events for a human to look at."""
+    payload = await request.body()
+    try:
+        event = _stripe.construct_event(payload, request.headers.get("stripe-signature"))
+    except _StripeNotConfigured:
+        raise HTTPException(503, "billing disabled")
+    except _StripeError as e:
+        raise HTTPException(400, str(e))
+    conn = _profile_conn()
+    try:
+        if not _aboyeur_billing.record_event_once(conn, event):
+            return {"ok": True, "duplicate": True}
+        try:
+            result = _aboyeur_billing.handle_event(conn, _stripe, event)
+        except Exception:
+            logger.exception("stripe event %s (%s) failed", event.get("id"), event.get("type"))
+            return {"ok": False, "recorded": True}
+        # A plan/provider change makes cached agents stale.
+        obj = (event.get("data") or {}).get("object") or {}
+        uid = (obj.get("metadata") or {}).get("user_id") or obj.get("client_reference_id")
+        if uid:
+            try:
+                _drop_session_agent(int(uid))
+            except (TypeError, ValueError):
+                pass
+    finally:
+        conn.close()
+    return {"ok": True, **result}
+
+
+# ===========================================================================
+# LLM mode (byok | hosted) — the Settings page's two radio cards.
+# ===========================================================================
+
+class LlmModeBody(BaseModel):
+    mode: str
+
+
+@app.put("/api/llm-settings/mode")
+def api_llm_mode(body: LlmModeBody, user_id: int = Depends(get_current_user)):
+    if body.mode not in ("byok", "hosted"):
+        raise HTTPException(400, "mode must be byok or hosted")
+    conn = _profile_conn()
+    try:
+        user = _aboyeur_billing.get_user(conn, user_id)
+        if body.mode == "hosted" and not _aboyeur_billing.is_paid(user):
+            raise HTTPException(402, {"message": "Aboyeur's hosted models need a Pro plan",
+                                      "error": "hosted_requires_pro", "upgrade_url": "/app/account"})
+        conn.execute("UPDATE users SET llm_mode = ? WHERE id = ?", (body.mode, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    _drop_session_agent(user_id)
+    return {"llm_mode": body.mode}
+
+
+# ===========================================================================
+# Admin: billing, prices, ladder, providers, invites, audit
+# ===========================================================================
+
+class AdminBillingBody(BaseModel):
+    billing_status: str  # comp | free
+
+
+@app.post("/api/admin/users/{target_id}/billing")
+def admin_user_billing(target_id: int, body: AdminBillingBody,
+                       admin_id: int = Depends(require_admin)):
+    if body.billing_status not in ("comp", "free"):
+        raise HTTPException(400, "billing_status must be comp or free")
+    conn = _profile_conn()
+    try:
+        user = _aboyeur_billing.set_comp(conn, _stripe, admin_id, target_id,
+                                         comp=body.billing_status == "comp")
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+    _drop_session_agent(target_id)
+    return user
+
+
+class AdminCreditBody(BaseModel):
+    cents: int
+    note: Optional[str] = None
+
+
+@app.post("/api/admin/users/{target_id}/credit")
+def admin_user_credit(target_id: int, body: AdminCreditBody,
+                      admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_billing.admin_add_credit(conn, admin_id, target_id, body.cents, body.note)
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+
+
+class AdminLlmBody(BaseModel):
+    llm_mode: Optional[str] = None
+    llm_provider_id: Optional[int] = None
+    clear_provider: bool = False
+
+
+@app.post("/api/admin/users/{target_id}/llm")
+def admin_user_llm(target_id: int, body: AdminLlmBody, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        provider = None if body.clear_provider else (
+            body.llm_provider_id if body.llm_provider_id is not None else "unset")
+        user = _aboyeur_billing.set_user_llm(
+            conn, admin_id, target_id, llm_mode=body.llm_mode, llm_provider_id=provider,
+        )
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+    # Takes effect on the user's next turn, mid-conversation included.
+    _drop_session_agent(target_id)
+    return user
+
+
+@app.get("/api/admin/users/{target_id}/ledger")
+def admin_user_ledger(target_id: int, limit: int = Query(200, ge=1, le=1000),
+                      _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"ledger": _aboyeur_billing.user_ledger(conn, target_id, limit)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/prices")
+def admin_prices(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"prices": _aboyeur_billing.list_prices(conn)}
+    finally:
+        conn.close()
+
+
+class PriceBody(BaseModel):
+    plan: str = "pro"
+    interval: str
+    country: str = "*"
+    amount_cents: int
+
+
+@app.post("/api/admin/prices")
+def admin_price_create(body: PriceBody, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_billing.upsert_price(
+            conn, _stripe, admin_id, plan=body.plan, interval=body.interval,
+            country=body.country, amount_cents=body.amount_cents,
+        )
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+
+
+class PricePatch(BaseModel):
+    amount_cents: int
+
+
+@app.put("/api/admin/prices/{price_id}")
+def admin_price_update(price_id: int, body: PricePatch, admin_id: int = Depends(require_admin)):
+    """Archives the row (and its Stripe Price) and inserts a replacement.
+    Existing subscribers are not repriced."""
+    conn = _profile_conn()
+    try:
+        old = conn.execute("SELECT * FROM plan_prices WHERE id = ? AND active = 1", (price_id,)).fetchone()
+        if old is None:
+            raise HTTPException(404, "no such active price")
+        return _aboyeur_billing.upsert_price(
+            conn, _stripe, admin_id, plan=old["plan"], interval=old["interval"],
+            country=old["country"], amount_cents=body.amount_cents,
+        )
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+
+
+@app.delete("/api/admin/prices/{price_id}")
+def admin_price_delete(price_id: int, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        _aboyeur_billing.delete_price(conn, _stripe, admin_id, price_id)
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+    return {"deleted": price_id}
+
+
+@app.get("/api/admin/loyalty")
+def admin_loyalty(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"ladder": _aboyeur_billing.list_ladder(conn)}
+    finally:
+        conn.close()
+
+
+class TierBody(BaseModel):
+    tier: str
+    min_paid_months: int
+    percent_off: int
+    active: bool = True
+
+
+@app.put("/api/admin/loyalty/{tier}")
+def admin_loyalty_upsert(tier: str, body: TierBody, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_billing.upsert_tier(
+            conn, _stripe, admin_id, tier=tier, min_paid_months=body.min_paid_months,
+            percent_off=body.percent_off, active=body.active,
+        )
+    except _aboyeur_billing.BillingError as e:
+        raise _billing_http(e)
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/stripe-events")
+def admin_stripe_events(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"events": _aboyeur_billing.unprocessed_events(conn)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/admin/audit")
+def admin_audit_log(limit: int = Query(200, ge=1, le=1000), _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"audit": _aboyeur_admin.audit_log(conn, limit)}
+    finally:
+        conn.close()
+
+
+# -- providers ---------------------------------------------------------------
+
+def _provider_http(e: _aboyeur_providers.ProviderError) -> HTTPException:
+    return HTTPException(e.status, {"message": str(e), **e.extra})
+
+
+@app.get("/api/admin/llm-providers")
+def admin_providers(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"providers": _aboyeur_providers.list_providers(conn)}
+    finally:
+        conn.close()
+
+
+class ProviderBody(BaseModel):
+    name: str
+    base_url: str
+    model: str
+    api_key: Optional[str] = None
+    price_in_per_mtok: int
+    price_out_per_mtok: int
+    markup_pct: int = 30
+    enabled: bool = True
+
+
+@app.post("/api/admin/llm-providers")
+def admin_provider_create(body: ProviderBody, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        p = _aboyeur_providers.create_provider(
+            conn, name=body.name, base_url=body.base_url, model=body.model,
+            api_key=body.api_key or "", price_in_per_mtok=body.price_in_per_mtok,
+            price_out_per_mtok=body.price_out_per_mtok, markup_pct=body.markup_pct,
+            enabled=body.enabled,
+        )
+        _aboyeur_billing.audit(conn, admin_id, "create_provider", f"provider:{p['id']}",
+                               {"name": p["name"], "model": p["model"]})
+        return p
+    except _aboyeur_providers.ProviderError as e:
+        raise _provider_http(e)
+    finally:
+        conn.close()
+
+
+class ProviderPatch(BaseModel):
+    name: Optional[str] = None
+    base_url: Optional[str] = None
+    model: Optional[str] = None
+    api_key: Optional[str] = None
+    price_in_per_mtok: Optional[int] = None
+    price_out_per_mtok: Optional[int] = None
+    markup_pct: Optional[int] = None
+    enabled: Optional[bool] = None
+
+
+@app.patch("/api/admin/llm-providers/{provider_id}")
+def admin_provider_update(provider_id: int, body: ProviderPatch,
+                          admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        p = _aboyeur_providers.update_provider(conn, provider_id, body.model_dump(exclude_unset=True))
+        _aboyeur_billing.audit(conn, admin_id, "edit_provider", f"provider:{provider_id}",
+                               {k: v for k, v in body.model_dump(exclude_unset=True).items()
+                                if k != "api_key"})
+    except _aboyeur_providers.ProviderError as e:
+        raise _provider_http(e)
+    finally:
+        conn.close()
+    _drop_all_hosted_agents()
+    return p
+
+
+@app.post("/api/admin/llm-providers/{provider_id}/default")
+def admin_provider_default(provider_id: int, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        p = _aboyeur_providers.set_default(conn, provider_id)
+        _aboyeur_billing.audit(conn, admin_id, "set_default_provider", f"provider:{provider_id}")
+    except _aboyeur_providers.ProviderError as e:
+        raise _provider_http(e)
+    finally:
+        conn.close()
+    _drop_all_hosted_agents()
+    return p
+
+
+@app.post("/api/admin/llm-providers/{provider_id}/test")
+def admin_provider_test(provider_id: int, _: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return _aboyeur_providers.test_provider(conn, provider_id)
+    except _aboyeur_providers.ProviderError as e:
+        raise _provider_http(e)
+    finally:
+        conn.close()
+
+
+def _drop_all_hosted_agents() -> None:
+    """A provider edit changes what hosted users should be running on; drop
+    their cached agents so the next turn re-resolves. BYOK agents stay."""
+    with _aboyeur_sessions_lock:
+        for key in [k for k, a in _aboyeur_session_agents.items()
+                    if getattr(getattr(a, "resolved", None), "billable", False)]:
+            _aboyeur_session_agents.pop(key, None)
+
+
+# -- invites -----------------------------------------------------------------
+
+class InviteBody(BaseModel):
+    max_uses: Optional[int] = 1
+    expires_days: Optional[int] = 30
+    note: Optional[str] = None
+
+
+@app.get("/api/admin/invites")
+def admin_invites(_: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        return {"invites": _aboyeur_account.list_invites(conn),
+                "signup_mode": _aboyeur_config.signup_mode}
+    finally:
+        conn.close()
+
+
+@app.post("/api/admin/invites")
+def admin_invite_create(body: InviteBody, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        invite = _aboyeur_account.create_invite(
+            conn, admin_id, max_uses=body.max_uses, expires_days=body.expires_days, note=body.note,
+        )
+        _aboyeur_billing.audit(conn, admin_id, "create_invite", f"invite:{invite['code']}")
+        return invite
+    finally:
+        conn.close()
+
+
+@app.delete("/api/admin/invites/{code}")
+def admin_invite_revoke(code: str, admin_id: int = Depends(require_admin)):
+    conn = _profile_conn()
+    try:
+        _aboyeur_account.revoke_invite(conn, code)
+        _aboyeur_billing.audit(conn, admin_id, "revoke_invite", f"invite:{code}")
+    finally:
+        conn.close()
+    return {"revoked": code}
 
 
 # ===========================================================================

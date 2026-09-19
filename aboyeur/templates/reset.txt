@@ -1,0 +1,8 @@
+Reset your Aboyeur password
+
+Someone (hopefully you) asked to reset the password for $email.
+The link below works once and expires in 1 hour:
+
+$link
+
+If you didn't ask for this, ignore this email — your password is unchanged.

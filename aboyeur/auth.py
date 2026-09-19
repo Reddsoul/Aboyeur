@@ -55,15 +55,20 @@ def verify_password(password: str, password_hash: str | None) -> bool:
 
 
 def create_user(conn: sqlite3.Connection, email: str, password: str) -> int:
-    """Create a new account. Raises AuthError if the email is already taken."""
+    """Create a new account. Raises AuthError if the email is already taken.
+
+    Operator-provisioned (CLI) accounts are born email-verified: the person
+    typing the address is the operator, not a stranger on a signup form.
+    Web signups go through aboyeur.account.signup and verify by link."""
     email = email.strip().lower()
     existing = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
     if existing is not None:
         raise AuthError(f"an account already exists for {email}")
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     cur = conn.execute(
-        "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
-        (email, hash_password(password), now),
+        "INSERT INTO users (email, password_hash, created_at, email_verified_at) "
+        "VALUES (?, ?, ?, ?)",
+        (email, hash_password(password), now, now),
     )
     conn.commit()
     return cur.lastrowid
@@ -89,8 +94,9 @@ def get_or_create_user(conn: sqlite3.Connection, email: str) -> int:
         return row["id"]
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     cur = conn.execute(
-        "INSERT INTO users (email, password_hash, created_at) VALUES (?, NULL, ?)",
-        (email, now),
+        "INSERT INTO users (email, password_hash, created_at, email_verified_at) "
+        "VALUES (?, NULL, ?, ?)",
+        (email, now, now),
     )
     conn.commit()
     return cur.lastrowid
