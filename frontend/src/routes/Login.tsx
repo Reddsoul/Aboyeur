@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api';
 import Logo from '../components/Logo';
@@ -23,7 +23,13 @@ export default function Login() {
       const { hasClients, llmConfigured } = await login(email, password);
       navigate(!hasClients ? '/onboarding' : llmConfigured ? '/app/chat' : '/setup', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 401 ? 'Invalid email or password.' : 'Something went wrong. Try again.');
+      setError(
+        err instanceof ApiError && err.status === 401
+          ? 'Invalid email or password.'
+          : err instanceof ApiError && err.status === 429
+            ? 'Too many attempts — wait a minute and try again.'
+            : 'Something went wrong. Try again.',
+      );
     } finally {
       setBusy(false);
     }
@@ -106,8 +112,10 @@ export default function Login() {
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
 
-        <p style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', margin: 0 }}>
-          Invite-only — accounts are created by the Aboyeur team.
+        <p style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+          <Link to="/reset" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Forgot your password?</Link>
+          <br />
+          New here? <Link to="/signup" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Create an account</Link>
         </p>
       </form>
     </div>

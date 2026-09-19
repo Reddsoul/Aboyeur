@@ -17,6 +17,9 @@ export default function Transcript() {
 
   const [data, setData] = useState<api.AdminTranscript | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Off by default; flipping it re-fetches with ?reveal=1, which the server
+  // audits and shows to the affected user.
+  const [reveal, setReveal] = useState(false);
   const focusRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,13 +27,13 @@ export default function Transcript() {
     setData(null);
     setError(null);
     api
-      .adminTranscript(id)
+      .adminTranscript(id, reveal)
       .then((t) => !cancelled && setData(t))
       .catch(() => !cancelled && setError("Couldn't load that conversation."));
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reveal]);
 
   // After the thread renders, not before — the node doesn't exist until then.
   useEffect(() => {
@@ -70,11 +73,38 @@ export default function Transcript() {
           <div>
             <h1 className="ad-title">{data.title}</h1>
             <p className="ad-sub">
-              Planning for <b>{data.client_name}</b> · {data.messages.length} message
+              Client #{data.client_id} · {data.messages.length} message
               {data.messages.length === 1 ? '' : 's'} · started {shortDate(data.created_at)}
+              {data.redacted_count > 0 && ` · ★ ${data.redacted_count} redacted`}
+              {data.revealed && ' · revealed (audited)'}
             </p>
           </div>
+          {data.redacted_count > 0 && !data.revealed && (
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{ height: 32, padding: '0 14px', fontSize: 13 }}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Reveal the redacted messages?\n\nThis is written to the audit log and the user will see ' +
+                      '"Support viewed this conversation" with today\'s date on their Account page. Only do it for a real support case.',
+                  )
+                )
+                  setReveal(true);
+              }}
+            >
+              Reveal for support
+            </button>
+          )}
         </div>
+        {data.redacted_count > 0 && !data.revealed && (
+          <p className="ad-sub">
+            Messages the classifier marked sensitive (or couldn't classify) are hidden, along with the
+            reply to each. Unflagged lines have emails and phone numbers masked. This is a best-effort
+            safeguard, not a compliance control — see docs/privacy-posture.md.
+          </p>
+        )}
 
         {data.messages.length === 0 ? (
           <div className="ad-empty">
@@ -99,17 +129,24 @@ export default function Transcript() {
                       <span>·</span>
                       <span>{clockTime(m.created_at)}</span>
                     </div>
-                    <div className={`ad-bubble ${m.role === 'user' ? 'ad-bubble-user' : 'ad-bubble-assist'}`}>
+                    <div className={`ad-bubble ${m.role === 'user' ? 'ad-bubble-user' : 'ad-bubble-assist'}${m.redacted ? ' ad-bubble-redacted' : ''}`}>
                       {/* Assistant answers are markdown, the same as in Chat.
                           User messages are rendered as plain text — whatever
                           they typed is not markup, and treating it as such
                           would silently reformat the evidence. */}
-                      {m.role === 'assistant' ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                      {m.redacted ? (
+                        <span>
+                          ★ Redacted — {m.sensitivity === 'unknown' ? 'classifier could not label this message' : `flagged: ${m.categories.join(', ') || 'sensitive'}`}
+                        </span>
+                      ) : m.role === 'assistant' ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content ?? ''}</ReactMarkdown>
                       ) : (
                         m.content
                       )}
                     </div>
+                    {!m.redacted && m.sensitivity === 'sensitive' && (
+                      <div className="ad-turn-meta">★ {m.categories.join(', ')}</div>
+                    )}
                     {m.feedback && (
                       <div
                         className={`ad-turn-feedback ${

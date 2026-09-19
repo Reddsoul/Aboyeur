@@ -1,0 +1,303 @@
+/* Logged-out screens: landing, signup, verify, reset, legal. Same stage +
+   card grammar as Login.tsx (which keeps its inline styles). Prefix: au-. */
+
+.au-stage {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+  padding: 24px;
+}
+.au-orb {
+  position: absolute;
+  top: -160px;
+  left: -100px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, var(--accent), var(--success));
+  opacity: 0.14;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.au-card {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--card);
+  border-radius: 24px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.au-card-wide {
+  max-width: 760px;
+}
+.au-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+.au-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+}
+.au-label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.au-error {
+  color: var(--danger);
+  font-size: 13.5px;
+}
+.au-ok {
+  color: var(--success);
+  font-size: 13.5px;
+}
+.au-fine {
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+.au-fine a,
+.au-links a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.au-links {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+.au-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.45;
+}
+.au-check input {
+  margin-top: 3px;
+}
+.au-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--muted);
+}
+.au-note strong {
+  color: var(--ink);
+}
+
+/* --- landing ------------------------------------------------------------- */
+
+.au-landing {
+  position: relative;
+  max-width: 980px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+@media (max-width: 800px) {
+  .au-landing {
+    grid-template-columns: 1fr;
+  }
+}
+.au-hero h1 {
+  font-size: 40px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 16px 0 12px;
+}
+.au-hero p {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0 0 22px;
+  max-width: 460px;
+}
+.au-cta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.au-shot {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.au-shot-bubble {
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  max-width: 88%;
+}
+.au-shot-user {
+  background: var(--accent);
+  color: #fff;
+  margin-left: auto;
+}
+.au-shot-bot {
+  background: var(--fill);
+}
+.au-shot table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.au-shot td,
+.au-shot th {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.au-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 26px;
+}
+@media (max-width: 800px) {
+  .au-features {
+    grid-template-columns: 1fr;
+  }
+}
+.au-feature {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.au-feature strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+/* --- legal --------------------------------------------------------------- */
+
+.au-legal {
+  max-width: 760px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  padding: 36px 40px 48px;
+  margin: 24px auto;
+  line-height: 1.6;
+  font-size: 14.5px;
+}
+.au-legal h1 {
+  font-size: 26px;
+  margin: 0 0 6px;
+}
+.au-legal h2 {
+  font-size: 17px;
+  margin: 26px 0 8px;
+}
+.au-legal table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin: 10px 0;
+}
+.au-legal th,
+.au-legal td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.au-legal-nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+.au-legal-nav a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.au-legal-nav a.on {
+  text-decoration: underline;
+}
+.au-draft {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+  margin-bottom: 12px;
+}
+
+/* --- modal --------------------------------------------------------------- */
+
+.au-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.au-modal {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 30px 32px;
+  max-width: 460px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.3);
+}
+
+/* --- banner (unverified email) ------------------------------------------ */
+
+.au-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  font-size: 13px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.au-banner button {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}

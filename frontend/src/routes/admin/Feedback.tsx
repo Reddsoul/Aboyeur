@@ -52,7 +52,7 @@ function Row({ item, onChanged }: { item: api.Feedback; onChanged: (f: api.Feedb
           {down ? '👎' : '👍'}
         </span>
         <span className="ad-fb-who">{item.email ?? `user ${item.user_id}`}</span>
-        {item.client_name && <span className="ad-tag">{item.client_name}</span>}
+        {item.client_id != null && <span className="ad-tag">client #{item.client_id}</span>}
         <span className="ad-fb-when" title={dateTime(item.created_at)}>
           {relativeTime(item.created_at)}
         </span>

@@ -2,6 +2,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useClients } from '../clients/ClientContext';
 import Logo from '../components/Logo';
+import TosModal from '../components/TosModal';
+import VerifyBanner from '../components/VerifyBanner';
 
 const tabStyle = (active: boolean): React.CSSProperties => ({
   display: 'flex',
@@ -171,9 +173,12 @@ export default function AppShell() {
         </button>
       </div>
 
+      <VerifyBanner />
       <div style={{ flex: 1, minHeight: 0 }}>
         <Outlet />
       </div>
+      {/* Blocks everything until the current terms are accepted. */}
+      <TosModal />
     </div>
   );
 }

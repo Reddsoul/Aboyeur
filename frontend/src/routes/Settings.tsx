@@ -1,10 +1,85 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './Settings.css';
 import * as api from '../api';
 import { ApiError } from '../api';
 import { useAuth } from '../auth/AuthContext';
+import { ClinicalNote } from '../components/Legal';
+
+const dollars = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+
+/** The hosted card's body: balance, the price they'd pay, and top-ups.
+ * The provider is shown by display name only — never its endpoint. */
+function HostedPanel({ settings, reload }: { settings: api.LlmSettings; reload: () => void }) {
+  const [params] = useSearchParams();
+  const [busy, setBusy] = useState<number | null>(null);
+  const [msg, setMsg] = useState<string | null>(
+    params.get('topup') === 'success'
+      ? 'Payment received — your balance updates within a few seconds.'
+      : params.get('topup') === 'cancel'
+        ? 'Top-up cancelled — nothing was charged.'
+        : null,
+  );
+
+  useEffect(() => {
+    if (params.get('topup') === 'success') {
+      const t = setTimeout(reload, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [params, reload]);
+
+  async function topup(cents: number) {
+    setBusy(cents);
+    setMsg(null);
+    try {
+      const { url } = await api.billingTopup(cents);
+      window.location.assign(url);
+    } catch (err) {
+      setMsg(err instanceof ApiError ? (err.code === 'unverified' ? 'Verify your email first.' : err.message) : "Couldn't reach Aboyeur.");
+      setBusy(null);
+    }
+  }
+
+  const offer = settings.hosted_offer;
+  return (
+    <div className="set-hosted">
+      <div className="set-hosted-row">
+        <span>Credit balance</span>
+        <strong style={{ color: settings.credit_cents <= 0 ? 'var(--danger)' : undefined }}>{dollars(settings.credit_cents)}</strong>
+      </div>
+      {offer ? (
+        <div className="set-hint">
+          You'll get <strong>{offer.name}</strong>. {offer.price_in_per_ktok_cents.toFixed(3)}¢ per 1K input tokens,{' '}
+          {offer.price_out_per_ktok_cents.toFixed(3)}¢ per 1K output tokens, charged per message and rounded up to the cent.
+          A typical menu-planning turn is a few cents.
+        </div>
+      ) : (
+        <div className="set-hint">No hosted model is configured on this deploy yet.</div>
+      )}
+      {!settings.is_paid ? (
+        <div className="set-hint">
+          Hosted models need Pro.{' '}
+          <Link to="/app/account" style={{ color: 'var(--accent)', fontWeight: 600 }}>Upgrade on your Account page</Link>.
+        </div>
+      ) : settings.billing_status === 'comp' ? (
+        <div className="set-hint">Complimentary account — hosted turns aren't charged.</div>
+      ) : settings.billing_enabled ? (
+        <div className="set-topups">
+          {settings.topup_amounts.map((c) => (
+            <button key={c} type="button" className="btn-ghost" disabled={busy !== null} onClick={() => void topup(c)}>
+              {busy === c ? 'Opening…' : `Add ${dollars(c)}`}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="set-hint">Billing isn't enabled on this deploy.</div>
+      )}
+      {msg && <div className="set-hint" style={{ color: 'var(--ink)' }}>{msg}</div>}
+      <div className="set-hint">Credits don't expire for 12 months and aren't refundable once used.</div>
+    </div>
+  );
+}
 
 interface Props {
   /** First-run variant: full-screen, no app chrome, continues to chat on save. */
@@ -38,11 +113,16 @@ export default function Settings({ firstRun = false }: Props) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [test, setTest] = useState<TestState>({ status: 'idle' });
+  const [settings, setSettings] = useState<api.LlmSettings | null>(null);
+  const [mode, setMode] = useState<api.LlmMode>('byok');
+  const [modeError, setModeError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api
       .getLlmSettings()
       .then((s) => {
+        setSettings(s);
+        setMode(s.llm_mode);
         setBaseUrl(s.base_url);
         setModel(s.model);
         setConfigured(s.configured);
@@ -50,6 +130,27 @@ export default function Settings({ firstRun = false }: Props) {
       .catch((err) => setError(failure(err, "Couldn't load your current settings")))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function chooseMode(next: api.LlmMode) {
+    if (next === mode) return;
+    setModeError(null);
+    try {
+      await api.setLlmMode(next);
+      setMode(next);
+      await refreshLlmStatus();
+      load();
+    } catch (err) {
+      setModeError(
+        err instanceof ApiError && err.code === 'hosted_requires_pro'
+          ? 'Hosted models need a Pro plan — upgrade on your Account page.'
+          : failure(err, "Couldn't switch"),
+      );
+    }
+  }
 
   // Any edit invalidates a previous green check — it was about the old values.
   function edited<T>(setter: (v: T) => void) {
@@ -117,6 +218,29 @@ export default function Settings({ firstRun = false }: Props) {
           <p className="set-sub">Loading…</p>
         ) : (
           <>
+            <div className="set-modes" role="radiogroup" aria-label="Which model runs your chats">
+              <button type="button" role="radio" aria-checked={mode === 'byok'} className={`set-mode${mode === 'byok' ? ' set-mode-on' : ''}`} onClick={() => void chooseMode('byok')}>
+                <span className="set-mode-title">Use my own API key</span>
+                <span className="set-mode-sub">Any OpenAI-compatible endpoint. You pay your provider directly. Unlimited on Free.</span>
+              </button>
+              <button type="button" role="radio" aria-checked={mode === 'hosted'} className={`set-mode${mode === 'hosted' ? ' set-mode-on' : ''}`} onClick={() => void chooseMode('hosted')}>
+                <span className="set-mode-title">
+                  Use Aboyeur's models <span className="set-mode-tag">Pro</span>
+                </span>
+                <span className="set-mode-sub">No key to manage. Pay per use from a prepaid credit balance.</span>
+              </button>
+            </div>
+            {modeError && (
+              <div className="set-result set-result-bad">
+                <span className="set-result-dot" />
+                <span>{modeError}</span>
+              </div>
+            )}
+
+            {settings && mode === 'hosted' && <HostedPanel settings={settings} reload={load} />}
+
+            {mode === 'byok' && (
+            <>
             <div className="set-field">
               <label className="set-label" htmlFor="set-base-url">
                 Provider base URL
@@ -160,7 +284,7 @@ export default function Settings({ firstRun = false }: Props) {
                   autoComplete="off"
                   value={apiKey}
                   onChange={(e) => edited(setApiKey)(e.target.value)}
-                  placeholder={configured ? '•••••••• (leave blank to keep current)' : 'sk-…'}
+                  placeholder={settings?.byok_configured ?? configured ? '•••••••• (leave blank to keep current)' : 'sk-…'}
                 />
                 {apiKey && (
                   <button type="button" className="set-key-reveal" onClick={() => setShowKey((v) => !v)}>
@@ -219,6 +343,16 @@ export default function Settings({ firstRun = false }: Props) {
               Aboyeur makes the model call server-side, so private endpoints on your own network work without exposing
               them to the browser.
             </p>
+            </>
+            )}
+            {mode === 'hosted' && firstRun && (
+              <div className="set-actions">
+                <button type="button" className="btn-primary" onClick={() => navigate('/app/chat', { replace: true })}>
+                  Start cooking
+                </button>
+              </div>
+            )}
+            <ClinicalNote />
           </>
         )}
       </form>

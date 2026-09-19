@@ -150,6 +150,67 @@ export default function Dashboard() {
           <Stat label="Clients" value={count(data.clients_total)} note={`${count(data.menus_7d)} menus in 7d`} />
         </div>
 
+        <h2 className="ad-section-title">Billing</h2>
+        <div className="ad-stats">
+          <Stat
+            label="MRR"
+            value={`$${(data.billing.mrr_cents / 100).toFixed(0)}`}
+            note={`${data.billing.active} active · ${data.billing.comp} comp · ${data.billing.free} free`}
+          />
+          <Stat
+            label="Past due"
+            value={String(data.billing.past_due)}
+            note={`${data.billing.canceled} canceled`}
+            tone={data.billing.past_due ? 'danger' : 'muted'}
+          />
+          <Stat
+            label="Webhooks unprocessed"
+            value={String(data.billing.unprocessed_webhooks)}
+            note="Billing → Webhooks"
+            tone={data.billing.unprocessed_webhooks ? 'danger' : 'muted'}
+          />
+          <Stat
+            label="Credit outstanding"
+            value={`$${(data.billing.credit_outstanding_cents / 100).toFixed(2)}`}
+            note="prepaid, unspent"
+          />
+        </div>
+
+        <h2 className="ad-section-title">Hosted models (24h)</h2>
+        <div className="ad-stats">
+          <Stat
+            label="Tokens"
+            value={count(data.hosted_1d.tokens_in + data.hosted_1d.tokens_out)}
+            note={`${count(data.hosted_1d.tokens_in)} in · ${count(data.hosted_1d.tokens_out)} out · ${data.hosted_1d.turns} turns`}
+          />
+          <Stat label="Our cost" value={`$${(data.hosted_1d.cost_cents / 100).toFixed(2)}`} note={`7d $${(data.hosted_7d.cost_cents / 100).toFixed(2)}`} />
+          <Stat label="Charged" value={`$${(data.hosted_1d.charged_cents / 100).toFixed(2)}`} note={`7d $${(data.hosted_7d.charged_cents / 100).toFixed(2)}`} />
+          <Stat
+            label="Gross margin"
+            value={data.hosted_1d.gross_margin_pct == null ? '—' : `${data.hosted_1d.gross_margin_pct}%`}
+            note={data.hosted_7d.gross_margin_pct == null ? 'no hosted turns in 7d' : `7d ${data.hosted_7d.gross_margin_pct}%`}
+            tone={data.hosted_1d.gross_margin_pct == null ? 'muted' : undefined}
+          />
+          <Stat
+            label="Estimated usage rows (7d)"
+            value={String(data.estimated_rows_7d)}
+            note={data.estimated_rows_7d ? 'a provider stopped reporting usage' : 'every turn had real usage'}
+            tone={data.estimated_rows_7d ? 'danger' : 'muted'}
+          />
+        </div>
+        {data.hosted_7d.top_users.length > 0 && (
+          <div className="ad-card">
+            <span className="ad-cell-muted">Top hosted spenders, 7d: </span>
+            {data.hosted_7d.top_users.map((u, i) => (
+              <span key={u.user_id}>
+                {i > 0 && ' · '}
+                <Link to={`/admin/users/${u.user_id}`}>{u.email ?? `#${u.user_id}`}</Link>{' '}
+                <span className="ad-cell-muted">${(u.charge_cents / 100).toFixed(2)}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
         <h2 className="ad-section-title">Last 30 days</h2>
         <div className="ad-chart-grid">
           <ActivityChart

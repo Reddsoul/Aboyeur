@@ -60,6 +60,15 @@ export default function AdminShell() {
             Feedback
             {openFeedback > 0 && <span className="ad-tab-count">{openFeedback}</span>}
           </NavLink>
+          <NavLink to="/admin/billing" className={tab}>
+            Billing
+          </NavLink>
+          <NavLink to="/admin/providers" className={tab}>
+            Models
+          </NavLink>
+          <NavLink to="/admin/invites" className={tab}>
+            Invites
+          </NavLink>
         </nav>
 
         <div className="ad-topbar-spacer" />

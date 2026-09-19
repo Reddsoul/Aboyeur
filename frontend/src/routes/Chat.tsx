@@ -7,6 +7,33 @@ import * as api from '../api';
 import { useAuth } from '../auth/AuthContext';
 import { useClients } from '../clients/ClientContext';
 import Logo from '../components/Logo';
+import { DisclaimerLink } from '../components/Legal';
+
+/** What the assistant bubble says when the server refused the turn before
+ * it started: quota, credit, verification, setup. Each carries the link
+ * the user needs, as markdown (the bubble renders markdown). */
+function refusalText(err: api.ApiError): string {
+  switch (err.code) {
+    case 'quota':
+      return `You've used the Free plan's ${err.extra.limit ?? 20} hosted turns for this 30-day window. [Upgrade to Pro](${err.extra.upgrade_url ?? '/app/account'}) for unlimited turns, or add your own API key in [Settings](/app/settings).`;
+    case 'hosted_requires_pro':
+      return `Aboyeur's hosted models need a Pro plan — [upgrade on your Account page](${err.extra.upgrade_url ?? '/app/account'}), or switch to your own API key in [Settings](/app/settings).`;
+    case 'no_credit':
+      return `Your hosted-model credit is used up. [Add credit in Settings](${err.extra.topup_url ?? '/app/settings'}) to keep going.`;
+    case 'no_provider':
+      return "No hosted model is available right now. Try again shortly, or use your own API key in [Settings](/app/settings).";
+    case 'unverified':
+      return 'Verify your email address first — use the banner at the top to resend the link.';
+    case 'llm_unconfigured':
+      return `Set up your AI model in [Settings](${err.extra.settings_url ?? '/app/settings'}) before chatting — Aboyeur needs an endpoint and key, or a Pro plan with hosted models.`;
+    case 'rate_limited':
+      return 'Slow down a little — that was more than 30 messages in a minute. Try again shortly.';
+    default:
+      return err.status >= 500
+        ? 'Aboyeur hit an internal error starting this turn — check server logs.'
+        : err.message || "Couldn't start that turn.";
+  }
+}
 
 interface Message {
   /** Render key only — a local counter, unique per mount. */
@@ -335,6 +362,16 @@ export default function Chat() {
         void catchUp(activeClient.id, sessionId);
         return;
       }
+      // Refused before it started (402 quota/credit, 403 unverified, 409
+      // setup, 429): the user message was never recorded server-side, so
+      // drop it locally too and put the text back in the box.
+      if (err instanceof api.ApiError && err.status >= 400 && err.status < 500) {
+        const text = refusalText(err);
+        setMessages((m) => m.filter((msg) => !(msg.from === 'user' && msg.text === trimmed && msg.serverId == null)));
+        setMessages((m) => m.map((msg) => (msg.id === assistantId ? { ...msg, text } : msg)));
+        setDraft(trimmed);
+        return;
+      }
       setMessages((m) =>
         m.map((msg) => (msg.id === assistantId ? { ...msg, text: msg.text || "Couldn't reach Aboyeur — check your connection and try again." } : msg)),
       );
@@ -401,6 +438,7 @@ export default function Chat() {
           </div>
 
           <div className="chat-client-bar-actions">
+            <DisclaimerLink style={{ marginRight: 6 }} />
             <button type="button" onClick={() => void newConversation()} disabled={streaming}>
               New conversation
             </button>

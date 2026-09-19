@@ -2213,12 +2213,18 @@ def api_llm_settings_get(user_id: int = Depends(get_current_user)):
     try:
         out = _aboyeur_llm_settings.get_llm_settings_public(conn, user_id)
         user = _aboyeur_billing.get_user(conn, user_id)
+        out["byok_configured"] = out["configured"]
+        offer = _aboyeur_providers.hosted_offer(conn, user)
+        # `configured` = "a turn will find a model", which is what the SPA's
+        # /setup gate and the Chat composer key off.
+        if user["llm_mode"] == "hosted":
+            out["configured"] = bool(offer) and _aboyeur_billing.is_paid(user)
         out["llm_mode"] = user["llm_mode"]
         out["plan"] = user["plan"]
         out["billing_status"] = user["billing_status"]
         out["is_paid"] = _aboyeur_billing.is_paid(user)
         out["credit_cents"] = user["credit_cents"]
-        out["hosted_offer"] = _aboyeur_providers.hosted_offer(conn, user)
+        out["hosted_offer"] = offer
         out["billing_enabled"] = _stripe.configured
         out["topup_amounts"] = list(_aboyeur_billing.TOPUP_AMOUNTS_CENTS)
         return out

@@ -74,6 +74,9 @@ export default function Users() {
                 <thead>
                   <tr>
                     <th>Account</th>
+                    <th>Plan</th>
+                    <th>LLM</th>
+                    <th className="ad-num">Credit</th>
                     <th>Last active</th>
                     <th className="ad-num">Clients</th>
                     <th className="ad-num">Conversations</th>
@@ -89,8 +92,28 @@ export default function Users() {
                         <Link to={`/admin/users/${u.id}`}>{u.email}</Link>
                         <div className="ad-cell-muted">
                           {u.name || 'no name set'}
+                          {u.country ? ` · ${u.country}` : ''}
                           {u.is_admin && <span className="ad-tag ad-tag-accent" style={{ marginLeft: 8 }}>Admin</span>}
+                          {!u.email_verified && <span className="ad-tag ad-tag-danger" style={{ marginLeft: 8 }}>unverified</span>}
+                          {u.deleted_at && <span className="ad-tag ad-tag-danger" style={{ marginLeft: 8 }}>deleted</span>}
+                          {u.sensitive_sessions > 0 && (
+                            <span className="ad-star" style={{ marginLeft: 8 }} title={`${u.sensitive_sessions} sensitive conversation(s)`}>
+                              ★ {u.sensitive_sessions}
+                            </span>
+                          )}
                         </div>
+                      </td>
+                      <td>
+                        <span className={`ad-tag ${u.plan === 'pro' ? 'ad-tag-success' : ''}`}>{u.billing_status === 'comp' ? 'comp' : u.plan}</span>
+                        {u.billing_status === 'past_due' && <span className="ad-tag ad-tag-danger" style={{ marginLeft: 6 }}>past due</span>}
+                        {u.paid_months > 0 && <div className="ad-cell-muted">{u.paid_months} mo{u.loyalty_tier ? ` · ${u.loyalty_tier}` : ''}</div>}
+                      </td>
+                      <td className="ad-cell-muted">
+                        {u.llm_mode}
+                        {u.llm_provider_id != null && ` · p${u.llm_provider_id}`}
+                      </td>
+                      <td className="ad-num" style={{ color: u.credit_cents < 0 ? 'var(--danger)' : undefined }}>
+                        {u.llm_mode === 'hosted' || u.credit_cents !== 0 ? `$${(u.credit_cents / 100).toFixed(2)}` : <span className="ad-cell-muted">—</span>}
                       </td>
                       <td>
                         <span className={u.last_active ? '' : 'ad-cell-muted'}>

@@ -3,6 +3,11 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './auth/AuthContext';
 import Login from './routes/Login';
+import Landing from './routes/Landing';
+import Signup from './routes/Signup';
+import Verify from './routes/Verify';
+import Reset from './routes/Reset';
+import Legal from './routes/Legal';
 import Onboarding from './routes/Onboarding';
 import AppShell from './routes/AppShell';
 import Library from './routes/Library';
@@ -18,6 +23,9 @@ import AdminUserDetail from './routes/admin/UserDetail';
 import AdminActivity from './routes/admin/Activity';
 import AdminFeedback from './routes/admin/Feedback';
 import AdminTranscript from './routes/admin/Transcript';
+import AdminBilling from './routes/admin/Billing';
+import AdminProviders from './routes/admin/Providers';
+import AdminInvites from './routes/admin/Invites';
 
 function OnboardingGate() {
   const { hasClients } = useAuth();
@@ -61,7 +69,15 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Logged-out front door. A signed-in visitor goes straight in. */}
+      <Route path="/" element={userId ? <Navigate to={home} replace /> : <Landing />} />
       <Route path="/login" element={userId ? <Navigate to={home} replace /> : <Login />} />
+      <Route path="/signup" element={userId ? <Navigate to={home} replace /> : <Signup />} />
+      <Route path="/verify" element={<Verify />} />
+      <Route path="/reset" element={<Reset />} />
+      {/* Public: the signup form and the ToS modal both link here. */}
+      <Route path="/legal" element={<Navigate to="/legal/terms" replace />} />
+      <Route path="/legal/:slug" element={<Legal />} />
       {/* The welcome wizard is a first-login screen. Once a household exists
           it hands off to the editor, unless ?tour=1 asks to replay the tour. */}
       <Route
@@ -113,8 +129,11 @@ export default function App() {
         <Route path="activity" element={<AdminActivity />} />
         <Route path="feedback" element={<AdminFeedback />} />
         <Route path="sessions/:sessionId" element={<AdminTranscript />} />
+        <Route path="billing" element={<AdminBilling />} />
+        <Route path="providers" element={<AdminProviders />} />
+        <Route path="invites" element={<AdminInvites />} />
       </Route>
-      <Route path="*" element={<Navigate to={userId ? home : '/login'} replace />} />
+      <Route path="*" element={<Navigate to={userId ? home : '/'} replace />} />
     </Routes>
   );
 }

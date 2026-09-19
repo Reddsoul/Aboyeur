@@ -6,6 +6,7 @@ import * as api from '../api';
 import { ApiError } from '../api';
 import { useClients } from '../clients/ClientContext';
 import Profile from './Profile';
+import { DisclaimerLink } from '../components/Legal';
 
 type Tab = 'profile' | 'plans' | 'details';
 
@@ -43,6 +44,7 @@ function Plans({ clientId, clientName }: { clientId: number; clientName: string 
           Everything built for {clientName}. Plans belong to one client — nothing here was derived
           from, or feeds into, anyone else's.
         </p>
+        <DisclaimerLink />
       </div>
 
       {empty ? (

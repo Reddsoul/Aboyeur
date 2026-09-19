@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './Profile.css';
+import { DisclaimerLink } from '../components/Legal';
 import * as api from '../api';
 import { ApiError } from '../api';
 
@@ -280,7 +281,8 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
             <div>
               <h2 className="pf-section-title">People</h2>
               <p className="pf-section-sub">
-                {clientName ? `${clientName}'s household. ` : ''}Calorie and macro targets are computed per person from sex, age, height, weight and activity — never typed in.
+                {clientName ? `${clientName}'s household. ` : ''}Calorie and macro targets are computed per person from sex, age, height, weight and activity — never typed in.{' '}
+                <DisclaimerLink />
               </p>
             </div>
           </div>

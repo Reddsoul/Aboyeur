@@ -10,12 +10,44 @@
 
 export const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
 
+/** A non-2xx answer. `code` is the machine-readable reason the billing /
+ * account routes attach (quota, unverified, hosted_requires_pro, no_credit,
+ * llm_unconfigured, invite_required, ...); `extra` carries any URL that goes
+ * with it (upgrade_url, topup_url, settings_url). */
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code: string | null;
+  extra: Record<string, unknown>;
+  constructor(status: number, message: string, code: string | null = null, extra: Record<string, unknown> = {}) {
     super(message);
     this.status = status;
+    this.code = code;
+    this.extra = extra;
   }
+}
+
+/** FastAPI puts either a string or our {message, error, ...} object in
+ * `detail`. Normalise to (message, code, extra). */
+export async function errorFromResponse(res: Response): Promise<ApiError> {
+  let message = res.statusText;
+  let code: string | null = null;
+  let extra: Record<string, unknown> = {};
+  try {
+    const body = await res.json();
+    const detail = body.detail ?? body;
+    if (typeof detail === 'string') {
+      message = detail || message;
+    } else if (detail && typeof detail === 'object') {
+      const { message: m, error, ...rest } = detail as Record<string, unknown>;
+      message = (typeof m === 'string' && m) || message;
+      code = typeof error === 'string' ? error : null;
+      extra = rest;
+    }
+    if (!code && typeof body.error === 'string') code = body.error;
+  } catch {
+    // no JSON body
+  }
+  return new ApiError(res.status, message, code, extra);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -24,16 +56,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   });
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      detail = body.detail || detail;
-    } catch {
-      // no JSON body
-    }
-    throw new ApiError(res.status, detail);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   if (res.status === 204) return undefined as T;
   return res.json();
 }
@@ -53,8 +76,84 @@ export function logout() {
   return request<{ ok: true }>('/auth/logout', { method: 'POST' });
 }
 
+export interface TosStatus {
+  current: string;
+  accepted: string | null;
+  needs_acceptance: boolean;
+}
+
+export interface Me {
+  user_id: number;
+  is_admin: boolean;
+  email_verified: boolean;
+  plan: 'free' | 'pro';
+  billing_status: BillingStatus;
+  llm_mode: LlmMode;
+  tos: TosStatus;
+}
+
 export function me() {
-  return request<{ user_id: number; is_admin: boolean }>('/auth/me');
+  return request<Me>('/auth/me');
+}
+
+// ---------------------------------------------------------------------------
+// Self-serve auth: signup / verify / reset
+// ---------------------------------------------------------------------------
+
+export function signupMode() {
+  return request<{ mode: 'invite' | 'open'; legal_version: string }>('/auth/signup-mode');
+}
+
+export function signup(body: {
+  email: string;
+  password: string;
+  country?: string | null;
+  invite_code?: string | null;
+  tos_version: string;
+}) {
+  return request<{ user_id: number; email_verified: boolean }>('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function verifyEmail(token: string) {
+  return request<{ ok: true; user_id: number }>('/auth/verify', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export function resendVerification() {
+  return request<{ ok: true; already_verified?: boolean }>('/auth/resend-verification', { method: 'POST' });
+}
+
+export function requestReset(email: string) {
+  return request<{ ok: true }>('/auth/reset', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+export function confirmReset(token: string, newPassword: string) {
+  return request<{ ok: true }>('/auth/reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}
+
+export function acceptTos(version: string) {
+  return request<TosStatus>('/api/account/accept-tos', {
+    method: 'POST',
+    body: JSON.stringify({ version }),
+  });
+}
+
+export function legalIndex() {
+  return request<{ version: string; documents: string[] }>('/api/legal');
+}
+
+export async function legalDoc(slug: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/legal/${slug}`, { credentials: 'include' });
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.text();
 }
 
 // ---------------------------------------------------------------------------
@@ -344,10 +443,42 @@ export function getShoppingList(menuId: number, clientId: number) {
 // never sends it back, so `configured` is all the UI gets to know about it)
 // ---------------------------------------------------------------------------
 
+export type LlmMode = 'byok' | 'hosted';
+export type BillingStatus = 'free' | 'active' | 'past_due' | 'canceled' | 'comp';
+
+/** What the Settings page shows about the hosted option: the provider's
+ * display name and the per-1K-token price the user pays. The endpoint
+ * behind it is never sent. */
+export interface HostedOffer {
+  name: string;
+  model: string;
+  price_in_per_ktok_cents: number;
+  price_out_per_ktok_cents: number;
+}
+
 export interface LlmSettings {
   base_url: string;
   model: string;
+  /** "A turn will resolve to some model": a saved BYOK key, or hosted mode
+   * with a provider available and a paid plan. Drives the /setup gate. */
   configured: boolean;
+  /** A BYOK key is stored (the form's placeholder), regardless of mode. */
+  byok_configured: boolean;
+  llm_mode: LlmMode;
+  plan: 'free' | 'pro';
+  billing_status: BillingStatus;
+  is_paid: boolean;
+  credit_cents: number;
+  hosted_offer: HostedOffer | null;
+  billing_enabled: boolean;
+  topup_amounts: number[];
+}
+
+export function setLlmMode(mode: LlmMode) {
+  return request<{ llm_mode: LlmMode }>('/api/llm-settings/mode', {
+    method: 'PUT',
+    body: JSON.stringify({ mode }),
+  });
 }
 
 export function getLlmSettings() {
@@ -443,6 +574,11 @@ export function clearClientMessages(clientId: number, sessionId: number) {
 // Account — the practitioner who is logged in, not anyone they plan for
 // ---------------------------------------------------------------------------
 
+export interface SupportAccess {
+  ts: string;
+  session_id: number;
+}
+
 export interface Account {
   id: number;
   email: string;
@@ -453,10 +589,87 @@ export interface Account {
   active_client_count: number;
   /** Their own client record — themselves, as someone to plan for. */
   self_client: { id: number; name: string } | null;
+  country: string | null;
+  plan: 'free' | 'pro';
+  billing_status: BillingStatus;
+  llm_mode: LlmMode;
+  credit_cents: number;
+  email_verified: boolean;
+  tos: TosStatus;
+  /** Times an operator revealed one of your flagged conversations. */
+  support_access: SupportAccess[];
 }
 
 export function getAccount() {
   return request<Account>('/api/account');
+}
+
+export function setCountry(country: string | null) {
+  return request<{ country: string | null }>('/api/account/country', {
+    method: 'PUT',
+    body: JSON.stringify({ country }),
+  });
+}
+
+export const exportUrl = `${API_BASE}/api/account/export`;
+
+export function deleteAccount(password: string) {
+  return request<{ deleted_at: string; purge_after: string }>('/api/account', {
+    method: 'DELETE',
+    body: JSON.stringify({ confirm: 'DELETE', password }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Billing — Stripe Checkout / Customer Portal are Stripe-hosted pages; the
+// client only ever gets a URL to redirect to.
+// ---------------------------------------------------------------------------
+
+export interface BillingMe {
+  plan: 'free' | 'pro';
+  billing_status: BillingStatus;
+  interval: 'month' | 'year' | null;
+  renews_at: string | null;
+  paid_months: number;
+  loyalty_tier: string | null;
+  percent_off: number;
+  price_cents: number | null;
+  prices: { month: number; year: number };
+  country: string;
+  country_source: 'account' | 'detected';
+  llm_mode: LlmMode;
+  credit_cents: number;
+  email_verified: boolean;
+  has_customer: boolean;
+  ladder: { tier: string; min_paid_months: number; percent_off: number }[];
+  topup_amounts: number[];
+  free_turns_limit: number;
+  turns_used_30d: number;
+  support_access: SupportAccess[];
+  billing_enabled: boolean;
+  hosted_offer: HostedOffer | null;
+}
+
+export function billingMe() {
+  return request<BillingMe>('/api/billing/me');
+}
+
+export function billingCheckout(interval: 'month' | 'year') {
+  return request<{ url: string }>('/api/billing/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ interval }),
+  });
+}
+
+export function billingTopup(amountCents: number) {
+  return request<{ url: string }>('/api/billing/topup', {
+    method: 'POST',
+    body: JSON.stringify({ amount_cents: amountCents }),
+  });
+}
+
+export function billingPortal() {
+  return request<{ url: string }>('/api/billing/portal', { method: 'POST' });
 }
 
 export function updateAccount(patch: { name?: string; practice?: string; email?: string }) {
@@ -527,13 +740,7 @@ export async function* resumeChat(clientId: number, sessionId: number, start = 0
 
 async function* readSse(res: Response): AsyncGenerator<string> {
   if (!res.ok || !res.body) {
-    let detail = res.statusText;
-    try {
-      detail = (await res.json()).detail || detail;
-    } catch {
-      // no JSON body
-    }
-    throw new ApiError(res.status, detail);
+    throw await errorFromResponse(res);
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -579,9 +786,9 @@ export interface Feedback {
   status: 'new' | 'triaged' | 'in_progress' | 'resolved' | 'wontfix';
   admin_note: string | null;
   resolved_at: string | null;
-  /** Joined in by the admin list only. */
+  /** Joined in by the admin list only. The excerpt is PII-masked, or
+   * "[redacted]" when the turn was flagged sensitive. */
   email?: string;
-  client_name?: string;
   message_excerpt?: string;
 }
 
@@ -640,6 +847,35 @@ export interface AdminOverview {
   thumbs_up_30d: number;
   thumbs_down_30d: number;
   daily: AdminDay[];
+  billing: BillingHealth;
+  hosted_1d: HostedUsage;
+  hosted_7d: HostedUsage;
+  /** usage_ledger rows charged on a chars/4 estimate in the last 7 days —
+   * non-zero means a provider stopped reporting token usage. */
+  estimated_rows_7d: number;
+}
+
+export interface BillingHealth {
+  mrr_cents: number;
+  active: number;
+  past_due: number;
+  canceled: number;
+  comp: number;
+  free: number;
+  unprocessed_webhooks: number;
+  credit_outstanding_cents: number;
+}
+
+export interface HostedUsage {
+  days: number;
+  tokens_in: number;
+  tokens_out: number;
+  cost_cents: number;
+  charged_cents: number;
+  gross_margin_pct: number | null;
+  turns: number;
+  estimated_rows: number;
+  top_users: { user_id: number; email: string | null; charge_cents: number }[];
 }
 
 export function adminOverview() {
@@ -658,29 +894,230 @@ export interface AdminUser {
   message_count: number;
   last_active: string | null;
   errors_7d: number;
+  plan: 'free' | 'pro';
+  billing_status: BillingStatus;
+  country: string | null;
+  paid_months: number;
+  loyalty_tier: string | null;
+  llm_mode: LlmMode;
+  llm_provider_id: number | null;
+  credit_cents: number;
+  email_verified: boolean;
+  deleted_at: string | null;
+  has_stripe_customer: boolean;
+  /** Conversations with at least one message the classifier flagged. */
+  sensitive_sessions: number;
 }
 
+/** Client names are never sent to the console — ids only. */
 export interface AdminSessionRow {
   id: number;
   title: string;
   client_id: number;
-  client_name: string;
   created_at: string;
   updated_at: string;
   message_count: number;
   last_message_at: string | null;
+  sensitive: boolean;
 }
 
 export interface AdminUserDetail extends AdminUser {
   clients: {
     id: number;
-    name: string;
     status: string;
     is_self: boolean;
     created_at: string;
     session_count: number;
   }[];
   sessions: AdminSessionRow[];
+}
+
+export interface LedgerRow {
+  id: number;
+  ts: string;
+  kind: string;
+  model: string;
+  tokens_in: number;
+  tokens_out: number;
+  cost_cents: number;
+  charge_cents: number;
+  provider_name: string | null;
+  event_id: number | null;
+}
+
+export function adminUserLedger(id: number) {
+  return request<{ ledger: LedgerRow[] }>(`/api/admin/users/${id}/ledger`).then((r) => r.ledger);
+}
+
+export function adminSetBilling(id: number, billingStatus: 'comp' | 'free') {
+  return request<AdminUser>(`/api/admin/users/${id}/billing`, {
+    method: 'POST',
+    body: JSON.stringify({ billing_status: billingStatus }),
+  });
+}
+
+export function adminAddCredit(id: number, cents: number, note?: string) {
+  return request<AdminUser>(`/api/admin/users/${id}/credit`, {
+    method: 'POST',
+    body: JSON.stringify({ cents, note }),
+  });
+}
+
+export function adminSetUserLlm(id: number, body: { llm_mode?: LlmMode; llm_provider_id?: number | null }) {
+  const payload: Record<string, unknown> = {};
+  if (body.llm_mode) payload.llm_mode = body.llm_mode;
+  if (body.llm_provider_id === null) payload.clear_provider = true;
+  else if (body.llm_provider_id != null) payload.llm_provider_id = body.llm_provider_id;
+  return request<AdminUser>(`/api/admin/users/${id}/llm`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+// -- prices / loyalty / providers / invites / audit ---------------------------
+
+export interface PlanPrice {
+  id: number;
+  plan: string;
+  interval: 'month' | 'year';
+  country: string;
+  amount_cents: number;
+  stripe_price_id: string | null;
+  active: number;
+  updated_at: string;
+}
+
+export function adminPrices() {
+  return request<{ prices: PlanPrice[] }>('/api/admin/prices').then((r) => r.prices);
+}
+
+export function adminCreatePrice(body: { plan?: string; interval: 'month' | 'year'; country: string; amount_cents: number }) {
+  return request<PlanPrice>('/api/admin/prices', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function adminUpdatePrice(id: number, amountCents: number) {
+  return request<PlanPrice>(`/api/admin/prices/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ amount_cents: amountCents }),
+  });
+}
+
+export function adminDeletePrice(id: number) {
+  return request<{ deleted: number }>(`/api/admin/prices/${id}`, { method: 'DELETE' });
+}
+
+export interface LoyaltyTier {
+  id: number;
+  tier: string;
+  min_paid_months: number;
+  percent_off: number;
+  stripe_coupon_id: string | null;
+  active: number;
+}
+
+export function adminLoyalty() {
+  return request<{ ladder: LoyaltyTier[] }>('/api/admin/loyalty').then((r) => r.ladder);
+}
+
+export function adminUpsertTier(tier: string, body: { min_paid_months: number; percent_off: number; active: boolean }) {
+  return request<LoyaltyTier>(`/api/admin/loyalty/${encodeURIComponent(tier)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ tier, ...body }),
+  });
+}
+
+export interface StripeEventRow {
+  id: string;
+  type: string;
+  received_at: string;
+  processed: number;
+  error: string | null;
+}
+
+export function adminStripeEvents() {
+  return request<{ events: StripeEventRow[] }>('/api/admin/stripe-events').then((r) => r.events);
+}
+
+export interface AuditRow {
+  id: number;
+  ts: string;
+  admin_id: number;
+  admin_email: string | null;
+  action: string;
+  target: string | null;
+  meta_json: string | null;
+}
+
+export function adminAudit(limit = 200) {
+  return request<{ audit: AuditRow[] }>(`/api/admin/audit?limit=${limit}`).then((r) => r.audit);
+}
+
+export interface LlmProvider {
+  id: number;
+  name: string;
+  base_url: string;
+  model: string;
+  key_last4: string;
+  price_in_per_mtok: number;
+  price_out_per_mtok: number;
+  markup_pct: number;
+  user_price_in_per_mtok: number;
+  user_price_out_per_mtok: number;
+  is_default: boolean;
+  enabled: boolean;
+  updated_at: string;
+}
+
+export function adminProviders() {
+  return request<{ providers: LlmProvider[] }>('/api/admin/llm-providers').then((r) => r.providers);
+}
+
+export interface ProviderBody {
+  name: string;
+  base_url: string;
+  model: string;
+  api_key?: string;
+  price_in_per_mtok: number;
+  price_out_per_mtok: number;
+  markup_pct: number;
+  enabled?: boolean;
+}
+
+export function adminCreateProvider(body: ProviderBody) {
+  return request<LlmProvider>('/api/admin/llm-providers', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function adminUpdateProvider(id: number, patch: Partial<ProviderBody>) {
+  return request<LlmProvider>(`/api/admin/llm-providers/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+export function adminDefaultProvider(id: number) {
+  return request<LlmProvider>(`/api/admin/llm-providers/${id}/default`, { method: 'POST' });
+}
+
+export function adminTestProvider(id: number) {
+  return request<{ ok: boolean; latency_ms: number; detail: string }>(`/api/admin/llm-providers/${id}/test`, {
+    method: 'POST',
+  });
+}
+
+export interface InviteCode {
+  code: string;
+  created_by: number | null;
+  created_at: string;
+  expires_at: string | null;
+  max_uses: number | null;
+  uses: number;
+  note: string | null;
+}
+
+export function adminInvites() {
+  return request<{ invites: InviteCode[]; signup_mode: 'invite' | 'open' }>('/api/admin/invites');
+}
+
+export function adminCreateInvite(body: { max_uses: number | null; expires_days: number | null; note?: string }) {
+  return request<InviteCode>('/api/admin/invites', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function adminRevokeInvite(code: string) {
+  return request<{ revoked: string }>(`/api/admin/invites/${encodeURIComponent(code)}`, { method: 'DELETE' });
 }
 
 export function adminUsers() {
@@ -694,26 +1131,35 @@ export function adminUser(id: number) {
 export interface AdminTranscriptMessage {
   id: number;
   role: 'user' | 'assistant';
-  content: string;
+  /** null when redacted. Otherwise PII-masked unless the transcript was
+   * fetched with reveal. */
+  content: string | null;
   created_at: string;
   /** The thumb this turn got, if any — shown inline on the transcript. */
   feedback: { rating: number; body: string | null; status: string } | null;
+  sensitivity: 'none' | 'sensitive' | 'unknown' | null;
+  categories: string[];
+  redacted: boolean;
 }
 
 export interface AdminTranscript {
   id: number;
   title: string;
   client_id: number;
-  client_name: string;
   user_id: number;
   email: string;
   created_at: string;
   updated_at: string;
   messages: AdminTranscriptMessage[];
+  redacted_count: number;
+  revealed: boolean;
 }
 
-export function adminTranscript(sessionId: number) {
-  return request<AdminTranscript>(`/api/admin/sessions/${sessionId}`);
+/** reveal=true returns flagged messages verbatim. The server audits it and
+ * shows the affected user "Support viewed session N" on their Account page —
+ * so only do it for a real support case. */
+export function adminTranscript(sessionId: number, reveal = false) {
+  return request<AdminTranscript>(`/api/admin/sessions/${sessionId}${reveal ? '?reveal=1' : ''}`);
 }
 
 export interface AdminEvent {

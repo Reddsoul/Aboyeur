@@ -8,6 +8,10 @@ interface AuthState {
   /** Operator access to /admin. Server-checked on every admin call — this
    * only decides whether the nav entry and route tree render at all. */
   isAdmin: boolean;
+  /** Everything /auth/me said last time it was asked. Verification and ToS
+   * gates key off this; refreshMe() after signup/verify/accept. */
+  me: api.Me | null;
+  refreshMe: () => Promise<api.Me | null>;
   /** Whether this user has saved an LLM endpoint + key (the /setup gate). */
   llmConfigured: boolean;
   refreshLlmStatus: () => Promise<boolean>;
@@ -26,8 +30,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [me, setMe] = useState<api.Me | null>(null);
   const [llmConfigured, setLlmConfigured] = useState(false);
   const [hasClients, setHasClients] = useState(false);
+
+  const refreshMe = useCallback(async () => {
+    try {
+      const res = await api.me();
+      setMe(res);
+      setIsAdmin(res.is_admin);
+      setUserId(res.user_id);
+      return res;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const refreshLlmStatus = useCallback(async () => {
     let configured = false;
@@ -61,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(async (res) => {
         setUserId(res.user_id);
         setIsAdmin(res.is_admin);
+        setMe(res);
         await Promise.all([refreshLlmStatus(), refreshClientStatus()]);
       })
       .catch(() => setUserId(null))
@@ -75,20 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // round trip on sign-in only, so the admin nav is right immediately
       // instead of appearing after a reload.
       const [llm, clientsPresent] = await Promise.all([refreshLlmStatus(), refreshClientStatus()]);
-      try {
-        setIsAdmin((await api.me()).is_admin);
-      } catch {
-        setIsAdmin(false);
-      }
+      if (!(await refreshMe())) setIsAdmin(false);
       return { hasClients: clientsPresent, llmConfigured: llm };
     },
-    [refreshLlmStatus, refreshClientStatus],
+    [refreshLlmStatus, refreshClientStatus, refreshMe],
   );
 
   const logout = useCallback(async () => {
     await api.logout();
     setUserId(null);
     setIsAdmin(false);
+    setMe(null);
     setLlmConfigured(false);
     setHasClients(false);
   }, []);
@@ -99,6 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userId,
         loading,
         isAdmin,
+        me,
+        refreshMe,
         llmConfigured,
         refreshLlmStatus,
         hasClients,
