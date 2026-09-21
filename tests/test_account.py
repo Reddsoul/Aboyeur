@@ -130,7 +130,10 @@ def test_verify_token_single_use_and_expiry(conn):
         account.verify_email(conn, t2)
     assert e.value.extra["error"] == "token"
     t3 = account.issue_token(conn, uid, "verify")
-    conn.execute("UPDATE email_tokens SET expires_at = '2020-01-01T00:00:00Z' WHERE token = ?", (t3,))
+    # Only the hash is stored — the raw token must not appear in the table.
+    assert conn.execute("SELECT 1 FROM email_tokens WHERE token = ?", (t3,)).fetchone() is None
+    conn.execute("UPDATE email_tokens SET expires_at = '2020-01-01T00:00:00Z' WHERE token = ?",
+                 (account._token_hash(t3),))
     conn.commit()
     with pytest.raises(account.AccountError) as e:
         account.verify_email(conn, t3)

@@ -21,4 +21,8 @@ COPY --from=builder /app /app
 USER app
 EXPOSE 8000
 # Single worker on purpose: one shared SQLite file, one process (aboyeur/db.py).
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# --forwarded-allow-ips: only the compose network may set X-Forwarded-*
+# (Caddy rewrites X-Forwarded-For to the verified client IP). The backend
+# publishes no host port, so "*" would only matter if a sibling container
+# were compromised — still, no reason to trust the world.
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers", "--forwarded-allow-ips", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"]

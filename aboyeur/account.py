@@ -180,25 +180,32 @@ def issue_token(conn: sqlite3.Connection, user_id: int, purpose: str) -> str:
         "DELETE FROM email_tokens WHERE user_id = ? AND purpose = ? AND used_at IS NULL",
         (user_id, purpose),
     )
+    # Only the hash is stored: a copy of the DB (or its B2 replica) must not
+    # be a bag of live password-reset links.
     conn.execute(
         "INSERT INTO email_tokens (token, user_id, purpose, expires_at) VALUES (?, ?, ?, ?)",
-        (token, user_id, purpose, _at(ttl)),
+        (_token_hash(token), user_id, purpose, _at(ttl)),
     )
     conn.commit()
     return token
 
 
+def _token_hash(token: str) -> str:
+    return hashlib.sha256((token or "").strip().encode("utf-8")).hexdigest()
+
+
 def _take_token(conn: sqlite3.Connection, token: str, purpose: str) -> int:
     """Validate + burn. Returns the user id."""
+    hashed = _token_hash(token)
     row = conn.execute(
         "SELECT user_id, expires_at, used_at FROM email_tokens WHERE token = ? AND purpose = ?",
-        ((token or "").strip(), purpose),
+        (hashed, purpose),
     ).fetchone()
     if row is None or row["used_at"] is not None:
         raise AccountError("that link is invalid or was already used", 400, error="token")
     if row["expires_at"] < _now():
         raise AccountError("that link has expired — request a new one", 400, error="expired")
-    conn.execute("UPDATE email_tokens SET used_at = ? WHERE token = ?", (_now(), token))
+    conn.execute("UPDATE email_tokens SET used_at = ? WHERE token = ?", (_now(), hashed))
     return row["user_id"]
 
 
@@ -232,7 +239,9 @@ def reset_password(conn: sqlite3.Connection, token: str, new_password: str,
         "UPDATE users SET password_hash = ? WHERE id = ?",
         (auth.hash_password(new_password), user_id),
     )
-    conn.commit()
+    # Whoever triggered the reset may have done so because a session was
+    # stolen — every existing cookie dies with the old password.
+    auth.revoke_sessions(conn, user_id)
     return user_id
 
 
@@ -316,6 +325,12 @@ def export_zip(conn: sqlite3.Connection, user_id: int) -> bytes:
                 ],
             })
         files[f"{folder}/conversations.json"] = sessions
+        # Stored PDF snapshots ride along as-is (bytes, not JSON) — they are
+        # the client's data as much as the menu rows behind them.
+        for e in conn.execute(
+            "SELECT id, filename, pdf FROM menu_exports WHERE client_id = ? ORDER BY id", (cid,)
+        ):
+            files[f"{folder}/exports/{e['id']}-{e['filename']}"] = bytes(e["pdf"])
     files["usage_ledger.json"] = [
         dict(r) for r in conn.execute(
             "SELECT ts, kind, model, tokens_in, tokens_out, charge_cents FROM usage_ledger "
@@ -331,7 +346,10 @@ def export_zip(conn: sqlite3.Connection, user_id: int) -> bytes:
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, payload in files.items():
-            zf.writestr(name, json.dumps(payload, indent=2, default=str))
+            if isinstance(payload, bytes):
+                zf.writestr(name, payload)
+            else:
+                zf.writestr(name, json.dumps(payload, indent=2, default=str))
     return buf.getvalue()
 
 
@@ -363,6 +381,17 @@ def _purge_date(deleted_at: str) -> str:
 def is_deleted(conn: sqlite3.Connection, user_id: int) -> bool:
     row = conn.execute("SELECT deleted_at FROM users WHERE id = ?", (user_id,)).fetchone()
     return row is None or bool(row["deleted_at"])
+
+
+def session_state(conn: sqlite3.Connection, user_id: int) -> tuple[bool, int]:
+    """(deleted, session_version) in one read — what get_current_user needs
+    per request."""
+    row = conn.execute(
+        "SELECT deleted_at, session_version FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
+    if row is None:
+        return True, 0
+    return bool(row["deleted_at"]), int(row["session_version"] or 0)
 
 
 def purge_deleted(conn: sqlite3.Connection, older_than_days: int = PURGE_AFTER_DAYS) -> list[int]:

@@ -149,12 +149,17 @@ def delete_session(conn: sqlite3.Connection, client_id: int, session_id: int) ->
 # Messages
 # ---------------------------------------------------------------------------
 
-def append_message(conn: sqlite3.Connection, session_id: int, role: str, content: str) -> int:
+def append_message(conn: sqlite3.Connection, session_id: int, role: str, content: str,
+                   menu_id: int | None = None) -> int:
+    """menu_id: the menu an assistant turn built, swapped or delivered —
+    the transcript offers "Export PDF" on that bubble (backend/main.py stamps
+    it from the turn's tool results)."""
     if role not in ROLES:
         raise ValueError(f"role must be one of {ROLES}")
     cur = conn.execute(
-        "INSERT INTO chat_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-        (session_id, role, content, _now()),
+        "INSERT INTO chat_messages (session_id, role, content, created_at, menu_id) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (session_id, role, content, _now(), menu_id),
     )
     # The first user message names the conversation, so a list of chats reads
     # as what was asked rather than a column of timestamps.
@@ -173,17 +178,19 @@ def list_messages(conn: sqlite3.Connection, session_id: int, limit: int | None =
     most RECENT n, not the first n."""
     if limit is not None:
         rows = list(reversed(conn.execute(
-            "SELECT id, role, content, created_at FROM chat_messages WHERE session_id = ? "
-            "ORDER BY id DESC LIMIT ?",
+            "SELECT id, role, content, created_at, menu_id FROM chat_messages "
+            "WHERE session_id = ? ORDER BY id DESC LIMIT ?",
             (session_id, int(limit)),
         ).fetchall()))
     else:
         rows = conn.execute(
-            "SELECT id, role, content, created_at FROM chat_messages WHERE session_id = ? ORDER BY id",
+            "SELECT id, role, content, created_at, menu_id FROM chat_messages "
+            "WHERE session_id = ? ORDER BY id",
             (session_id,),
         ).fetchall()
     return [
-        {"id": r["id"], "role": r["role"], "content": r["content"], "created_at": r["created_at"]}
+        {"id": r["id"], "role": r["role"], "content": r["content"],
+         "created_at": r["created_at"], "menu_id": r["menu_id"]}
         for r in rows
     ]
 

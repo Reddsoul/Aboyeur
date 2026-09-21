@@ -285,6 +285,35 @@ select.text-input {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
 }
 
+/* --- variety slider --- */
+.pf-variety {
+  max-width: 520px;
+}
+.pf-variety-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.pf-variety-name {
+  color: var(--muted);
+  font-weight: 500;
+}
+.pf-variety input[type='range'] {
+  width: 100%;
+  margin: 6px 0 2px;
+  accent-color: var(--accent);
+}
+.pf-variety-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.pf-hint {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
 /* --- sticky save bar --- */
 .pf-savebar {
   position: sticky;

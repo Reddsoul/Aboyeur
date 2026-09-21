@@ -21,7 +21,7 @@ interface AuthState {
   /** Resolves with the freshly-read status, so the caller can route on it
    * without waiting a render for the context state to catch up. */
   login: (email: string, password: string) => Promise<{ hasClients: boolean; llmConfigured: boolean }>;
-  logout: () => Promise<void>;
+  logout: (everywhere?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -99,8 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [refreshLlmStatus, refreshClientStatus, refreshMe],
   );
 
-  const logout = useCallback(async () => {
-    await api.logout();
+  const logout = useCallback(async (everywhere = false) => {
+    if (everywhere) await api.logoutAll();
+    else await api.logout();
     setUserId(null);
     setIsAdmin(false);
     setMe(null);

@@ -19,17 +19,96 @@ const dateLabel = (iso: string) => {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const sizeLabel = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+const timeLabel = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+};
+
+/** "Export PDF" on a menu card plus the snapshots already taken. Each
+ * export is stored server-side as sent, so a later swap or pantry change
+ * never rewrites what the client already has. */
+function MenuExports({
+  menu,
+  clientId,
+  onChanged,
+}: {
+  menu: api.MenuSummary;
+  clientId: number;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function exportNow() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.exportMenuAndDownload(menu.id, clientId);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't build the PDF.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(exportId: number) {
+    try {
+      await api.deleteExport(exportId, clientId);
+      onChanged();
+    } catch {
+      setError("Couldn't delete that export.");
+    }
+  }
+
+  return (
+    <div className="cl-exports">
+      <button type="button" className="cl-export-btn" onClick={exportNow} disabled={busy}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+        </svg>
+        {busy ? 'Building…' : 'Export PDF'}
+      </button>
+      {error && <p className="cl-export-error">{error}</p>}
+      {menu.exports.length > 0 && (
+        <ul className="cl-export-list">
+          {menu.exports.map((e) => (
+            <li key={e.id}>
+              <a href={api.exportDownloadUrl(e.id, clientId)} download={e.filename}>
+                PDF · {timeLabel(e.created_at)}
+              </a>
+              <span>{sizeLabel(e.size_bytes)}</span>
+              <button type="button" title="Delete this export" aria-label="Delete this export" onClick={() => remove(e.id)}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Plans({ clientId, clientName }: { clientId: number; clientName: string }) {
   const [plans, setPlans] = useState<{ menus: api.MenuSummary[]; kits: api.KitSummary[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setPlans(null);
+  const load = useCallback(() => {
     api
       .getClientPlans(clientId)
       .then(setPlans)
       .catch(() => setError("Couldn't load their plans."));
   }, [clientId]);
+
+  useEffect(() => {
+    setPlans(null);
+    load();
+  }, [load]);
 
   if (error) return <p className="pf-sub">{error}</p>;
   if (!plans) return <p className="pf-sub">Loading plans…</p>;
@@ -58,20 +137,23 @@ function Plans({ clientId, clientName }: { clientId: number; clientName: string 
       ) : (
         <div className="cl-plan-list">
           {plans.menus.map((m) => (
-            <div className="cl-plan" key={`menu-${m.id}`}>
-              <div className="cl-plan-icon">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 2v4m8-4v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
-                </svg>
+            <div className="cl-plan cl-plan-menu" key={`menu-${m.id}`}>
+              <div className="cl-plan-row">
+                <div className="cl-plan-icon">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2v4m8-4v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+                  </svg>
+                </div>
+                <div className="cl-plan-main">
+                  <strong>Menu · week of {m.week_of}</strong>
+                  <span>
+                    {m.days} day{m.days === 1 ? '' : 's'} · {m.meals} meal{m.meals === 1 ? '' : 's'} ·{' '}
+                    {m.status} · added {dateLabel(m.created_at)}
+                  </span>
+                </div>
+                <span className="cl-tag">#{m.id}</span>
               </div>
-              <div className="cl-plan-main">
-                <strong>Menu · week of {m.week_of}</strong>
-                <span>
-                  {m.days} day{m.days === 1 ? '' : 's'} · {m.meals} meal{m.meals === 1 ? '' : 's'} ·{' '}
-                  {m.status} · added {dateLabel(m.created_at)}
-                </span>
-              </div>
-              <span className="cl-tag">#{m.id}</span>
+              <MenuExports menu={m} clientId={clientId} onChanged={load} />
             </div>
           ))}
           {plans.kits.map((k) => (

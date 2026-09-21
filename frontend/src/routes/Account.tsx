@@ -311,7 +311,7 @@ export default function Account() {
     try {
       await api.changePassword({ current_password: pw.current, new_password: pw.next });
       setPw({ current: '', next: '', confirm: '' });
-      setPwStatus({ kind: 'ok', text: 'Password changed. Other devices stay signed in.' });
+      setPwStatus({ kind: 'ok', text: 'Password changed. Every other device has been signed out.' });
     } catch (err) {
       const detail =
         err instanceof ApiError && err.status === 403
@@ -477,16 +477,30 @@ export default function Account() {
             Signed in as {account.email}.{' '}
             <LegalFooter style={{ display: 'inline-flex', marginLeft: 8 }} />
           </span>
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={async () => {
-              await logout();
-              navigate('/login', { replace: true });
-            }}
-          >
-            Sign out
-          </button>
+          <span style={{ display: 'inline-flex', gap: 8 }}>
+            <button
+              type="button"
+              className="btn-ghost"
+              title="Signs out this browser and every other device or browser using this account"
+              onClick={async () => {
+                if (!window.confirm('Sign out of every device, including this one?')) return;
+                await logout(true);
+                navigate('/login', { replace: true });
+              }}
+            >
+              Sign out everywhere
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={async () => {
+                await logout();
+                navigate('/login', { replace: true });
+              }}
+            >
+              Sign out
+            </button>
+          </span>
         </div>
       </div>
     </div>

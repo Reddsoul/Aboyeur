@@ -186,7 +186,10 @@ CREATE TABLE IF NOT EXISTS users (
     tos_version    TEXT,
     tos_accepted_at TEXT,
     deleted_at     TEXT,                            -- soft delete; purged after 30d
-    low_balance_emailed_at TEXT
+    low_balance_emailed_at TEXT,
+    -- Bumped on password change/reset and "sign out everywhere"; a session
+    -- cookie carrying an older value is rejected (aboyeur.auth).
+    session_version INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id);
@@ -306,8 +309,28 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     -- aboyeur/sensitivity.py: NULL (unclassified) | none | sensitive | unknown,
     -- and the classifier's category list. Never a summary of the content.
     sensitivity      TEXT,
-    sensitivity_json TEXT
+    sensitivity_json TEXT,
+    -- Set on an assistant turn that built/updated/delivered a menu, so the
+    -- transcript can offer "Export PDF" on that bubble later. Added by
+    -- aboyeur.migrate on older DBs. No REFERENCES: a purged menu must not
+    -- take the conversation with it.
+    menu_id          INTEGER
 );
+
+-- Menu → PDF snapshots (aboyeur/export_pdf.py). Stored as a blob rather
+-- than re-rendered on demand so what the practitioner sent the client is
+-- what they can re-download later, however the menu, pantry or corpus
+-- changed since. Cascades with its menu/client, so purge stays one DELETE.
+CREATE TABLE IF NOT EXISTS menu_exports (
+    id          INTEGER PRIMARY KEY,
+    menu_id     INTEGER NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+    client_id   INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    filename    TEXT NOT NULL,
+    size_bytes  INTEGER NOT NULL,
+    pdf         BLOB NOT NULL,
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_menu_exports_menu ON menu_exports(menu_id);
 
 CREATE TABLE IF NOT EXISTS interactions (
     id       INTEGER PRIMARY KEY,

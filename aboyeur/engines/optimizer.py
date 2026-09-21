@@ -25,7 +25,7 @@ signal, with the title/ingredient keyword lists as the backstop.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from aboyeur.engines.nutrition import fold_plural
 
@@ -46,12 +46,50 @@ PROTEIN_MISSING_PENALTY = 2.5
 UNKNOWN_NUTRITION_PENALTY = 2.0
 CONSTRAINT_NUDGE = 3.0
 
-# Hard floor on the plan-wide overlap_score (0-100). If the first greedy pass
-# lands under it, selection is retried with the overlap weight doubled (then
-# quadrupled, ...) and the best attempt wins — trading some macro fit for
-# shared ingredients, which is the whole point of planning a week at once.
-MIN_OVERLAP_SCORE = 25
+# Variety (profile 0-100, default 50) sets the plan-wide overlap floor and
+# how many meal slots may repeat a dish already on the plan:
+#
+#   0    the same dishes every day — one per meal slot, repeated
+#   25   floor 65: dishes repeat as needed to share 60-80% of ingredients
+#   50   floor 50
+#   75   floor 25: few repeats, 20-40% sharing is fine
+#   100  floor 0, no repeats, nothing pulls picks toward sharing
+#
+# If the first greedy pass lands under the floor, selection is retried with
+# the overlap weight doubled (then quadrupled, ...) and the best attempt
+# wins — trading some macro fit for shared ingredients, which is the whole
+# point of planning a week at once. Only when unique dishes still can't
+# reach the floor are repeats spent, one at a time, fewest first.
+DEFAULT_VARIETY = 50
+# Legacy name: the floor a default-variety plan is held to.
+MIN_OVERLAP_SCORE = 50
 _OVERLAP_ESCALATION = (1.0, 2.0, 4.0, 8.0)
+
+
+def clamp_variety(variety) -> int:
+    try:
+        v = int(round(float(variety)))
+    except (TypeError, ValueError):
+        v = DEFAULT_VARIETY
+    return max(0, min(100, v))
+
+
+def overlap_floor_for(variety) -> int:
+    """0->80, 50->50, 100->0, linear in between."""
+    v = clamp_variety(variety)
+    if v <= 50:
+        return round(80 - 30 * v / 50)
+    return round(50 - 50 * (v - 50) / 50)
+
+
+def repeat_budget_for(variety, total_picks: int, meals_per_day: int) -> int:
+    """How many of the plan's slots may be a repeat of another slot's dish.
+    Day one is always distinct dishes; at variety 0 every later slot repeats."""
+    v = clamp_variety(variety)
+    if v >= 100:
+        return 0
+    later = max(0, total_picks - meals_per_day)
+    return int(round(later * (1 - v / 100)))
 
 # A day is "on target" when its total kcal is within this fraction of the
 # household's daily need. Days under it get a second dish added to a meal
@@ -451,6 +489,7 @@ def select_menu(
     start_day: int = 1,
     day_numbers: list[int] | None = None,
     seed_ingredients: set[str] | None = None,
+    variety: int = DEFAULT_VARIETY,
 ) -> dict:
     """Greedy selection: `days * meals_per_day` picks, each maximizing
     overlap+pantry+macro fit against what's already chosen, minus same-book
@@ -486,8 +525,13 @@ def select_menu(
                  are scored for overlap with these from the first slot, so a
                  repaired/extended day reuses what's already on the shopping
                  list instead of starting its own.
+    variety: 0-100 (see overlap_floor_for / repeat_budget_for). Decides the
+                 overlap floor, whether dishes may repeat across days, and at
+                 100 switches off the pull toward shared ingredients.
     """
     diet_modes = diet_modes or []
+    variety = clamp_variety(variety)
+    overlap_floor = overlap_floor_for(variety)
     vegetarian = "vegetarian" in diet_modes or "vegan" in diet_modes
     constraints = constraints or {}
     cuisine_affinity = [c.lower() for c in (cuisine_affinity or [])]
@@ -500,6 +544,15 @@ def select_menu(
     seed_ingredients = set(seed_ingredients or ())
     total_picks = days * meals_per_day
     daily_target = (target_kcal or 0) * meals_per_day
+    repeat_budget = repeat_budget_for(variety, total_picks, meals_per_day)
+    # Distinct dishes the pool must supply: every slot at variety 100, one
+    # per meal slot at 0. Pool-size checks below are against this, not
+    # total_picks — a same-every-day plan needs two dishes, not fourteen.
+    needed_distinct = max(1, total_picks - repeat_budget)
+    # Spread penalties matter more the more variety is asked for; at 100
+    # nothing should pull two picks toward each other.
+    spread_mult = 3.0 if variety >= 100 else 1.0
+    overlap_base = 0.0 if variety >= 100 else W_INGREDIENT_OVERLAP
 
     infeasible_reasons: list[str] = []
 
@@ -512,7 +565,7 @@ def select_menu(
         c for c in candidates
         if not is_menu_ineligible(c["title"], c.get("ingredients", []), c.get("course"))
     ]
-    if len(base_pool) < total_picks:
+    if len(base_pool) < needed_distinct:
         infeasible_reasons.append(
             f"only {len(base_pool)} usable dishes in the candidate pool for "
             f"{total_picks} meal slots (desserts, drinks and condiments excluded) "
@@ -529,12 +582,12 @@ def select_menu(
             continue
         seen_titles.add(nt)
         deduped.append(c)
-    if len(deduped) >= total_picks:
+    if len(deduped) >= needed_distinct:
         base_pool = deduped
 
     if cuisine_affinity:
         cuisine_pool = [c for c in base_pool if (c.get("cuisine") or "").lower() in cuisine_affinity]
-        if len(cuisine_pool) >= total_picks:
+        if len(cuisine_pool) >= needed_distinct:
             base_pool = cuisine_pool
 
     # A meal's primary (role="main") pick must be able to anchor a meal — a
@@ -550,16 +603,36 @@ def select_menu(
     # never-starve shape as the cuisine filter: with too few known dishes the
     # unknowns stay in (and UNKNOWN_NUTRITION_PENALTY nudges past them).
     known_mains = [c for c in main_pool if float(c.get("macros", {}).get("calories") or 0) > 0]
-    if len(known_mains) >= total_picks:
+    if len(known_mains) >= needed_distinct:
         main_pool = known_mains
-    if len(main_pool) < total_picks:
+    if len(main_pool) < needed_distinct:
         infeasible_reasons.append(
             f"only {len(main_pool)} main-eligible dishes for {total_picks} meal "
             f"slots — classified sides can accompany a meal but can't anchor "
             f"one; search more recipes or widen the books/cuisines"
         )
 
-    def _greedy(overlap_weight: float) -> tuple[list[MenuPick], list[dict], dict[str, int], set[str]]:
+    def _day_of(slot: int) -> int:
+        day_idx = slot // meals_per_day
+        return day_numbers[day_idx] if day_numbers is not None else day_idx + start_day
+
+    def _pick_from(c: dict, slot: int, shared: list[str], reason: str) -> MenuPick:
+        return MenuPick(
+            recipe_id=c["id"], title=c["title"], book=c["book"], path=c.get("path"),
+            ingredients=c["ingredients"], shared_ingredients=shared,
+            macro_fit=round(macro_fit(c.get("macros", {}), target_kcal, target_macros), 2),
+            pick_reason=reason,
+            day=_day_of(slot),
+            meal=slot % meals_per_day + 1,
+            kcal=float(c.get("macros", {}).get("calories") or 0),
+            protein_g=float(c.get("macros", {}).get("protein_g") or 0),
+            carb_g=float(c.get("macros", {}).get("carb_g") or 0),
+            fat_g=float(c.get("macros", {}).get("fat_g") or 0),
+            fiber_g=float(c.get("macros", {}).get("fiber_g") or 0),
+            servings=c.get("servings"),
+        )
+
+    def _greedy(overlap_weight: float, n_picks: int = total_picks) -> tuple[list[MenuPick], list[dict], dict[str, int], set[str]]:
         pool = list(main_pool)
         picks: list[MenuPick] = []
         selected_meaningful: set[str] = set(seed_ingredients)
@@ -582,8 +655,8 @@ def select_menu(
             s = (overlap_weight * overlap
                  + W_PANTRY_OVERLAP * pantry_s
                  + W_MACRO_FIT * macro_s
-                 - W_SAME_BOOK_PENALTY * book_pen
-                 - W_PROTEIN_REPEAT_PENALTY * protein_pen
+                 - W_SAME_BOOK_PENALTY * spread_mult * book_pen
+                 - W_PROTEIN_REPEAT_PENALTY * spread_mult * protein_pen
                  - missing_protein_pen
                  - unknown_pen)
 
@@ -593,7 +666,7 @@ def select_menu(
                     s += CONSTRAINT_NUDGE
             return s
 
-        for slot in range(min(total_picks, len(pool))):
+        for slot in range(min(n_picks, len(pool))):
             pool.sort(key=score, reverse=True)
             best = pool.pop(0)
 
@@ -603,21 +676,7 @@ def select_menu(
                 "best pantry/macro fit" if not picks and not shared
                 else f"shares {len(shared)} ingredients"
             )
-            day_idx = slot // meals_per_day
-            picks.append(MenuPick(
-                recipe_id=best["id"], title=best["title"], book=best["book"], path=best.get("path"),
-                ingredients=best["ingredients"], shared_ingredients=shared,
-                macro_fit=round(macro_fit(best.get("macros", {}), target_kcal, target_macros), 2),
-                pick_reason=reason,
-                day=day_numbers[day_idx] if day_numbers is not None else day_idx + start_day,
-                meal=slot % meals_per_day + 1,
-                kcal=float(best.get("macros", {}).get("calories") or 0),
-                protein_g=float(best.get("macros", {}).get("protein_g") or 0),
-                carb_g=float(best.get("macros", {}).get("carb_g") or 0),
-                fat_g=float(best.get("macros", {}).get("fat_g") or 0),
-                fiber_g=float(best.get("macros", {}).get("fiber_g") or 0),
-                servings=best.get("servings"),
-            ))
+            picks.append(_pick_from(best, slot, shared, reason))
             selected_meaningful |= m_ings
             book_counts[best["book"]] = book_counts.get(best["book"], 0) + 1
             mp = main_protein(best["ingredients"])
@@ -631,55 +690,211 @@ def select_menu(
 
         return picks, pool, constraint_counts, selected_meaningful
 
-    # Overlap floor: retry with the overlap weight doubled each attempt until
-    # the plan-wide score clears MIN_OVERLAP_SCORE; keep the best attempt seen.
-    best_attempt = None
-    for mult in _OVERLAP_ESCALATION:
-        attempt = _greedy(W_INGREDIENT_OVERLAP * mult)
-        attempt_score = compute_overlap_score(attempt[0])
-        if best_attempt is None or attempt_score > best_attempt[1]:
-            best_attempt = (attempt, attempt_score)
-        if attempt_score >= MIN_OVERLAP_SCORE:
-            best_attempt = (attempt, attempt_score)
-            break
-    (picks, leftover_pool, constraint_counts, selected_meaningful), _ = best_attempt
+    if variety <= 0 and days > 1:
+        # Same dishes every day: plan ONE day fully — mains, top-ups, portion
+        # solve — then copy it to every other day. Top-ups included, or the
+        # "same meals" promise breaks the moment a day needs a second dish.
+        picks, leftover_pool, constraint_counts, selected_meaningful = _greedy(
+            W_INGREDIENT_OVERLAP, n_picks=meals_per_day
+        )
+        day_one, day_one_totals, _ = _fill_daily_kcal(
+            picks, leftover_pool + accompaniment_pool, selected_meaningful,
+            days=1, meals_per_day=meals_per_day, daily_target=daily_target,
+            target_macros=target_macros, per_meal_kcal=target_kcal,
+        )
+        picks, daily_totals = [], []
+        for day_idx in range(days):
+            day = _day_of(day_idx * meals_per_day)
+            for src in day_one:
+                dup = replace(src, day=day)
+                if day_idx:
+                    dup.pick_reason = f"repeat of day {day_one[0].day} (variety 0)"
+                picks.append(dup)
+            for t in day_one_totals:
+                daily_totals.append({**t, "day": day})
+        repeats_used = len(day_one) * (days - 1)
+        overlap_score = compute_overlap_score(picks)
+        return _select_result(
+            picks, daily_totals, infeasible_reasons, total_picks=total_picks,
+            overlap_score=overlap_score, overlap_floor=overlap_floor,
+            # The structure IS the floor here: nothing could share more.
+            floor_met=True, variety=variety, repeats=repeats_used,
+            constraint_counts=constraint_counts,
+        )
+    else:
+        # Overlap floor: retry with the overlap weight doubled each attempt
+        # until the plan-wide score clears it; keep the best attempt seen.
+        best_attempt = None
+        for mult in _OVERLAP_ESCALATION:
+            attempt = _greedy(overlap_base * mult)
+            attempt_score = compute_overlap_score(attempt[0])
+            if best_attempt is None or attempt_score > best_attempt[1]:
+                best_attempt = (attempt, attempt_score)
+            if attempt_score >= overlap_floor or overlap_base == 0:
+                best_attempt = (attempt, attempt_score)
+                break
+        (picks, leftover_pool, constraint_counts, selected_meaningful), _ = best_attempt
+        picks, leftover_pool, repeats_used = _spend_repeats(
+            picks, leftover_pool, total_picks=total_picks, meals_per_day=meals_per_day,
+            budget=repeat_budget, floor=overlap_floor, day_of=_day_of, variety=variety,
+        )
+        selected_meaningful = set(seed_ingredients)
+        for p in picks:
+            selected_meaningful |= meaningful_ingredients(p.ingredients)
 
     # Top-ups draw from unpicked mains AND the accompaniment pool (sides etc.)
     # — a side is exactly what should fill out a meal that's short on kcal
     # next to an already-chosen main.
     topup_pool = leftover_pool + accompaniment_pool
 
-    picks, daily_totals = _fill_daily_kcal(
+    # Below 50 the user asked for repetition, so a top-up dish may serve
+    # several days while budget remains (never twice on one day) — otherwise
+    # every under-fed day adds a fresh dish and dilutes the sharing the
+    # repeats just bought. At 50+ top-ups stay fresh: repeats there come only
+    # from the floor mechanism above, never spent for their own sake.
+    reuse_budget = max(0, repeat_budget - repeats_used) if variety < 50 else 0
+    picks, daily_totals, reused = _fill_daily_kcal(
         picks, topup_pool, selected_meaningful,
         days=days, meals_per_day=meals_per_day, daily_target=daily_target,
         target_macros=target_macros, per_meal_kcal=target_kcal,
+        reuse_budget=reuse_budget,
     )
+    repeats_used += reused
 
     overlap_score = compute_overlap_score(picks)
+    return _select_result(
+        picks, daily_totals, infeasible_reasons, total_picks=total_picks,
+        overlap_score=overlap_score, overlap_floor=overlap_floor,
+        floor_met=overlap_score >= overlap_floor, variety=variety,
+        repeats=repeats_used, constraint_counts=constraint_counts,
+    )
 
+
+def _select_result(
+    picks: list[MenuPick], daily_totals: list[dict], infeasible_reasons: list[str], *,
+    total_picks: int, overlap_score: int, overlap_floor: int, floor_met: bool,
+    variety: int, repeats: int, constraint_counts: dict[str, int],
+) -> dict:
     # Feasibility: every day must clear both the calorie band and every macro
     # (day_macro_status == "ok"). Days with no nutrition data ("unknown") are
     # not counted as failures here — they carry their own low-confidence flag.
+    main_slots = sum(1 for p in picks if p.role == "main")
     off_days = [d for d in daily_totals if d.get("macro_status") == "off"]
     for d in off_days:
         note = "; ".join(d.get("gap_notes") or []) or "misses target"
         infeasible_reasons.append(f"day {d['day']}: {note}")
-    if len(picks) < total_picks:
+    if main_slots < total_picks:
         infeasible_reasons.append(
-            f"could only fill {len(picks)} of {total_picks} meal slots"
+            f"could only fill {main_slots} of {total_picks} meal slots"
         )
-    feasible = not infeasible_reasons
-
     return {
         "picks": picks,
-        "feasible": feasible,
+        "feasible": not infeasible_reasons,
         "infeasible_reasons": infeasible_reasons,
         "overlap_score": overlap_score,
-        "overlap_floor_met": overlap_score >= MIN_OVERLAP_SCORE,
+        "overlap_floor": overlap_floor,
+        "overlap_floor_met": floor_met,
+        "variety": variety,
+        "repeats": repeats,
         "macro_fit_avg": round(sum(p.macro_fit for p in picks) / len(picks), 2) if picks else 0.0,
         "constraints_met": constraint_counts,
         "daily_totals": daily_totals,
     }
+
+
+def _repeat_of(src: MenuPick, slot: int, day: int, meals_per_day: int, variety: int) -> MenuPick:
+    return replace(
+        src, day=day, meal=slot % meals_per_day + 1, role="main",
+        shared_ingredients=sorted(meaningful_ingredients(src.ingredients)),
+        pick_reason=f"repeat of day {src.day} (variety {variety})",
+        portion_multiplier=1.0,
+    )
+
+
+def _spend_repeats(
+    picks: list[MenuPick], leftover_pool: list[dict], *, total_picks: int,
+    meals_per_day: int, budget: int, floor: int, day_of, variety: int,
+) -> tuple[list[MenuPick], list[dict], int]:
+    """Fill short slots, then trade the loneliest picks for repeats of a
+    dish already on the plan — one at a time, stopping the moment the
+    overlap floor is met or the budget is spent. A day never gets the same
+    dish twice. Fewest repeats that satisfy the floor, by construction."""
+    used = 0
+    picks = list(picks)
+    if budget <= 0 or not picks:
+        return picks, leftover_pool, 0
+
+    def _day_dishes(day: int) -> set[int]:
+        return {p.recipe_id for p in picks if p.day == day}
+
+    def _best_repeat_for(slot: int) -> MenuPick | None:
+        day = day_of(slot)
+        taken = _day_dishes(day)
+        sources = {}
+        for p in picks:
+            if p.recipe_id not in taken and p.recipe_id not in sources:
+                sources[p.recipe_id] = p
+        if not sources:
+            return None
+        # The dish that lifts the plan-wide overlap most; same meal number
+        # first so breakfast repeats breakfast, then macro fit.
+        def gain(src: MenuPick) -> tuple:
+            trial = picks + [_repeat_of(src, slot, day, meals_per_day, variety)]
+            return (compute_overlap_score(trial), src.meal == slot % meals_per_day + 1, src.macro_fit)
+        src = max(sources.values(), key=gain)
+        return _repeat_of(src, slot, day, meals_per_day, variety)
+
+    # 1. Slots the pool couldn't fill at all.
+    while len(picks) < total_picks and used < budget:
+        rep = _best_repeat_for(len(picks))
+        if rep is None:
+            break
+        picks.append(rep)
+        used += 1
+
+    # 2. Floor: swap out the pick sharing the least with the rest of the plan.
+    while used < budget and compute_overlap_score(picks) < floor:
+        distinct = {p.recipe_id for p in picks}
+        if len(distinct) <= meals_per_day:
+            break  # already as repetitive as the structure allows
+        counts = {}
+        for p in picks:
+            counts[p.recipe_id] = counts.get(p.recipe_id, 0) + 1
+        candidates = []
+        for i, p in enumerate(picks):
+            if counts[p.recipe_id] > 1 or p.day == picks[0].day:
+                continue  # keep day one distinct; never orphan a repeated dish's source
+            others = set()
+            for q in picks:
+                if q is not p:
+                    others |= meaningful_ingredients(q.ingredients)
+            mine = meaningful_ingredients(p.ingredients)
+            lonely = len(mine - others) / max(1, len(mine))
+            candidates.append((lonely, -p.macro_fit, i))
+        if not candidates:
+            break
+        _, _, idx = max(candidates)
+        victim = picks[idx]
+        slot = next(
+            (s for s in range(total_picks) if day_of(s) == victim.day and s % meals_per_day + 1 == victim.meal),
+            idx,
+        )
+        without = picks[:idx] + picks[idx + 1:]
+        picks_backup = picks
+        picks = without
+        rep = _best_repeat_for(slot)
+        if rep is None:
+            picks = picks_backup
+            break
+        picks.insert(idx, rep)
+        leftover_pool = leftover_pool + [{
+            "id": victim.recipe_id, "title": victim.title, "book": victim.book,
+            "path": victim.path, "ingredients": victim.ingredients, "servings": victim.servings,
+            "macros": {"calories": victim.kcal, "protein_g": victim.protein_g,
+                       "carb_g": victim.carb_g, "fat_g": victim.fat_g, "fiber_g": victim.fiber_g},
+        }]
+        used += 1
+    return picks, leftover_pool, used
 
 
 def scale_day_portions(
@@ -879,13 +1094,18 @@ def _fill_daily_kcal(
     daily_target: float,
     target_macros: dict | None,
     per_meal_kcal: float,
-) -> tuple[list[MenuPick], list[dict]]:
+    reuse_budget: int = 0,
+) -> tuple[list[MenuPick], list[dict], int]:
     """Ensure each day's total kcal lands within DAILY_KCAL_TOLERANCE of the
     daily target by adding a second dish (role="top-up") to under-fed meals,
     max MAX_DISHES_PER_MEAL dishes per meal. Days with no kcal data at all
     are flagged "unknown" and left alone — no calorie math without calories.
 
-    Returns (all picks sorted by day/meal, per-day totals with status flags).
+    reuse_budget: how many top-ups may be a dish already used as a top-up on
+    another day (low variety). 0 = every top-up is a fresh dish.
+
+    Returns (all picks sorted by day/meal, per-day totals with status flags,
+    top-ups that reused a dish).
     """
     by_day: dict[int, list[MenuPick]] = {}
     for p in picks:
@@ -898,6 +1118,8 @@ def _fill_daily_kcal(
         and float(c.get("macros", {}).get("calories") or 0) > 0
         and norm_title(c["title"]) not in picked_titles
     ]
+    topup_titles: set[str] = set()  # used as a top-up somewhere already
+    reused = 0
 
     for day in sorted(by_day):
         day_picks = by_day[day]
@@ -933,14 +1155,24 @@ def _fill_daily_kcal(
                 side_bonus = 0.5 if (c.get("course") or "").lower() == "side" else 0.0
                 return W_MACRO_FIT * closeness + W_INGREDIENT_OVERLAP * overlap + side_bonus
 
-            best = max(pool, key=top_up_score)
+            day_titles = {norm_title(p.title) for p in day_picks}
+            day_pool = [c for c in pool if norm_title(c["title"]) not in day_titles]
+            if not day_pool:
+                break
+            best = max(day_pool, key=top_up_score)
             best_kcal = float(best["macros"]["calories"])
             # Only add a dish that moves the day closer to target — never
             # overshoot past what leaving it under would cost.
             if abs((day_kcal + best_kcal) - daily_target) >= abs(day_kcal - daily_target):
                 break
-            picked_titles.add(norm_title(best["title"]))
-            pool = [c for c in pool if norm_title(c["title"]) not in picked_titles]
+            bt = norm_title(best["title"])
+            if bt in topup_titles:
+                reused += 1
+            topup_titles.add(bt)
+            # A used top-up leaves the pool once no reuse budget remains.
+            if reused >= reuse_budget:
+                picked_titles |= topup_titles
+                pool = [c for c in pool if norm_title(c["title"]) not in picked_titles]
             m_ings = meaningful_ingredients(best["ingredients"])
             shared = sorted(m_ings & selected_meaningful)
             day_picks.append(MenuPick(
@@ -1022,4 +1254,4 @@ def _fill_daily_kcal(
             "target_kcal": round(daily_target), "status": status,
             "macro_status": macro_status, "gap_notes": gap_notes,
         })
-    return all_picks, daily_totals
+    return all_picks, daily_totals, reused

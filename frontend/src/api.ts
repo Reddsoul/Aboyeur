@@ -76,6 +76,11 @@ export function logout() {
   return request<{ ok: true }>('/auth/logout', { method: 'POST' });
 }
 
+/** Revokes every session for the account (this one included). */
+export function logoutAll() {
+  return request<{ ok: true }>('/auth/logout-all', { method: 'POST' });
+}
+
 export interface TosStatus {
   current: string;
   accepted: string | null;
@@ -207,6 +212,10 @@ export interface Profile {
   diet_modes: string[];
   meals_per_day: number;
   units: 'metric' | 'imperial';
+  /** 0-100 (default 50): how much menus may repeat dishes / share
+   * ingredients. 0 = same dishes every day, 100 = never repeat. Absent on
+   * profiles saved before the field existed. */
+  variety?: number;
   targets: Record<string, MemberTarget>;
 }
 
@@ -223,6 +232,7 @@ export function saveProfile(clientId: number, desired: {
   diet_modes: string[];
   meals_per_day: number;
   units: string;
+  variety?: number;
 }) {
   return request<Profile>(`/api/clients/${clientId}/profile`, {
     method: 'POST',
@@ -283,6 +293,15 @@ export function removeClient(id: number, purge = false) {
   });
 }
 
+/** One stored PDF snapshot of a menu (POST /api/menu/{id}/export). */
+export interface MenuExport {
+  id: number;
+  menu_id: number;
+  filename: string;
+  size_bytes: number;
+  created_at: string;
+}
+
 export interface MenuSummary {
   id: number;
   week_of: string;
@@ -290,6 +309,8 @@ export interface MenuSummary {
   created_at: string;
   days: number;
   meals: number;
+  /** Newest first. */
+  exports: MenuExport[];
 }
 
 export interface KitSummary {
@@ -439,6 +460,40 @@ export function getShoppingList(menuId: number, clientId: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Menu → PDF. Each export is a stored snapshot; the Plans tab lists them.
+// ---------------------------------------------------------------------------
+
+export function exportMenu(menuId: number, clientId: number) {
+  return request<MenuExport>(`/api/menu/${menuId}/export?client_id=${clientId}`, { method: 'POST' });
+}
+
+/** Plain URL — the session cookie rides along, so an <a download> works. */
+export function exportDownloadUrl(exportId: number, clientId: number) {
+  return `${API_BASE}/api/exports/${exportId}?client_id=${clientId}`;
+}
+
+export function deleteExport(exportId: number, clientId: number) {
+  return request<void>(`/api/exports/${exportId}?client_id=${clientId}`, { method: 'DELETE' });
+}
+
+/** Build a snapshot, then hand it to the browser as a download. */
+export async function exportMenuAndDownload(menuId: number, clientId: number) {
+  const exp = await exportMenu(menuId, clientId);
+  triggerDownload(exportDownloadUrl(exp.id, clientId), exp.filename);
+  return exp;
+}
+
+export function triggerDownload(url: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// ---------------------------------------------------------------------------
 // LLM settings (per-user endpoint + key; the key is write-only — the server
 // never sends it back, so `configured` is all the UI gets to know about it)
 // ---------------------------------------------------------------------------
@@ -514,6 +569,9 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
+  /** Set on an assistant turn that built, swapped or delivered a menu —
+   * the bubble offers "Export PDF" for it. */
+  menu_id: number | null;
 }
 
 /** One of a client's conversations. They keep as many as they like; starting

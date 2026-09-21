@@ -23,6 +23,9 @@ DEFAULT_PROFILE = {
     "diet_modes": [],
     "meals_per_day": 3,
     "units": "metric",
+    # 0-100: how much a menu may repeat dishes / share ingredients. See
+    # engines/optimizer.py overlap_floor_for. Every new client starts at 50.
+    "variety": 50,
 }
 
 # Guest mode: a /guest session plans against a temporary, never-persisted
@@ -98,6 +101,8 @@ def update_profile(
     add_likes, remove_likes (all list[str]) — add/remove semantics, not replace.
     set_diet_modes, set_cuisine_affinity (list[str]) — replace.
     set_meals_per_day (int) — replace, household-wide default.
+    set_variety (int 0-100) — replace. 0 = same dishes every day, 50 = default,
+    100 = never repeat a dish, no pull toward shared ingredients.
     set_macro_strategy ("balanced"|"endurance"|"cut") — replace, household-wide.
     add_member (dict with "id") — upsert by id, merged onto any existing
     member with that id (fields you omit are kept, not wiped) — so a
@@ -135,6 +140,8 @@ def update_profile(
         profile["cuisine_affinity"] = list(patch["set_cuisine_affinity"])
     if "set_meals_per_day" in patch:
         profile["meals_per_day"] = int(patch["set_meals_per_day"])
+    if "set_variety" in patch:
+        profile["variety"] = max(0, min(100, int(round(float(patch["set_variety"])))))
     if "set_macro_strategy" in patch:
         # Household-wide for now (Phase 1): a kit is built for one member,
         # but nothing yet asks two members to be on different strategies,

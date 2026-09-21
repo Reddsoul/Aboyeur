@@ -22,8 +22,13 @@ def get_shopping_list(
     client_id: int,
     menu_id: int | None = None,
     kit_id: int | None = None,
+    *,
+    allow_llm: bool = True,
 ) -> dict:
     """Consolidated grocery list for a menu or a Macro Kit, by store section.
+
+    allow_llm=False answers from the ingredient_parse cache only (heuristic
+    for misses) — see parse_ingredients. The PDF export uses it.
 
     Both ids default to the user's most recent of that kind, and every
     lookup is scoped to client_id — never another account's row. With no id at
@@ -70,11 +75,14 @@ def get_shopping_list(
     if not ids:
         return {"sections": {}, "total_items": 0, "to_buy": 0}
 
-    placeholders = ",".join("?" * len(ids))
+    placeholders = ",".join("?" * len(set(ids)))
     rows = conn.execute(
-        f"SELECT ingredients_json FROM recipes WHERE id IN ({placeholders})", ids,
+        f"SELECT id, ingredients_json FROM recipes WHERE id IN ({placeholders})", sorted(set(ids)),
     ).fetchall()
-    picks = [{"ingredients": json.loads(r["ingredients_json"])} for r in rows]
+    ings_by_id = {r["id"]: json.loads(r["ingredients_json"]) for r in rows}
+    # One entry per SLOT, not per distinct recipe: a low-variety plan cooks
+    # the same dish several times, and the grams must say so.
+    picks = [{"ingredients": ings_by_id[rid]} for rid in ids if rid in ings_by_id]
 
     pantry = _pantry(conn, client_id)
     profile = get_profile(conn, client_id)
@@ -83,7 +91,7 @@ def get_shopping_list(
     raw_lines = sorted({
         ing.lower().strip() for p in picks for ing in p["ingredients"] if ing.strip()
     })
-    parsed = parse_ingredients(conn, config, raw_lines)
+    parsed = parse_ingredients(conn, config, raw_lines, allow_llm=allow_llm)
     canonical = {
         raw: {"food": item["food"], "grams": item["grams"]}
         for raw, item in zip(raw_lines, parsed)

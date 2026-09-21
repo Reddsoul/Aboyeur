@@ -352,6 +352,40 @@ span.chat-avatar .brand-mark {
   gap: 4px;
   min-width: 0;
 }
+/* "Export PDF" under a menu turn — always visible, unlike the thumbs: it is
+   the point of the turn, not a judgement on it. */
+.chat-export {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 2px 2px 0;
+}
+.chat-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 980px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-export-btn:hover {
+  background: var(--fill);
+}
+.chat-export-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.chat-export-error {
+  font-size: 12px;
+  color: var(--danger);
+}
 .chat-feedback {
   display: flex;
   gap: 2px;

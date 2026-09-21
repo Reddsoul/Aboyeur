@@ -278,7 +278,10 @@ def _merge_results(kept: dict, kept_days: set[int], sub: dict) -> dict:
         "feasible": not reasons,
         "infeasible_reasons": reasons,
         "overlap_score": overlap,
-        "overlap_floor_met": overlap >= optimizer.MIN_OVERLAP_SCORE,
+        "overlap_floor": kept.get("overlap_floor", optimizer.MIN_OVERLAP_SCORE),
+        "overlap_floor_met": overlap >= kept.get("overlap_floor", optimizer.MIN_OVERLAP_SCORE),
+        "variety": kept.get("variety", optimizer.DEFAULT_VARIETY),
+        "repeats": (kept.get("repeats") or 0) + (sub.get("repeats") or 0),
         "macro_fit_avg": round(sum(p.macro_fit for p in picks) / len(picks), 2) if picks else 0.0,
         "constraints_met": constraints,
         "daily_totals": totals,
@@ -374,6 +377,7 @@ def _repair_failed_days(
             cuisine_affinity=profile.get("cuisine_affinity", []),
             meals_per_day=meals_per_day, target_macros=target_macros,
             day_numbers=failed, seed_ingredients=seeds,
+            variety=profile.get("variety", optimizer.DEFAULT_VARIETY),
         )
         merged = _merge_results(best, kept_days, sub)
         known = _has_known()
@@ -506,10 +510,17 @@ def render_menu_summary(plan: dict) -> str:
     score_bits = []
     if plan.get("overlap_score") is not None:
         floor = plan.get("overlap_floor_met")
+        floor_val = plan.get("overlap_floor", 25)
         score_bits.append(
             f"Ingredient overlap {plan['overlap_score']}/100"
-            + ("" if floor is None else (" (floor met)" if floor else " (below the 25 floor)"))
+            + ("" if floor is None else (" (floor met)" if floor else f" (below the {floor_val} floor)"))
         )
+    if plan.get("variety") is not None:
+        bits = f"variety {plan['variety']}/100"
+        if plan.get("repeats"):
+            n = plan["repeats"]
+            bits += f" — {n} meal{'s' if n != 1 else ''} repeat a dish by design"
+        score_bits.append(bits)
     if plan.get("macro_fit_avg") is not None:
         score_bits.append(f"macro fit avg {plan['macro_fit_avg']}")
     if score_bits:
@@ -645,6 +656,7 @@ def plan_menu(
         cuisine_affinity=profile.get("cuisine_affinity", []),
         meals_per_day=meals_per_day, target_macros=target_macros,
         start_day=start_day, seed_ingredients=seed_ingredients,
+        variety=profile.get("variety", optimizer.DEFAULT_VARIETY),
     )
 
     # Days that missed target are re-planned from a wider pool (the model's
@@ -727,7 +739,10 @@ def plan_menu(
             "days": all_days,
             "meals_per_day": meals_per_day,
             "overlap_score": overlap_score,
-            "overlap_floor_met": overlap_score >= optimizer.MIN_OVERLAP_SCORE,
+            "overlap_floor": result.get("overlap_floor", optimizer.MIN_OVERLAP_SCORE),
+            "overlap_floor_met": overlap_score >= result.get("overlap_floor", optimizer.MIN_OVERLAP_SCORE),
+            "variety": result.get("variety", optimizer.DEFAULT_VARIETY),
+            "repeats": (existing_plan.get("repeats") or 0) + (result.get("repeats") or 0),
             "macro_fit_avg": (
                 round(sum(d["macro_fit"] for d in all_days) / len(all_days), 2) if all_days else 0.0
             ),
@@ -752,7 +767,10 @@ def plan_menu(
         "days": days_out,
         "meals_per_day": meals_per_day,
         "overlap_score": result["overlap_score"],
+        "overlap_floor": result.get("overlap_floor", optimizer.MIN_OVERLAP_SCORE),
         "overlap_floor_met": result["overlap_floor_met"],
+        "variety": result.get("variety", optimizer.DEFAULT_VARIETY),
+        "repeats": result.get("repeats", 0),
         "macro_fit_avg": result["macro_fit_avg"],
         "constraints_met": result["constraints_met"],
         "daily_totals": result["daily_totals"],
@@ -804,6 +822,7 @@ def get_menu_recipes(conn: sqlite3.Connection, client_id: int, menu_id: int | No
     multi_meal = (plan.get("meals_per_day") or 1) > 1
 
     parts = []
+    first_seen: dict[int, str] = {}  # recipe_id -> heading it was printed under
     for s in slots:
         # h1, so slot headings out-rank the recipes' own "## Ingredients" etc.
         heading = f"# Day {s['day']}"
@@ -821,6 +840,13 @@ def get_menu_recipes(conn: sqlite3.Connection, client_id: int, menu_id: int | No
                 note += f" _(Recipe as written makes {s['recipe_servings']} servings.)_"
             lines.append(note)
 
+        if s["recipe_id"] in first_seen:
+            # Low-variety plans repeat dishes on purpose; print the text once
+            # and point back, rather than pasting it per slot.
+            lines.append(f"_Same recipe as {first_seen[s['recipe_id']].lstrip('# ')} — see above._")
+            parts.append("\n\n".join(lines))
+            continue
+        first_seen[s["recipe_id"]] = heading
         r = get_recipe(conn, s["recipe_id"])
         if "error" in r:
             lines.append(f"(recipe unavailable: {r['error']})")
@@ -949,7 +975,7 @@ def swap_menu_item(
         **plan,
         "days": new_days,
         "overlap_score": overlap_score,
-        "overlap_floor_met": overlap_score >= optimizer.MIN_OVERLAP_SCORE,
+        "overlap_floor_met": overlap_score >= plan.get("overlap_floor", optimizer.MIN_OVERLAP_SCORE),
         "macro_fit_avg": round(sum(d["macro_fit"] for d in new_days) / len(new_days), 2) if new_days else 0.0,
         "daily_totals": daily_totals,
         "ingredient_summary": _ingredient_summary(list(ing_by_id.values())),

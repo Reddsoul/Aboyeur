@@ -111,6 +111,11 @@ Mexican"), search for each cuisine separately (search_recipes with cuisine=<each
 pool actually has enough of each — one generic query rarely surfaces enough of a named cuisine on \
 its own. Issue those searches in as few turns as possible — batch multiple search_recipes calls \
 into the same turn when you can, rather than one call per turn.
+- The profile's `variety` (0-100, default 50) decides how much a menu repeats dishes and shares \
+ingredients: 0 = the same dishes every day, 100 = never repeat. Repeated dishes in a plan are BY \
+DESIGN at low variety — never call that a mistake or re-plan around it. When the user asks for \
+more/less variety, simpler shopping or meal-prep repetition, set it with update_profile \
+set_variety in that turn, then plan.
 - Never invent a household member's profile data. sex/age/height_cm/weight_kg are ONLY set from \
 what the user actually told you — if any of the four are missing, save just the ones you have \
 (via add_member) and leave the rest unset; don't guess an age or height to force a BMR-based \

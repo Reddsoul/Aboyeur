@@ -16,7 +16,7 @@ from dataclasses import dataclass, replace
 
 from cryptography.fernet import InvalidToken
 
-from aboyeur import billing, crypto, llm_settings
+from aboyeur import billing, crypto, llm_settings, urlguard
 from aboyeur.config import Config
 
 
@@ -243,6 +243,14 @@ def resolve_llm(conn: sqlite3.Connection, base: Config, user: dict) -> ResolvedL
         )
     stored = llm_settings.get_llm_settings(conn, user["id"])
     if stored is not None:
+        # Cheap re-check (no DNS) so a row saved under a looser policy — the
+        # beta's Tailscale LiteLLM, say — can't be used once the deploy
+        # tightens it. The user gets the same 409 as "nothing configured".
+        try:
+            urlguard.check_llm_url(stored["base_url"], resolve=False)
+        except urlguard.UnsafeUrlError as e:
+            raise ProviderError(f"your saved LLM endpoint is no longer allowed ({e}); "
+                                "update it in Settings", 409, error="llm_setup")
         return ResolvedLlm(
             config=replace(base, llm_base_url=stored["base_url"], llm_model=stored["model"],
                            llm_api_key=stored["api_key"]),

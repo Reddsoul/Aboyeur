@@ -14,7 +14,7 @@ import time
 
 from cryptography.fernet import InvalidToken
 
-from aboyeur import crypto
+from aboyeur import crypto, urlguard
 
 logger = logging.getLogger("aboyeur")
 
@@ -69,6 +69,9 @@ def save_llm_settings(
     api_key = (api_key or "").strip()
     if not base_url or not model:
         raise ValueError("base_url and model are required")
+    # SSRF guard: the server connects to this URL. UnsafeUrlError is a
+    # ValueError so the route's existing 400 mapping covers it.
+    base_url = urlguard.check_llm_url(base_url)
 
     row = _row(conn, user_id)
     if api_key:

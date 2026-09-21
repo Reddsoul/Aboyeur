@@ -190,11 +190,13 @@ _USER_SAAS_COLUMNS = {
     "tos_accepted_at": "TEXT",
     "deleted_at": "TEXT",                               # soft delete; `aboyeur purge` hard-deletes after 30d
     "low_balance_emailed_at": "TEXT",                   # throttle for the < 100¢ email
+    "session_version": "INTEGER NOT NULL DEFAULT 0",  # revocation counter, see aboyeur.auth
 }
 
 _CHAT_MESSAGE_SAAS_COLUMNS = {
     "sensitivity": "TEXT",        # NULL (unclassified) | none | sensitive | unknown
     "sensitivity_json": "TEXT",   # classifier categories only — never content
+    "menu_id": "INTEGER",         # menu built/delivered in this turn (PDF export button)
 }
 
 

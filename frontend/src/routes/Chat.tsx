@@ -44,6 +44,8 @@ interface Message {
   serverId?: number;
   from: 'user' | 'assistant';
   text: string;
+  /** The menu this turn built/swapped/delivered — shows "Export PDF". */
+  menuId?: number;
 }
 
 const SUGGESTIONS = ['Plan my week', 'Find a quick high-protein dinner', 'What can you help me with?'];
@@ -63,7 +65,39 @@ function toMessages(history: api.ChatMessage[], clientName: string): Message[] {
     serverId: m.id,
     from: m.role === 'user' ? ('user' as const) : ('assistant' as const),
     text: m.content,
+    menuId: m.menu_id ?? undefined,
   }));
+}
+
+/** "Export PDF" under a turn that produced a menu. Builds a stored snapshot
+ * (it lands on the client's Plans tab too) and hands it to the browser. */
+function ExportButton({ menuId, clientId }: { menuId: number; clientId: number }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.exportMenuAndDownload(menuId, clientId);
+    } catch (err) {
+      setError(err instanceof api.ApiError ? err.message : "Couldn't build the PDF.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="chat-export">
+      <button type="button" className="chat-export-btn" onClick={run} disabled={busy} title="Download this menu as a PDF">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+        </svg>
+        {busy ? 'Building…' : `Export PDF · menu #${menuId}`}
+      </button>
+      {error && <span className="chat-export-error">{error}</span>}
+    </div>
+  );
 }
 
 /** Thumb buttons under one assistant turn. Thumb-down opens an optional
@@ -474,6 +508,10 @@ export default function Chat() {
               {/* Rateable only once the turn is persisted and finished — the
                   greeting has no row behind it and a streaming answer isn't
                   done being judged. */}
+              {m.from === 'assistant' && m.menuId != null && activeClient && (
+                <ExportButton menuId={m.menuId} clientId={activeClient.id} />
+              )}
+
               {m.from === 'assistant' && m.serverId != null && !streaming && (
                 <FeedbackBar
                   rating={ratings[m.serverId]}

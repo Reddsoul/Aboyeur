@@ -598,7 +598,15 @@ def test_plan_menu_persists_to_menus_table(db_conn: sqlite3.Connection, config: 
     assert row["status"] == "draft"
 
 
+def _full_variety(conn, client_id: int) -> None:
+    """These tests assert the no-repeat rule, which is variety 100 now — the
+    default 50 lets the optimizer repeat a dish to reach its overlap floor."""
+    from aboyeur.tools.profile import update_profile
+    update_profile(conn, client_id, {"set_variety": 100})
+
+
 def test_plan_menu_never_repeats_a_recipe(db_conn: sqlite3.Connection, config: Config, client_id: int):
+    _full_variety(db_conn, client_id)
     ids = _all_ids(db_conn)
     plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=5)
     recipe_ids = [d["recipe_id"] for d in plan["days"]]
@@ -646,6 +654,7 @@ def test_plan_menu_meals_per_day_grouped_into_day_and_meal_in_one_call(
     # PER MEAL by the LLM (N sequential LLM round trips) — a 6-day x 3-meal
     # request burned all 60 tool-call rounds over ~10 minutes with zero
     # output. It must now produce every meal for every day from ONE call.
+    _full_variety(db_conn, client_id)
     ids = _all_ids(db_conn)
     plan = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=2, meals_per_day=3)
     assert len(plan["days"]) == 6
@@ -1201,6 +1210,7 @@ def test_plan_menu_extends_an_existing_menu_in_place(
     numbered after the existing ones, with no dish repeated across the
     merged plan and plan-wide numbers covering all 7 days."""
     from aboyeur.tools.menu import plan_menu
+    _full_variety(db_conn, client_id)
     ids = _all_ids(db_conn)
     first = plan_menu(db_conn, config, client_id, candidate_ids=ids, days=5)
     assert "error" not in first

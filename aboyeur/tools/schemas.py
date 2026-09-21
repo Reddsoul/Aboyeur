@@ -125,6 +125,16 @@ TOOL_SCHEMAS: list[dict] = [
                             "applies to everyone; for one person use add_member instead."
                         ),
                     },
+                    "set_variety": {
+                        "type": "integer", "minimum": 0, "maximum": 100,
+                        "description": (
+                            "How varied menus should be, 0-100 (default 50). 0 = the same "
+                            "dishes every day; low values let dishes repeat and push for "
+                            "60-80% shared ingredients; 100 = never repeat a dish. Set when "
+                            "the user asks for more/less variety, simpler shopping, or "
+                            "meal-prep style repetition."
+                        ),
+                    },
                     "set_macro_strategy": {
                         "type": "string", "enum": ["balanced", "endurance", "cut"],
                         "description": (

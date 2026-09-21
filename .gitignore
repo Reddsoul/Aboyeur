@@ -12,3 +12,6 @@ backend/__pycache__/
 thoughts/
 # Server-side copy of the recipe corpus (docker-compose bind mount)
 /corpus/
+
+# Runtime logs (uvicorn/vite/nutrition batch) — never in the repo.
+logs/

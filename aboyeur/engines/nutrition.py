@@ -423,7 +423,7 @@ def _llm_parse_lines(config: Config, lines: list[str]) -> list[dict] | None:
 
 
 def parse_ingredients(
-    conn: sqlite3.Connection, config: Config, lines: list[str]
+    conn: sqlite3.Connection, config: Config, lines: list[str], *, allow_llm: bool = True,
 ) -> list[dict]:
     """[{food, grams, source}] per raw ingredient line.
 
@@ -431,6 +431,10 @@ def parse_ingredients(
     misses, then a regex-cleaner fallback (source="heuristic", default grams)
     for anything the LLM couldn't handle. Heuristic results are never cached,
     so the LLM gets retried next time.
+
+    allow_llm=False skips the LLM round-trip: cache hits plus the heuristic
+    for misses. For callers that must answer now (PDF export on an HTTP
+    request) — a slow or down endpoint otherwise costs the 60 s timeout.
     """
     keys = [(line or "").strip().lower() for line in lines]
     out: list[dict | None] = [None] * len(lines)
@@ -447,7 +451,9 @@ def parse_ingredients(
 
     miss_idx = [i for i, v in enumerate(out) if v is None]
     if miss_idx:
-        llm_results = _llm_parse_lines(config, [lines[i] for i in miss_idx])
+        llm_results = (
+            _llm_parse_lines(config, [lines[i] for i in miss_idx]) if allow_llm else None
+        )
         if llm_results is not None:
             now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             for i, parsed in zip(miss_idx, llm_results):

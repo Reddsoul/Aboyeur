@@ -152,6 +152,23 @@ interface Props {
   onSaved?: () => void;
 }
 
+/** Mirrors engines/optimizer.py overlap_floor_for: what the slider asks of a plan. */
+function varietyLabel(v: number) {
+  if (v === 0) return 'Same meals';
+  if (v < 40) return 'Low';
+  if (v <= 60) return 'Balanced';
+  if (v < 100) return 'High';
+  return 'All different';
+}
+
+function varietyHint(v: number) {
+  if (v === 0) return 'One set of dishes, repeated every day — the simplest shop and prep.';
+  if (v === 100) return 'Every meal a different dish, no push toward shared ingredients.';
+  const floor = v <= 50 ? Math.round(80 - (30 * v) / 50) : Math.round(50 - (50 * (v - 50)) / 50);
+  const repeats = v < 50 ? 'Dishes repeat across the week as needed' : v === 50 ? 'Dishes repeat only when needed' : 'Few repeats';
+  return `${repeats}; aims for at least ${floor}% shared ingredients.`;
+}
+
 export default function Profile({ clientId, clientName, onSaved }: Props) {
   const [members, setMembers] = useState<MemberForm[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
@@ -160,6 +177,7 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
   const [cuisines, setCuisines] = useState<string[]>([]);
   const [diets, setDiets] = useState<string[]>([]);
   const [mealsPerDay, setMealsPerDay] = useState(3);
+  const [variety, setVariety] = useState(50);
   const [units, setUnits] = useState<'metric' | 'imperial'>('imperial');
   const [targets, setTargets] = useState<Record<string, api.MemberTarget>>({});
 
@@ -179,6 +197,7 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
     setCuisines(profile.cuisine_affinity ?? []);
     setDiets(profile.diet_modes ?? []);
     setMealsPerDay(profile.meals_per_day ?? 3);
+    setVariety(profile.variety ?? 50);
     setUnits(profile.units === 'metric' ? 'metric' : 'imperial');
     setTargets(profile.targets ?? {});
   }, []);
@@ -251,6 +270,7 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
         diet_modes: diets,
         meals_per_day: mealsPerDay,
         units,
+        variety,
       });
       // Re-render from what the server stored: ids get slugged and targets are
       // recomputed there, so echoing the local state back would drift.
@@ -557,6 +577,26 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
                 </button>
               </div>
             </div>
+          </div>
+          <div className="pf-field pf-variety">
+            <label className="pf-label" htmlFor="pf-variety">
+              Variety <span className="pf-variety-value">{variety}</span>
+              <span className="pf-variety-name"> · {varietyLabel(variety)}</span>
+            </label>
+            <input
+              id="pf-variety"
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={variety}
+              onChange={(e) => touch(setVariety)(Number(e.target.value))}
+            />
+            <div className="pf-variety-ends" aria-hidden="true">
+              <span>Same meals every day</span>
+              <span>Never repeat a dish</span>
+            </div>
+            <p className="pf-hint">{varietyHint(variety)}</p>
           </div>
         </section>
 

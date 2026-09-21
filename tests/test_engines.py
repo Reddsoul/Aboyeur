@@ -758,7 +758,9 @@ def test_select_menu_never_serves_duplicate_titles():
         _candidate(3, "Chicken Curry", "BookC", ["chicken", "ginger", "garlic"]),
         _candidate(4, "Beef Stew", "BookD", ["beef", "carrot", "turnip"]),
     ]
-    result = optimizer.select_menu(candidates, days=3, pantry=set(), target_kcal=500)
+    # variety=100: no deliberate repeats, so the only way a title could show
+    # twice is the double-indexed pair — which dedup must catch.
+    result = optimizer.select_menu(candidates, days=3, pantry=set(), target_kcal=500, variety=100)
     norm_titles = [optimizer.norm_title(p.title) for p in result["picks"]]
     assert len(norm_titles) == len(set(norm_titles)) == 3
 

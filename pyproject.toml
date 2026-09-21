@@ -27,6 +27,9 @@ dependencies = [
     "stripe>=10",
     "slowapi>=0.1.9",
     "sentry-sdk[fastapi]>=2",
+    # Menu → PDF export (aboyeur/export_pdf.py). Pure Python on purpose: no
+    # pango/cairo to install on the Mac or in the image.
+    "fpdf2>=2.8",
 ]
 
 [project.optional-dependencies]

@@ -79,6 +79,8 @@ def save_profile(conn: sqlite3.Connection, client_id: int, desired: dict) -> dic
         str(c).strip() for c in (desired.get("cuisine_affinity") or []) if str(c).strip()
     ]
     patch["set_meals_per_day"] = max(1, int(desired.get("meals_per_day") or 3))
+    if desired.get("variety") is not None:
+        patch["set_variety"] = int(desired["variety"])
     if desired.get("units") in ("metric", "imperial"):
         patch["set_units"] = desired["units"]
     update_profile(conn, client_id, patch)

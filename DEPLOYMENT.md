@@ -50,7 +50,12 @@ docker compose exec backend aboyeur invite --uses 5   # prints a signup link
 ## 1. First VPS
 
 1. **Hetzner CPX21**, Ashburn (`ash`), Ubuntu 24.04. Firewall: 22 from your IP
-   only, 80 and 443 from anywhere. Turn on Hetzner's daily backups.
+   only; 80 and 443 **only from Cloudflare's ranges**
+   (<https://www.cloudflare.com/ips/>) once DNS is proxied — otherwise
+   anyone can bypass the edge, hit the origin directly and forge
+   `CF-Connecting-IP` / `CF-IPCountry`. (The Caddyfile also strips those
+   headers from non-Cloudflare hops, so this is a second layer, not the only
+   one.) Turn on Hetzner's daily backups.
 2. On the box:
    ```bash
    apt update && apt install -y docker.io docker-compose-v2 git
@@ -207,6 +212,9 @@ docker compose run --rm litestream restore -config /etc/litestream.yml -o /data/
 | Retention | the `cron` service runs `aboyeur purge` and `aboyeur purge-events` daily |
 | Errors | `SENTRY_DSN` (backend) and `VITE_SENTRY_DSN` (build arg for the caddy image) |
 | Rate limits | login 10/min/IP · signup + reset 5/h/IP · chat 30/min/user · LLM test 10/h/user. `RATE_LIMIT=off` disables (tests) |
+| Revoke a user's sessions | `sqlite3 /data/aboyeur.db "UPDATE users SET session_version = session_version + 1 WHERE email = '<email>'"` — every cookie for that account stops verifying. Users can do it themselves: Account → "Sign out everywhere"; password change/reset does it automatically |
+| BYOK endpoint policy | Hosted deploy accepts only public https base_urls (SSRF guard, `aboyeur/urlguard.py`). `ALLOW_PRIVATE_LLM_URLS=true` relaxes it |
+| Legacy routes | `/books`, `/pantry`, `/menu`, `/v1` … are 404 unless `ENABLE_LEGACY_ROUTES=true`. Leave off |
 
 ### Legal
 

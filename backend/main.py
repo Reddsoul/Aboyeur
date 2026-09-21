@@ -31,6 +31,7 @@ from backend.models import (
 from backend.utils import categorize_ingredient, slugify
 
 from aboyeur import logging_setup as _logging_setup
+from aboyeur import urlguard as _urlguard
 from aboyeur.config import check_deploy_secrets as _check_deploy_secrets, env_flag as _env_flag
 
 # Refuse to boot behind HTTPS with empty signing/encryption keys — before
@@ -120,6 +121,29 @@ def _ip_key(request: Request) -> str:
 _limiter = Limiter(key_func=_rate_key, enabled=_env_flag("RATE_LIMIT", True),
                    headers_enabled=True)
 app.state.limiter = _limiter
+
+
+# The pre-agent single-household API (/books, /pantry, /menu, ...) and the
+# OpenAI-compat shim (/v1) predate accounts: no auth, they act as the seed
+# household, and DELETE /books/{id} drops a whole book's recipes. The SPA
+# never calls them and Caddy doesn't proxy them, but relying on the edge
+# alone is one misconfigured port away from a wiped library. Off unless
+# ENABLE_LEGACY_ROUTES=true (the CLI/OpenWebUI setups that still want them).
+_LEGACY_PREFIXES = (
+    "/stats", "/books", "/pantry", "/household", "/menu", "/macros",
+    "/shopping-list", "/search", "/preferences", "/ingest", "/recipes/correct", "/v1",
+)
+_LEGACY_ENABLED = _env_flag("ENABLE_LEGACY_ROUTES", False)
+
+
+@app.middleware("http")
+async def _block_legacy_routes(request: Request, call_next):
+    if not _LEGACY_ENABLED:
+        path = request.url.path
+        for prefix in _LEGACY_PREFIXES:
+            if path == prefix or path.startswith(prefix + "/"):
+                return JSONResponse({"detail": "not found"}, status_code=404)
+    return await call_next(request)
 
 
 @app.exception_handler(RateLimitExceeded)
@@ -655,6 +679,7 @@ from aboyeur import auth as _aboyeur_auth
 from aboyeur import billing as _aboyeur_billing
 from aboyeur import chat_history as _aboyeur_chat_history
 from aboyeur import clients as _aboyeur_clients
+from aboyeur import export_pdf as _aboyeur_export
 from aboyeur import legal as _aboyeur_legal
 from aboyeur import llm_providers as _aboyeur_providers
 from aboyeur import llm_settings as _aboyeur_llm_settings
@@ -870,17 +895,21 @@ def get_current_user(request: Request) -> int:
     if not token:
         raise HTTPException(401, "not logged in")
     try:
-        user_id = _aboyeur_auth.verify_token(token)
+        user_id, token_sv = _aboyeur_auth.decode_token(token)
     except _aboyeur_auth.AuthError as e:
         raise HTTPException(401, str(e))
     # A soft-deleted account's cookie may still be valid for 30 days; the
-    # account isn't. One indexed read per request.
+    # account isn't. Same read checks the revocation counter: a cookie
+    # minted before the last password change / sign-out-everywhere is dead.
     conn = _profile_conn()
     try:
-        if _aboyeur_account.is_deleted(conn, user_id):
-            raise HTTPException(401, "account deleted")
+        deleted, current_sv = _aboyeur_account.session_state(conn, user_id)
     finally:
         conn.close()
+    if deleted:
+        raise HTTPException(401, "account deleted")
+    if token_sv != current_sv:
+        raise HTTPException(401, "session revoked — sign in again")
     return user_id
 
 
@@ -915,11 +944,11 @@ def auth_login(body: LoginBody, request: Request, response: Response):
         user_id = _aboyeur_auth.verify_login(conn, body.email, body.password)
         if _aboyeur_account.is_deleted(conn, user_id):
             raise HTTPException(401, "invalid email or password")
+        token = _aboyeur_auth.issue_session(conn, user_id)
     except _aboyeur_auth.AuthError:
         raise HTTPException(401, "invalid email or password")
     finally:
         conn.close()
-    token = _aboyeur_auth.issue_token(user_id)
     response.set_cookie(
         _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=_COOKIE_SECURE,
         max_age=_aboyeur_auth.JWT_TTL_SECONDS,
@@ -930,6 +959,21 @@ def auth_login(body: LoginBody, request: Request, response: Response):
 @app.post("/auth/logout")
 def auth_logout(response: Response):
     # Attributes must match the ones it was set with or the browser keeps it.
+    # Only this browser's cookie goes; /auth/logout-all revokes the rest.
+    response.delete_cookie(_SESSION_COOKIE, httponly=True, samesite="lax",
+                           secure=_COOKIE_SECURE)
+    return {"ok": True}
+
+
+@app.post("/auth/logout-all")
+def auth_logout_all(response: Response, user_id: int = Depends(get_current_user)):
+    """Sign out everywhere: bumps session_version so every cookie for the
+    account — including a stolen one — stops verifying."""
+    conn = _profile_conn()
+    try:
+        _aboyeur_auth.revoke_sessions(conn, user_id)
+    finally:
+        conn.close()
     response.delete_cookie(_SESSION_COOKIE, httponly=True, samesite="lax",
                            secure=_COOKIE_SECURE)
     return {"ok": True}
@@ -994,6 +1038,10 @@ def _agent_tokens(agent: _AboyeurAgent, message: str) -> Iterator[str]:
             yield payload
 
 
+# Tool results whose menu_id marks the turn as "about this menu".
+_MENU_TOOLS = frozenset({"plan_menu", "swap_menu_item", "get_menu_recipes"})
+
+
 def _run_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
                     record_for: Optional[int] = None,
                     user_id: Optional[int] = None, client_id: Optional[int] = None) -> None:
@@ -1021,11 +1069,19 @@ def _run_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
     errored = False
     error_type: Optional[str] = None
     error_detail: Optional[str] = None
+    # The menu this turn built, swapped or delivered — stamped on the
+    # transcript row so the bubble can offer "Export PDF" (chat_messages.menu_id).
+    menu_id: Optional[int] = None
     started = time.monotonic()
     try:
-        for tok in _agent_tokens(agent, message):
-            parts.append(tok)
-            turn.append(tok)
+        for kind, payload in agent.send(message):
+            if kind == "text":
+                parts.append(payload)
+                turn.append(payload)
+            elif kind == "tool_result" and payload.get("name") in _MENU_TOOLS:
+                result = payload.get("result") or {}
+                if isinstance(result, dict) and result.get("menu_id") and "error" not in result:
+                    menu_id = int(result["menu_id"])
     except Exception as e:
         # Log the real cause server-side and end the turn cleanly with a
         # well-formed (if apologetic) tail, rather than a truncated stream.
@@ -1038,7 +1094,7 @@ def _run_agent_turn(turn: _Turn, agent: _AboyeurAgent, message: str,
     answer = "".join(parts)
     try:
         if record_for is not None and answer.strip():
-            _record_message(record_for, "assistant", answer)
+            _record_message(record_for, "assistant", answer, menu_id=menu_id)
         elif record_for is not None and errored:
             # Nothing worth keeping — drop the orphaned user turn too so a retry
             # starts clean instead of stacking two user messages in the history.
@@ -1217,12 +1273,13 @@ def _delete_last_user_message(chat_session_id: int) -> None:
         conn.close()
 
 
-def _record_message(chat_session_id: int, role: str, content: str) -> None:
+def _record_message(chat_session_id: int, role: str, content: str,
+                    menu_id: Optional[int] = None) -> None:
     if not content.strip():
         return
     conn = _profile_conn()
     try:
-        _aboyeur_chat_history.append_message(conn, chat_session_id, role, content)
+        _aboyeur_chat_history.append_message(conn, chat_session_id, role, content, menu_id=menu_id)
     except Exception:  # a transcript write must never break the reply
         logger.exception("couldn't record %s message for conversation %s", role, chat_session_id)
     finally:
@@ -1784,6 +1841,63 @@ def api_menu_shopping_list(menu_id: int, client_id: Optional[int] = None,
         conn.close()
 
 
+# ---------------------------------------------------------------------------
+# Menu → PDF. POST renders and stores a snapshot (aboyeur/export_pdf.py);
+# GET streams a stored one; the Plans tab lists them per menu. Stored, not
+# re-rendered: what was sent to the client stays downloadable as sent.
+# ---------------------------------------------------------------------------
+
+def _export_http(e: _aboyeur_export.ExportError) -> HTTPException:
+    return HTTPException(e.status, str(e))
+
+
+@app.post("/api/menu/{menu_id}/export")
+def api_menu_export(menu_id: int, client_id: Optional[int] = None,
+                    user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        try:
+            return _aboyeur_export.create_export(conn, _aboyeur_config, resolved, menu_id)
+        except _aboyeur_export.ExportError as e:
+            raise _export_http(e)
+    finally:
+        conn.close()
+
+
+@app.get("/api/exports/{export_id}")
+def api_export_download(export_id: int, client_id: Optional[int] = None,
+                        user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        try:
+            meta, data = _aboyeur_export.get_export(conn, resolved, export_id)
+        except _aboyeur_export.ExportError as e:
+            raise _export_http(e)
+    finally:
+        conn.close()
+    return Response(
+        data, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{meta["filename"]}"'},
+    )
+
+
+@app.delete("/api/exports/{export_id}", status_code=204)
+def api_export_delete(export_id: int, client_id: Optional[int] = None,
+                      user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        try:
+            _aboyeur_export.delete_export(conn, resolved, export_id)
+        except _aboyeur_export.ExportError as e:
+            raise _export_http(e)
+    finally:
+        conn.close()
+    return Response(status_code=204)
+
+
 # ===========================================================================
 # Account — the practitioner themselves. Distinct from any client record,
 # including their own "Me" client: this is who is logged in, not who is
@@ -1889,7 +2003,8 @@ def api_account_update(patch: AccountPatch, user_id: int = Depends(get_current_u
 
 
 @app.post("/api/account/password")
-def api_account_password(body: PasswordBody, user_id: int = Depends(get_current_user)):
+def api_account_password(body: PasswordBody, response: Response,
+                         user_id: int = Depends(get_current_user)):
     if len(body.new_password) < 8:
         raise HTTPException(400, "use at least 8 characters")
     conn = _profile_conn()
@@ -1910,9 +2025,16 @@ def api_account_password(body: PasswordBody, user_id: int = Depends(get_current_
             (_aboyeur_auth.hash_password(body.new_password), user_id),
         )
         conn.commit()
+        # Kill every other device's cookie, keep this one by re-minting it.
+        _aboyeur_auth.revoke_sessions(conn, user_id)
+        token = _aboyeur_auth.issue_session(conn, user_id)
     finally:
         conn.close()
-    return {"ok": True}
+    response.set_cookie(
+        _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=_COOKIE_SECURE,
+        max_age=_aboyeur_auth.JWT_TTL_SECONDS,
+    )
+    return {"ok": True, "other_sessions_revoked": True}
 
 
 # ===========================================================================
@@ -2159,21 +2281,27 @@ def api_client_plans(client_id: int, user_id: int = Depends(get_current_user)):
     conn = _profile_conn()
     try:
         resolved = _require_client(conn, user_id, client_id)
-        menus = [
-            {
+        exports = _aboyeur_export.list_exports(conn, resolved)
+        menus = []
+        for r in conn.execute(
+            "SELECT id, week_of, status, created_at, days_json FROM menus "
+            "WHERE client_id = ? ORDER BY created_at DESC, id DESC",
+            (resolved,),
+        ):
+            # tools/menu._save_menu stores the whole plan dict ({"days": [...],
+            # "meals_per_day": ...}); the pre-practitioner shape was the bare
+            # slot list. Read both.
+            stored = json.loads(r["days_json"])
+            slots = stored.get("days", []) if isinstance(stored, dict) else stored
+            menus.append({
                 "id": r["id"],
                 "week_of": r["week_of"],
                 "status": r["status"],
                 "created_at": r["created_at"],
-                "days": len({d.get("day") for d in json.loads(r["days_json"])}),
-                "meals": len(json.loads(r["days_json"])),
-            }
-            for r in conn.execute(
-                "SELECT id, week_of, status, created_at, days_json FROM menus "
-                "WHERE client_id = ? ORDER BY created_at DESC, id DESC",
-                (resolved,),
-            )
-        ]
+                "days": len({d.get("day") for d in slots}),
+                "meals": len(slots),
+                "exports": exports.get(r["id"], []),
+            })
         kits = []
         for r in conn.execute(
             "SELECT id, data_json, created_at FROM kits WHERE client_id = ? "
@@ -2264,9 +2392,9 @@ def api_llm_settings_test(body: LlmTestBody, request: Request,
                           user_id: int = Depends(get_current_user)):
     """Probe an endpoint before saving it. Never echoes the key back.
 
-    An authenticated user can point this at any URL the server can reach —
-    an SSRF surface accepted for an invite-only self-hosted app (see
-    FRONTEND_PLAN.md's risks). Tighten with an IP allow-list if that changes.
+    The server connects to whatever URL is given, so the same public-https
+    policy as saving applies (aboyeur.urlguard) — otherwise this endpoint
+    reads back error bodies from anything on the docker network.
     """
     base_url = (body.base_url or "").strip().rstrip("/")
     model = (body.model or "").strip()
@@ -2284,6 +2412,10 @@ def api_llm_settings_test(body: LlmTestBody, request: Request,
             api_key = api_key or stored["api_key"]
     if not base_url or not model:
         raise HTTPException(400, "base_url and model are required")
+    try:
+        base_url = _urlguard.check_llm_url(base_url)
+    except _urlguard.UnsafeUrlError as e:
+        raise HTTPException(400, str(e))
 
     from openai import OpenAI as _OpenAI
 
@@ -2588,13 +2720,13 @@ def auth_signup(body: SignupBody, request: Request, response: Response):
             country=body.country, tos_version=body.tos_version,
         )
         email = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()["email"]
+        token = _aboyeur_auth.issue_session(conn, user_id)
     except _aboyeur_account.AccountError as e:
         raise _account_http(e)
     finally:
         conn.close()
     _send_verification(user_id, email)
     _aboyeur_admin_event("signup", user_id)
-    token = _aboyeur_auth.issue_token(user_id)
     response.set_cookie(
         _SESSION_COOKIE, token, httponly=True, samesite="lax", secure=_COOKIE_SECURE,
         max_age=_aboyeur_auth.JWT_TTL_SECONDS,
