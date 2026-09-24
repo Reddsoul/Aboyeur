@@ -22,6 +22,11 @@ backend :8000  ── uvicorn, ONE worker, SQLite on the `data` volume
 Keep it single-worker: one process owns the SQLite file (WAL). Never put
 `/data` on a network filesystem.
 
+> **Gate — before the first `git push` to any remote.** A live USDA API key is
+> still in this repo's history (`docs/secret-hygiene.md`). It is harmless while
+> the repo is local-only and unpushed; it is not harmless on a remote. Rotate
+> the key and scrub history first. Both runbooks are in that document.
+
 ---
 
 ## 0. Local smoke test (any machine with Docker)

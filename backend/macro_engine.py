@@ -4,14 +4,29 @@ Pure math + a single outbound USDA call path (httpx). No LLM, no FastAPI imports
 so the ingest image can call into it at index time to pre-compute recipe macros.
 """
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Optional
 
 import httpx
 
-USDA_API_KEY = os.getenv("USDA_API_KEY", "NzCqk79bLlxFpbeSmtRCCyKdw455U8iSdeHhYiug")
 USDA_URL = "https://api.nal.usda.gov/fdc/v1/foods/search"
+
+_log = logging.getLogger(__name__)
+_warned_no_key = False
+
+
+def usda_api_key() -> str:
+    """The USDA FoodData Central key, read at call time.
+
+    Deliberately not a module-level constant: backend/main.py imports this
+    module before `aboyeur/__init__` runs load_dotenv(), so an import-time
+    os.getenv resolves to "" under `uvicorn backend.main:app` even when .env
+    has the key. Reading lazily means the env is populated by the time the
+    first lookup happens.
+    """
+    return (os.environ.get("USDA_API_KEY") or "").strip()
 
 # USDA FoodData Central nutrient IDs (per 100 g).
 _N_KCAL, _N_PROTEIN, _N_CARB, _N_FAT = 1008, 1003, 1005, 1004
@@ -130,14 +145,24 @@ def lookup_ingredient_macros(name: str) -> dict:
     if key in cache:
         return cache[key]
 
-    if not USDA_API_KEY:
+    api_key = usda_api_key()
+    if not api_key:
+        global _warned_no_key
+        if not _warned_no_key:
+            _warned_no_key = True
+            _log.warning(
+                "USDA_API_KEY is unset — ingredient macro lookups will return "
+                "status=skipped with zero macros. Set it in .env (or the "
+                "deployment env) and restart; get a free key at "
+                "https://fdc.nal.usda.gov/api-key-signup"
+            )
         return {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "skipped"}
 
     result = {"kcal": 0, "protein_g": 0, "carb_g": 0, "fat_g": 0, "status": "failed"}
     try:
         resp = httpx.get(
             USDA_URL,
-            params={"query": key, "pageSize": 1, "api_key": USDA_API_KEY},
+            params={"query": key, "pageSize": 1, "api_key": api_key},
             timeout=15,
         )
         resp.raise_for_status()
