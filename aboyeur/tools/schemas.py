@@ -165,9 +165,60 @@ TOOL_SCHEMAS: list[dict] = [
                         ),
                     },
                     "remove_member": {"type": "string", "description": "Member id to remove."},
+                    "set_member_target_override": {
+                        "type": "object",
+                        "description": (
+                            "Set one member's daily calorie/macro target directly. Use it "
+                            "whenever the user states daily macros for someone ('140g protein', "
+                            "'190-210g carbs, 110-130g protein, 65-75g fat') or their real "
+                            "calorie need — instead of changing goal_weight_kg to approximate "
+                            "it. {id, protein_g, carb_g, fat_g, fiber_g?, kcal?}: ranges -> "
+                            "midpoint; omit kcal to derive it from 4P+4C+9F (if given it must "
+                            "roughly agree). Wins over the computed BMR/TDEE target everywhere "
+                            "until cleared with clear_member_target_override. Don't set it for "
+                            "a one-off 'make tomorrow lighter' request."
+                        ),
+                        "properties": {
+                            "id": {"type": "string", "description": "Household member id."},
+                            "protein_g": {"type": "number"},
+                            "carb_g": {"type": "number"},
+                            "fat_g": {"type": "number"},
+                            "fiber_g": {"type": "number"},
+                            "kcal": {"type": "number", "description": "Optional — derived from macros when omitted."},
+                        },
+                        "required": ["id"],
+                    },
+                    "clear_member_target_override": {
+                        "type": "string",
+                        "description": "Member id — remove their target override, back to the computed BMR/TDEE number.",
+                    },
                     "set_units": {
                         "type": "string", "enum": ["metric", "imperial"],
                         "description": "Display unit preference. Storage is always metric.",
+                    },
+                    "set_tools_available": {
+                        "type": "array", "items": {"type": "string"},
+                        "description": (
+                            "Kitchen equipment on hand, e.g. ['oven','stovetop','blender',"
+                            "'food_processor','slow_cooker','air_fryer','wok']. Replaces the "
+                            "existing list. Defaults to a common-kitchen set (stovetop, oven, "
+                            "pots/pans, mixing bowls) — set this when the user says what they "
+                            "have or don't have. Recipes classified as needing something not on "
+                            "this list are excluded from menus for this client."
+                        ),
+                    },
+                    "add_tools_available": {"type": "array", "items": {"type": "string"}},
+                    "remove_tools_available": {"type": "array", "items": {"type": "string"}},
+                    "set_notes": {
+                        "type": "string",
+                        "description": (
+                            "Free-text diet-logic notes, e.g. 'steak is breakfast for me' or "
+                            "'wants meal-prep-friendly dinners'. Replaces the existing notes. "
+                            "Parsed automatically into meal-type hints and a meal-prep flag the "
+                            "next time a menu is planned — set this whenever the user states a "
+                            "food/meal-time preference or asks for batch-cookable meals, instead "
+                            "of just remembering it for this turn."
+                        ),
                     },
                 },
             },
@@ -436,6 +487,36 @@ TOOL_SCHEMAS: list[dict] = [
                         "description": "A Macro Kit id from build_macro_kit. Omit for a menu.",
                     },
                 },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_recipe_macro_override",
+            "description": (
+                "Manually correct a recipe's per-serving calories/macros when the "
+                "calculated estimate is wrong (bad ingredient match, unusual "
+                "serving size the user knows better than the USDA lookup does). "
+                "Applies to the recipe everywhere it's used, not just this "
+                "client. Pass clear=true to drop the override and go back to "
+                "the calculated estimate instead of setting new numbers."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "recipe_id": {"type": "integer"},
+                    "kcal": {"type": "number"},
+                    "protein_g": {"type": "number"},
+                    "carb_g": {"type": "number"},
+                    "fat_g": {"type": "number"},
+                    "fiber_g": {"type": "number"},
+                    "clear": {
+                        "type": "boolean",
+                        "description": "True to remove the override and restore the calculated estimate.",
+                    },
+                },
+                "required": ["recipe_id"],
             },
         },
     },

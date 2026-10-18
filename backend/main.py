@@ -41,7 +41,34 @@ _check_deploy_secrets()
 _logging_setup.configure(json_logs=_env_flag("JSON_LOGS", True))
 logger = logging.getLogger("aboyeur")
 
-APP_VERSION = os.environ.get("APP_VERSION") or "dev"
+def _app_version() -> str:
+    """What commit is running, for /health and Sentry.
+
+    APP_VERSION wins — the image has no `.git` (see .dockerignore) and no git
+    binary, so compose and the Hetzner cutover must pass it in. A source
+    checkout (the Mac mini beta today) falls back to its own HEAD, so the
+    running commit is visible from outside without anyone remembering to
+    export anything. `git rev-parse` reads .git/HEAD and one ref; it does not
+    walk the tree, which matters on this SMB checkout. If neither source
+    answers, say "unknown" rather than "dev" — "dev" reads like a deliberate
+    build label and tells an incident responder nothing.
+    """
+    env = os.environ.get("APP_VERSION")
+    if env:
+        return env
+    try:
+        import subprocess
+        root = Path(__file__).resolve().parent.parent
+        proc = subprocess.run(["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+                              capture_output=True, text=True, timeout=5)
+        if proc.returncode == 0 and proc.stdout.strip():
+            return proc.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
+
+
+APP_VERSION = _app_version()
 
 # Error reporting. send_default_pii=False keeps request bodies, cookies and
 # user emails out; before_send strips the few fields that could still carry
@@ -698,6 +725,11 @@ from aboyeur.migrate import SEED_USER_EMAIL as _SEED_USER_EMAIL, migrate as _abo
 from aboyeur.tools.profile import (
     get_profile as _aboyeur_get_profile,
     make_guest_profile as _make_guest_profile,
+    update_profile as _aboyeur_update_profile,
+)
+from aboyeur.tools.nutrition import (
+    estimate_nutrition as _aboyeur_estimate_nutrition,
+    set_recipe_macro_override as _aboyeur_set_macro_override,
 )
 from backend import profile_ui
 from backend.turns import Turn as _Turn, TurnInFlight as _TurnInFlight, TurnRegistry as _TurnRegistry
@@ -1779,7 +1811,45 @@ def api_recipe_detail(recipe_id: int, client_id: Optional[int] = None,
             recipe["tags"] = json.loads(row["tags_json"])
         recipe["favorite"] = recipe_id in list_favorite_ids(
             conn, _require_client(conn, user_id, client_id))
+        # Per-serving macros — calculated estimate, or the manual override
+        # when one is set (aboyeur.engines.nutrition.get_effective_macros,
+        # feature-spec-2026-09-26.md #1). confidence == "override" is the
+        # panel's cue to show "manually corrected" instead of a confidence
+        # badge.
+        macros = _aboyeur_estimate_nutrition(conn, _aboyeur_config, [recipe_id])
+        recipe["macros"] = macros.get(recipe_id)
         return recipe
+    finally:
+        conn.close()
+
+
+@app.post("/api/recipes/{recipe_id}/macro_override")
+def api_recipe_macro_override_set(
+    recipe_id: int, body: dict, user_id: int = Depends(get_current_user),
+):
+    """Manually correct a recipe's per-serving macros — global to the
+    recipe (every client planning with it sees the correction), not scoped
+    to whichever client the practitioner happened to be viewing it under.
+    """
+    conn = _profile_conn()
+    try:
+        macros = {k: body[k] for k in ("kcal", "protein_g", "carb_g", "fat_g", "fiber_g") if k in body}
+        result = _aboyeur_set_macro_override(conn, recipe_id, macros)
+        if "error" in result:
+            raise HTTPException(400, result["error"])
+        return result
+    finally:
+        conn.close()
+
+
+@app.delete("/api/recipes/{recipe_id}/macro_override")
+def api_recipe_macro_override_clear(recipe_id: int, user_id: int = Depends(get_current_user)):
+    conn = _profile_conn()
+    try:
+        result = _aboyeur_set_macro_override(conn, recipe_id, None, clear=True)
+        if "error" in result:
+            raise HTTPException(400, result["error"])
+        return result
     finally:
         conn.close()
 
@@ -2179,6 +2249,43 @@ def api_client_profile_save(client_id: int, desired: dict,
     try:
         resolved = _require_client(conn, user_id, client_id)
         saved = profile_ui.save_profile(conn, resolved, desired)
+    finally:
+        conn.close()
+    _drop_session_agent(user_id, resolved)
+    return saved
+
+
+@app.post("/api/clients/{client_id}/members/{member_id}/target_override")
+def api_member_target_override_set(
+    client_id: int, member_id: str, body: dict, user_id: int = Depends(get_current_user),
+):
+    """Manually correct one household member's daily calorie/macro target —
+    the computed BMR/TDEE number was wrong for them. Wins over the computed
+    target everywhere it's read (menu planning, this profile) until cleared."""
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        macros = {k: body[k] for k in ("kcal", "protein_g", "carb_g", "fat_g", "fiber_g") if k in body}
+        try:
+            saved = _aboyeur_update_profile(
+                conn, resolved, {"set_member_target_override": {"id": member_id, **macros}},
+            )
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+    finally:
+        conn.close()
+    _drop_session_agent(user_id, resolved)
+    return saved
+
+
+@app.delete("/api/clients/{client_id}/members/{member_id}/target_override")
+def api_member_target_override_clear(
+    client_id: int, member_id: str, user_id: int = Depends(get_current_user),
+):
+    conn = _profile_conn()
+    try:
+        resolved = _require_client(conn, user_id, client_id)
+        saved = _aboyeur_update_profile(conn, resolved, {"clear_member_target_override": member_id})
     finally:
         conn.close()
     _drop_session_agent(user_id, resolved)

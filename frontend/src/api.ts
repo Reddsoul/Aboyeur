@@ -186,9 +186,13 @@ export interface Macros {
   protein_g: number;
   carb_g: number;
   fat_g: number;
+  fiber_g?: number;
 }
 
-/** Server-computed, never user-entered — see engines/nutrition.household_targets. */
+/** Server-computed, never user-entered — see engines/nutrition.household_targets.
+ * Exception: source 'override' means a practitioner manually corrected the
+ * daily kcal/macros (set_member_target_override) — daily_kcal/daily_macros/
+ * per_meal below reflect THAT, not the BMR/TDEE calc. */
 export interface MemberTarget {
   label: string;
   goal: string;
@@ -196,8 +200,9 @@ export interface MemberTarget {
   goal_adjust_kcal: number;
   maintenance_kcal: number;
   daily_kcal: number;
-  /** 'bmr' once sex/age/height/weight are all set, else 'fallback'. */
-  source: 'bmr' | 'fallback';
+  /** 'bmr' once sex/age/height/weight are all set, 'fallback' otherwise,
+   * 'override' when manually corrected. */
+  source: 'bmr' | 'fallback' | 'override';
   per_meal: Macros;
   daily_macros: Macros;
   strategy_daily_macros?: Macros & { strategy: string; basis: string };
@@ -216,6 +221,13 @@ export interface Profile {
    * ingredients. 0 = same dishes every day, 100 = never repeat. Absent on
    * profiles saved before the field existed. */
   variety?: number;
+  /** Kitchen equipment on hand — recipes classified as needing something
+   * missing are excluded from this client's menus. Defaults to a
+   * common-kitchen set (stovetop, oven, pots/pans, mixing bowls). */
+  tools_available?: string[];
+  /** Free-text diet-logic notes, parsed into meal-type hints / a meal-prep
+   * flag the next time a menu is planned. */
+  notes?: string;
   targets: Record<string, MemberTarget>;
 }
 
@@ -233,10 +245,32 @@ export function saveProfile(clientId: number, desired: {
   meals_per_day: number;
   units: string;
   variety?: number;
+  tools_available?: string[];
+  notes?: string;
 }) {
   return request<Profile>(`/api/clients/${clientId}/profile`, {
     method: 'POST',
     body: JSON.stringify(desired),
+  });
+}
+
+/** Manually correct one member's computed daily calorie/macro target — the
+ * BMR/TDEE number was wrong for them. Wins over the computed target
+ * everywhere it's read until cleared with clearMemberTargetOverride. */
+export function setMemberTargetOverride(
+  clientId: number,
+  memberId: string,
+  macros: { kcal: number; protein_g: number; carb_g: number; fat_g: number; fiber_g?: number },
+) {
+  return request<Profile>(`/api/clients/${clientId}/members/${encodeURIComponent(memberId)}/target_override`, {
+    method: 'POST',
+    body: JSON.stringify(macros),
+  });
+}
+
+export function clearMemberTargetOverride(clientId: number, memberId: string) {
+  return request<Profile>(`/api/clients/${clientId}/members/${encodeURIComponent(memberId)}/target_override`, {
+    method: 'DELETE',
   });
 }
 
@@ -379,9 +413,22 @@ export function getFacets() {
   return request<RecipeFacets>('/api/recipes/facets');
 }
 
+export interface RecipeMacros {
+  kcal: number;
+  protein_g: number;
+  carb_g: number;
+  fat_g: number;
+  fiber_g: number;
+  /** 'override' means a practitioner corrected these by hand — see
+   * set_recipe_macro_override / clearMacroOverride below. */
+  confidence: 'low' | 'medium' | 'override' | string;
+  servings_est: number | null;
+}
+
 export interface RecipeDetail extends RecipeSummary {
   markdown: string;
   path: string;
+  macros: RecipeMacros | null;
 }
 
 export function getRecipe(id: number, clientId: number) {
@@ -392,6 +439,24 @@ export function getRecipe(id: number, clientId: number) {
 export function setFavorite(id: number, favorite: boolean, clientId: number) {
   return request<{ favorite: boolean }>(`/api/recipes/${id}/favorite?client_id=${clientId}`, {
     method: favorite ? 'POST' : 'DELETE',
+  });
+}
+
+/** Manual macro correction — global to the recipe, not scoped to one
+ * client (feature-spec-2026-09-26.md #1). */
+export function setMacroOverride(
+  id: number,
+  macros: { kcal: number; protein_g: number; carb_g: number; fat_g: number; fiber_g?: number },
+) {
+  return request<{ recipe_id: number; is_override: boolean; macros: RecipeMacros }>(
+    `/api/recipes/${id}/macro_override`,
+    { method: 'POST', body: JSON.stringify(macros) },
+  );
+}
+
+export function clearMacroOverride(id: number) {
+  return request<{ recipe_id: number; is_override: boolean }>(`/api/recipes/${id}/macro_override`, {
+    method: 'DELETE',
   });
 }
 

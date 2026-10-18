@@ -47,6 +47,10 @@ export default function Library() {
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selected, setSelected] = useState<api.RecipeDetail | null>(null);
+  const [editingMacros, setEditingMacros] = useState(false);
+  const [macroDraft, setMacroDraft] = useState({ kcal: '', protein_g: '', carb_g: '', fat_g: '', fiber_g: '' });
+  const [macroBusy, setMacroBusy] = useState(false);
+  const [macroError, setMacroError] = useState<string | null>(null);
 
   useEffect(() => {
     api.getFacets().then(setFacets).catch(() => setFacets({ cuisines: [], books: [] }));
@@ -97,12 +101,71 @@ export default function Library() {
   }, [debouncedQuery, section, activeClient]);
 
   useEffect(() => {
+    setEditingMacros(false);
+    setMacroError(null);
     if (selectedId == null || !activeClient) {
       setSelected(null);
       return;
     }
     api.getRecipe(selectedId, activeClient.id).then(setSelected).catch(() => setSelected(null));
   }, [selectedId, activeClient]);
+
+  function startEditingMacros() {
+    setMacroError(null);
+    setMacroDraft({
+      kcal: String(selected?.macros?.kcal ?? ''),
+      protein_g: String(selected?.macros?.protein_g ?? ''),
+      carb_g: String(selected?.macros?.carb_g ?? ''),
+      fat_g: String(selected?.macros?.fat_g ?? ''),
+      fiber_g: String(selected?.macros?.fiber_g ?? ''),
+    });
+    setEditingMacros(true);
+  }
+
+  async function saveMacroOverride() {
+    if (!selected) return;
+    const n = (v: string) => Number(v);
+    const kcal = n(macroDraft.kcal);
+    const protein_g = n(macroDraft.protein_g);
+    const carb_g = n(macroDraft.carb_g);
+    const fat_g = n(macroDraft.fat_g);
+    const fiber_g = macroDraft.fiber_g.trim() === '' ? undefined : n(macroDraft.fiber_g);
+    if ([kcal, protein_g, carb_g, fat_g].some((v) => Number.isNaN(v))) {
+      setMacroError('Every field needs a number.');
+      return;
+    }
+    setMacroBusy(true);
+    setMacroError(null);
+    try {
+      const result = await api.setMacroOverride(selected.id, { kcal, protein_g, carb_g, fat_g, fiber_g });
+      setSelected({ ...selected, macros: result.macros });
+      setEditingMacros(false);
+    } catch (err) {
+      setMacroError(
+        err instanceof api.ApiError && err.status === 400
+          ? "That doesn't add up — kcal should roughly match 4×protein + 4×carb + 9×fat."
+          : "Couldn't save the override.",
+      );
+    } finally {
+      setMacroBusy(false);
+    }
+  }
+
+  async function resetMacroOverride() {
+    if (!selected) return;
+    setMacroBusy(true);
+    setMacroError(null);
+    try {
+      await api.clearMacroOverride(selected.id);
+      const fresh = await api.getRecipe(selected.id, activeClient!.id);
+      setSelected(fresh);
+      setEditingMacros(false);
+    } catch {
+      setMacroError("Couldn't reset to the calculated estimate.");
+    } finally {
+      setMacroBusy(false);
+    }
+  }
 
   const sectionTitle = useMemo(() => {
     if (section === 'all') return 'All Recipes';
@@ -317,6 +380,82 @@ export default function Library() {
                 {selected.book} · {selected.cuisine ?? 'Uncategorized'}
                 {selected.servings ? ` · Serves ${selected.servings}` : ''}
               </div>
+
+              <div className="lib-detail-section-title">
+                Macros (per serving)
+                {selected.macros?.confidence === 'override' && <span className="lib-macro-badge">manually corrected</span>}
+              </div>
+              {!editingMacros ? (
+                <>
+                  {selected.macros ? (
+                    <div className="lib-stat-grid">
+                      <div className="lib-stat-tile">
+                        <div className="lib-stat-num">{Math.round(selected.macros.kcal)}</div>
+                        <div className="lib-stat-label">kcal</div>
+                      </div>
+                      <div className="lib-stat-tile">
+                        <div className="lib-stat-num">{Math.round(selected.macros.protein_g)}g</div>
+                        <div className="lib-stat-label">protein</div>
+                      </div>
+                      <div className="lib-stat-tile">
+                        <div className="lib-stat-num">{Math.round(selected.macros.carb_g)}g</div>
+                        <div className="lib-stat-label">carb</div>
+                      </div>
+                      <div className="lib-stat-tile">
+                        <div className="lib-stat-num">{Math.round(selected.macros.fat_g)}g</div>
+                        <div className="lib-stat-label">fat</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="lib-macro-hint">No estimate yet.</p>
+                  )}
+                  {selected.macros && selected.macros.confidence !== 'override' && (
+                    <p className="lib-macro-hint">
+                      {selected.macros.confidence === 'low'
+                        ? 'Low confidence — USDA lookup was incomplete for this recipe.'
+                        : 'USDA-backed estimate.'}
+                    </p>
+                  )}
+                  <div className="lib-macro-actions">
+                    <button type="button" className="lib-macro-btn" onClick={startEditingMacros}>
+                      {selected.macros?.confidence === 'override' ? 'Edit override' : 'Correct macros'}
+                    </button>
+                    {selected.macros?.confidence === 'override' && (
+                      <button type="button" className="lib-macro-btn" disabled={macroBusy} onClick={() => void resetMacroOverride()}>
+                        Reset to calculated
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="lib-macro-form">
+                  <div className="lib-macro-form-grid">
+                    {(['kcal', 'protein_g', 'carb_g', 'fat_g', 'fiber_g'] as const).map((key) => (
+                      <div key={key} className="lib-macro-field">
+                        <label>{key === 'kcal' ? 'kcal' : key.replace('_g', ' g')}</label>
+                        <input
+                          className="text-input"
+                          inputMode="decimal"
+                          value={macroDraft[key]}
+                          onChange={(e) => setMacroDraft((d) => ({ ...d, [key]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {macroError && <p className="lib-macro-error">{macroError}</p>}
+                  <div className="lib-macro-actions">
+                    <button type="button" className="lib-macro-btn lib-macro-btn-primary" disabled={macroBusy} onClick={() => void saveMacroOverride()}>
+                      {macroBusy ? 'Saving…' : 'Save override'}
+                    </button>
+                    <button type="button" className="lib-macro-btn" disabled={macroBusy} onClick={() => setEditingMacros(false)}>
+                      Cancel
+                    </button>
+                  </div>
+                  <p className="lib-macro-hint">
+                    Applies to this recipe everywhere it's used, not just for {activeClient?.name ?? 'this client'}.
+                  </p>
+                </div>
+              )}
 
               <div className="lib-detail-section-title">Ingredients</div>
               <div className="lib-tag-row" style={{ marginBottom: 8 }}>

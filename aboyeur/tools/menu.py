@@ -17,10 +17,11 @@ import time
 from collections import Counter
 
 from aboyeur.config import Config
-from aboyeur.engines import optimizer
+from aboyeur.data.components import COMPONENTS
+from aboyeur.engines import kit, optimizer
 from aboyeur.engines.nutrition import per_meal_target
 from aboyeur.tools.nutrition import estimate_nutrition
-from aboyeur.tools.profile import get_profile
+from aboyeur.tools.profile import DEFAULT_TOOLS_AVAILABLE, ensure_notes_parsed, get_profile
 from aboyeur.tools.recipe import get_recipe
 
 
@@ -83,7 +84,7 @@ def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: li
     placeholders = ",".join("?" * len(candidate_ids))
     rows = conn.execute(
         f"SELECT id, title, book, path, cuisine, servings, ingredients_json, "
-        f"course, meal_complete FROM recipes WHERE id IN ({placeholders})",
+        f"course, meal_complete, equipment_json, meal_prep FROM recipes WHERE id IN ({placeholders})",
         candidate_ids,
     ).fetchall()
     out = []
@@ -95,6 +96,11 @@ def _load_candidates(conn: sqlite3.Connection, config: Config, candidate_ids: li
             # Stated servings, else the count the estimate was divided by.
             "servings": row["servings"] or m.get("servings_est"),
             "course": row["course"], "meal_complete": row["meal_complete"],
+            # NULL (not yet classified by classify_equipment.py) stays None —
+            # optimizer.equipment_blocked treats that as "no requirement",
+            # never as "needs nothing".
+            "equipment": json.loads(row["equipment_json"]) if row["equipment_json"] else None,
+            "meal_prep": bool(row["meal_prep"]),
             "ingredients": json.loads(row["ingredients_json"]),
             "macros": {
                 "calories": m.get("kcal", 0),
@@ -195,6 +201,7 @@ def _widen_pool(
     seed_ingredients: set[str],
     want: int,
     uncached_cap: int,
+    meal_prep_requested: bool = False,
 ) -> list[dict]:
     """Pull `want` more menu-eligible recipes from the whole corpus, ranked
     by how many ingredients they share with `seed_ingredients` (the dishes
@@ -207,9 +214,10 @@ def _widen_pool(
     from aboyeur.engines import allergens
     allergies = allergens.expand_all([a for a in profile.get("allergies", []) if a and a.strip()])
     affinity = {c.lower() for c in (profile.get("cuisine_affinity") or [])}
+    tools_available = profile.get("tools_available", DEFAULT_TOOLS_AVAILABLE)
     rows = conn.execute(
         """SELECT r.id, r.title, r.cuisine, r.course, r.meal_complete, r.ingredients_json,
-                  (n.recipe_id IS NOT NULL) AS has_nutrition
+                  r.equipment_json, r.meal_prep, (n.recipe_id IS NOT NULL) AS has_nutrition
            FROM recipes r LEFT JOIN nutrition n ON n.recipe_id = r.id
            WHERE r.course IN ('main', 'breakfast', 'unknown')"""
     ).fetchall()
@@ -228,6 +236,9 @@ def _widen_pool(
         blob = " ".join(ingredients).lower() + " " + r["title"].lower()
         if allergies and any(a in blob for a in allergies):
             continue
+        equipment = json.loads(r["equipment_json"]) if r["equipment_json"] else None
+        if optimizer.equipment_blocked(equipment, tools_available):
+            continue
         m_ings = optimizer.meaningful_ingredients(ingredients)
         overlap = len(m_ings & seed_ingredients)
         pantry_hits = sum(1 for i in m_ings if any(p in i or i in p for p in pantry)) if pantry else 0
@@ -238,6 +249,8 @@ def _widen_pool(
             score += 0.5
         if r["course"] == "unknown":
             score -= 0.5
+        if meal_prep_requested and r["meal_prep"]:
+            score += 1.0
         seen_titles.add(nt)
         scored.append((score, bool(r["has_nutrition"]), r["id"]))
 
@@ -325,6 +338,8 @@ def _repair_failed_days(
     exclude_ids: set[int],
     exclude_titles: set[str],
     seed_ingredients: set[str],
+    meal_type_hints: dict | None = None,
+    meal_prep_requested: bool = False,
 ) -> tuple[dict, list[dict], list[str]]:
     """When the first pass leaves days off target, keep the days that landed
     and re-plan only the failed ones from a progressively wider corpus pool,
@@ -361,6 +376,7 @@ def _repair_failed_days(
             conn, config, profile, pantry,
             exclude_ids=seen_ids | kept_ids, exclude_titles=seen_titles | kept_titles,
             seed_ingredients=seeds, want=want, uncached_cap=uncached_cap,
+            meal_prep_requested=meal_prep_requested,
         )
         for c in extra:
             seen_ids.add(c["id"])
@@ -378,6 +394,8 @@ def _repair_failed_days(
             meals_per_day=meals_per_day, target_macros=target_macros,
             day_numbers=failed, seed_ingredients=seeds,
             variety=profile.get("variety", optimizer.DEFAULT_VARIETY),
+            tools_available=profile.get("tools_available", DEFAULT_TOOLS_AVAILABLE),
+            meal_type_hints=meal_type_hints, meal_prep_requested=meal_prep_requested,
         )
         merged = _merge_results(best, kept_days, sub)
         known = _has_known()
@@ -401,6 +419,83 @@ def _repair_failed_days(
             f"data); a swap or a Macro Kit can close the gap"
         )
     return best, all_candidates, notes
+
+
+# Default corrective food per macro, when a day is still off after every
+# repair round (feature-spec-2026-09-26.md #3) — reuses the Macro Kit's
+# curated component library (engines/kit.py, aboyeur/data/components.py)
+# rather than pulling in a whole extra recipe just to move one number.
+# Fiber isn't included: the spec's fallback targets the three macros the
+# planner's hard gate actually grades (protein/carb/fat), fiber is a note.
+_ADDON_FOOD_FOR_MACRO = {
+    "protein_g": "chicken breast", "carb_g": "white rice", "fat_g": "olive oil",
+}
+
+
+def _raw_ingredient_addon(
+    conn: sqlite3.Connection, config: Config, macro_key: str, gap_g: float
+) -> dict | None:
+    """A corrective raw-ingredient add-on line sized to close ~gap_g of one
+    macro (e.g. "+42g chicken breast (raw)" for a protein shortfall) —
+    surfaced as an explicit line item, never folded invisibly into a
+    recipe's numbers. None when the gap is non-positive or the component's
+    macros don't resolve (no USDA key, lookup failed)."""
+    food_name = _ADDON_FOOD_FOR_MACRO.get(macro_key)
+    if not food_name or gap_g <= 0:
+        return None
+    comp = next((c for c in COMPONENTS if c["name"] == food_name), None)
+    if comp is None:
+        return None
+    resolved = kit.resolve_component(conn, config, comp)
+    per100 = resolved["per_100g"]
+    density = per100.get(macro_key) or 0
+    if density <= 0:
+        return None
+    grams = max(10.0, min(200.0, round(gap_g * 100.0 / density)))
+    factor = grams / 100.0
+    return {
+        "food": food_name, "grams": grams, "raw": True,
+        "kcal": round(per100["kcal"] * factor, 1),
+        "protein_g": round(per100["protein_g"] * factor, 1),
+        "carb_g": round(per100["carb_g"] * factor, 1),
+        "fat_g": round(per100["fat_g"] * factor, 1),
+    }
+
+
+def _attach_addon_suggestions(
+    conn: sqlite3.Connection, config: Config, daily_totals: list[dict],
+    daily_target_macros: dict | None,
+) -> None:
+    """For each day still 'off' after repair, suggest a raw-ingredient
+    add-on for whichever macro (protein/carb/fat) is furthest from target —
+    mutates daily_totals in place, adding an `addon` entry and a gap_notes
+    line. Best-effort: a day with no target or an unresolvable component is
+    left exactly as repair left it."""
+    if not daily_target_macros:
+        return
+    for day in daily_totals:
+        if day.get("macro_status") != "off":
+            continue
+        worst_key, worst_gap = None, 0.0
+        for key in ("protein_g", "carb_g", "fat_g"):
+            target = float(daily_target_macros.get(key) or 0)
+            if target <= 0:
+                continue
+            gap = float(day.get(key) or 0) - target
+            if -gap > worst_gap:  # only ever propose topping UP a shortfall
+                worst_gap, worst_key = -gap, key
+        if worst_key is None or worst_gap <= optimizer.DAILY_MACRO_TOLERANCE_G:
+            continue
+        addon = _raw_ingredient_addon(conn, config, worst_key, worst_gap)
+        if addon is None:
+            continue
+        day["addon"] = addon
+        label = worst_key.replace("_g", "")
+        notes = day.setdefault("gap_notes", [])
+        notes.append(
+            f"try adding {addon['grams']:g}g {addon['food']} (raw) to close the "
+            f"{label} gap (~+{addon[worst_key]:g}g {label})"
+        )
 
 
 def _fmt_g(v) -> str:
@@ -649,6 +744,13 @@ def plan_menu(
         for ings in existing_ings.values():
             seed_ingredients |= optimizer.meaningful_ingredients(ings)
 
+    # Free-text notes -> meal-type hints + meal-prep flag, re-parsed only
+    # when the notes text itself changed since the last plan (see
+    # profile.ensure_notes_parsed / engines/notes.py).
+    notes_hints = ensure_notes_parsed(conn, config, client_id)
+    meal_type_hints = notes_hints["meal_type_hints"]
+    meal_prep_requested = notes_hints["meal_prep_requested"]
+
     wanted_days = list(range(start_day, start_day + int(days)))
     result = optimizer.select_menu(
         candidates, days=days, pantry=pantry, target_kcal=avg_kcal,
@@ -657,6 +759,8 @@ def plan_menu(
         meals_per_day=meals_per_day, target_macros=target_macros,
         start_day=start_day, seed_ingredients=seed_ingredients,
         variety=profile.get("variety", optimizer.DEFAULT_VARIETY),
+        tools_available=profile.get("tools_available", DEFAULT_TOOLS_AVAILABLE),
+        meal_type_hints=meal_type_hints, meal_prep_requested=meal_prep_requested,
     )
 
     # Days that missed target are re-planned from a wider pool (the model's
@@ -669,8 +773,17 @@ def plan_menu(
         meals_per_day=meals_per_day, avg_kcal=avg_kcal, target_macros=target_macros,
         constraints=constraints, exclude_ids=exclude_ids, exclude_titles=exclude_titles,
         seed_ingredients=seed_ingredients,
+        meal_type_hints=meal_type_hints, meal_prep_requested=meal_prep_requested,
     )
     low_confidence_ids = [c["id"] for c in candidates if c["confidence"] == "low"]
+
+    # Still off after every repair round: suggest a raw-ingredient add-on
+    # for whichever macro is furthest short, rather than shipping the gap
+    # silently (feature-spec-2026-09-26.md #3).
+    _attach_addon_suggestions(
+        conn, config, result["daily_totals"],
+        {k: v * meals_per_day for k, v in target_macros.items()} if target_macros else None,
+    )
 
     # Only a plan with EMPTY slots is refused now — the library genuinely has
     # nothing eligible left even after widening. Days that are merely off

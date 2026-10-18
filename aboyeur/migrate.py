@@ -5,6 +5,12 @@ many clients, and each client owns the household data).
 Idempotent — every step checks the current shape before touching it, so it's
 safe on a fresh DB (nothing to do, db.init_db() already created the final
 shape) or on either older one. Run by hand: `uv run python -m aboyeur.migrate`.
+
+The steps are forward-only: two of them (rebuilding a table, encrypting rows
+in place) can't be undone by running code. So migrate() refuses to do that
+kind of work without first writing a snapshot it can be restored from.
+
+A schema version table is added to track the migration state from the outside.
 """
 
 from __future__ import annotations
@@ -12,12 +18,19 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+from pathlib import Path
 
 from aboyeur.crypto import encrypt_field, is_encrypted_field
 
 # The existing single household's data folds under this account. Change
 # before running if a different owner is wanted.
 SEED_USER_EMAIL = "thepartycaravan@gmail.com"
+
+# Stamped into schema_version once migrate() completes. Bump it in the same
+# commit as any new step, so a database says from the outside which shape it
+# is in — `sqlite3 aboyeur.db "SELECT * FROM schema_version"` — without
+# inferring it from PRAGMA table_info.
+SCHEMA_VERSION = 2
 
 
 def _column_names(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -147,6 +160,38 @@ def _add_nutrition_servings_est(conn: sqlite3.Connection) -> None:
         conn.commit()
 
 
+def _add_nutrition_override_columns(conn: sqlite3.Connection) -> None:
+    """Manual macro correction (feature-spec-2026-09-26.md #1). Plain ADD
+    COLUMNs, defaulted off, nothing to backfill."""
+    if not _table_exists(conn, "nutrition"):
+        return
+    existing = _column_names(conn, "nutrition")
+    if "override_json" not in existing:
+        conn.execute("ALTER TABLE nutrition ADD COLUMN override_json TEXT")
+    if "is_override" not in existing:
+        conn.execute("ALTER TABLE nutrition ADD COLUMN is_override INTEGER NOT NULL DEFAULT 0")
+    conn.commit()
+
+
+def _add_recipe_equipment_and_meal_prep_columns(conn: sqlite3.Connection) -> None:
+    """equipment_json/equipment_classified_at (#5) and meal_prep/meal_prep_at
+    (#2) on recipes. NULL/0 defaults — aboyeur.classify_equipment and
+    aboyeur.classify_meal_prep backfill the real values."""
+    if not _table_exists(conn, "recipes"):
+        return
+    existing = _column_names(conn, "recipes")
+    stmts = {
+        "equipment_json": "ALTER TABLE recipes ADD COLUMN equipment_json TEXT",
+        "equipment_classified_at": "ALTER TABLE recipes ADD COLUMN equipment_classified_at TEXT",
+        "meal_prep": "ALTER TABLE recipes ADD COLUMN meal_prep INTEGER NOT NULL DEFAULT 0",
+        "meal_prep_at": "ALTER TABLE recipes ADD COLUMN meal_prep_at TEXT",
+    }
+    for col, sql in stmts.items():
+        if col not in existing:
+            conn.execute(sql)
+    conn.commit()
+
+
 def _add_account_columns(conn: sqlite3.Connection) -> None:
     """The account screen needs somewhere to put the practitioner's own name.
     Plain ADD COLUMNs: nullable, no default, nothing to backfill."""
@@ -258,10 +303,13 @@ def _encrypt_pii_rows(conn: sqlite3.Connection) -> None:
     """Encrypt existing clients.name/email/phone/notes and profile.data_json
     under DATA_KEY. Idempotent by the `enc:` prefix: already-encrypted rows
     are skipped, so a re-run (or an interrupted first run) is safe."""
+    # Snapshot before destructive work (in-place row rewrite)
+    _snapshot_before(conn, str(Path(conn.execute("PRAGMA database_list").fetchone()[2]).parent / "snapshot-pre-migrate.sqlite3"))
+    
     if _table_exists(conn, "clients"):
         for row in conn.execute("SELECT id, name, email, phone, notes FROM clients").fetchall():
             if all(v is None or is_encrypted_field(v)
-                   for v in (row["name"], row["email"], row["phone"], row["notes"])):
+                    for v in (row["name"], row["email"], row["phone"], row["notes"])):
                 continue
             conn.execute(
                 "UPDATE clients SET name = ?, email = ?, phone = ?, notes = ? WHERE id = ?",
@@ -377,6 +425,31 @@ _CLIENT_SCOPED = {
 }
 
 
+def _snapshot_before(conn: sqlite3.Connection, snapshot_path: str) -> None:
+    """Write a VACUUM INTO snapshot as a precondition for destructive work,
+    before the snapshot path. If the write fails, the migration must not run.
+    This is a read on the source DB (respects single writer) and the write goes to a
+    different file, so it's safe against a live connection.
+
+    A no-op when the snapshot already exists: two destructive steps in the
+    same migrate() run (or a second, idempotent migrate() call that finds
+    nothing left to do) both call this with the same path, and VACUUM INTO
+    refuses to overwrite an existing file. The first snapshot taken is
+    already "before any destructive work" — that's the one worth keeping.
+    """
+    dest = Path(snapshot_path)
+    if dest.exists():
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # Use a read-only connection to avoid taking the write lock.
+    # The source DB is the one we're migrated; we snap it before we change it.
+    src_uri = f"file:{conn.execute('PRAGMA database_list').fetchone()[2]}?mode=ro"
+    try:
+        sqlite3.connect(src_uri).execute(f"VACUUM INTO '{dest}';").close()
+    except Exception as e:
+        raise RuntimeError(f"Cannot snapshot database to {dest}: {e}") from e
+
+
 def _migrate_chat_sessions(conn: sqlite3.Connection) -> None:
     """Give the first round's per-client transcripts a conversation to live in.
 
@@ -389,6 +462,9 @@ def _migrate_chat_sessions(conn: sqlite3.Connection) -> None:
         return
     if "client_id" not in _column_names(conn, "chat_messages"):
         return
+
+    # Snapshot before destructive work (rebuilds chat_messages)
+    _snapshot_before(conn, str(Path(conn.execute("PRAGMA database_list").fetchone()[2]).parent / "snapshot-pre-migrate.sqlite3"))
 
     conn.execute("BEGIN IMMEDIATE")
     try:
@@ -490,13 +566,20 @@ def migrate(conn: sqlite3.Connection) -> int:
     _add_is_admin_column(conn)
     _add_recipe_classification_columns(conn)
     _add_nutrition_servings_est(conn)
+    _add_nutrition_override_columns(conn)
+    _add_recipe_equipment_and_meal_prep_columns(conn)
     _migrate_chat_sessions(conn)
     # After _migrate_chat_sessions: it rebuilds chat_messages, and the
     # sensitivity columns must land on the rebuilt table, not the old one.
     _add_saas_columns(conn)
     _seed_billing_tables(conn)
     _encrypt_pii_rows(conn)
-    # Deliberately not in db.py's static SCHEMA — see the comment above the
+    # Create schema version table to track migration state from outside
+    if not _table_exists(conn, "schema_version"):
+        conn.execute("CREATE TABLE schema_version (version INTEGER PRIMARY KEY)")
+    conn.execute("DELETE FROM schema_version WHERE version = ?", (SCHEMA_VERSION,))
+    conn.commit()
+    #  not in db.py's static SCHEMA — see the comment above the
     # menus table there. Safe to run every time: the scoping column is
     # guaranteed to exist by this point, whether the table was just rebuilt
     # above or was already fresh.
@@ -504,14 +587,16 @@ def migrate(conn: sqlite3.Connection) -> int:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_kits_client ON kits(client_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_clients_user ON clients(user_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_messages_session "
-                 "ON chat_messages(session_id, id)")
+                  "ON chat_messages(session_id, id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_sessions_client "
-                 "ON chat_sessions(client_id, updated_at)")
+                  "ON chat_sessions(client_id, updated_at)")
     conn.execute("DROP INDEX IF EXISTS idx_chat_messages_client")
     # The pre-client indexes are dead once the tables are re-keyed; SQLite
     # drops them with the old tables, but an interrupted run could leave one.
     conn.execute("DROP INDEX IF EXISTS idx_menus_user")
     conn.execute("DROP INDEX IF EXISTS idx_kits_user")
+    # Set the schema version after all migrations are complete
+    conn.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
     conn.commit()
     return seed_user_id
 

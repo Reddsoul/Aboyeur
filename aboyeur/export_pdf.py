@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import re
 import sqlite3
 from pathlib import Path
@@ -32,6 +33,7 @@ from markdown_it import MarkdownIt
 
 from aboyeur.config import Config
 from aboyeur.crypto import decrypt_field
+from aboyeur.engines.nutrition import fold_plural
 from aboyeur.tools.recipe import get_recipe
 from aboyeur.tools.shopping import get_shopping_list
 
@@ -99,6 +101,143 @@ def clean_recipe_markdown(md: str) -> str:
     md = unwrap_wikilinks(md)
     md = _IMAGE.sub("", md)  # write_html would try to open the file
     return md.strip()
+
+
+# ---------------------------------------------------------------------------
+# Ingredient quantity scaling (feature-spec-2026-09-26.md #4)
+#
+# recipes.ingredients_json is NOT quantity-bearing — it's the frontmatter's
+# bare food-noun list ("mustard oil", "beef"), used for search/overlap/USDA
+# lookup, not the "2 tablespoons mustard oil" line a cook actually reads.
+# The real per-recipe quantities only exist in the recipe's own markdown,
+# under its "## Ingredients" heading — so scaling has to operate on THAT
+# text, not on ingredients_json as originally suggested.
+#
+# Only lines with a digit-led leading quantity ("2 tablespoons", "1/2 cup",
+# "6 eggs") are scaled; older-book lines that spell the quantity as a word
+# ("six of almonds", "the yolks of four eggs") are left exactly as written
+# rather than risk mis-scaling prose — a conservative, honest limitation of
+# this pass, not a silent wrong answer.
+# ---------------------------------------------------------------------------
+
+_ING_HEADING_RE = re.compile(r"(?im)^#{2,3}[ \t]*ingredients[ \t]*$\n")
+_NEXT_HEADING_RE = re.compile(r"(?m)^#{1,6}[ \t]")
+_BULLET_RE = re.compile(r"(?m)^([-*][ \t]+|\d+[.)][ \t]+)")
+
+_UNICODE_FRACTIONS = {
+    "⅛": 0.125, "¼": 0.25, "⅓": 1 / 3, "⅜": 0.375, "½": 0.5,
+    "⅝": 0.625, "⅔": 2 / 3, "¾": 0.75, "⅞": 0.875,
+}
+_DISPLAY_FRACTIONS = sorted(_UNICODE_FRACTIONS.items(), key=lambda kv: kv[1])
+
+_LEADING_QTY_RE = re.compile(
+    r"^(?:"
+    r"(?P<num>\d+(?:\.\d+)?)(?!/)(?:[ \t]+(?P<mfrac>\d+/\d+))?"  # "2", "1.5", "1 1/2"
+    r"|(?P<frac>\d+/\d+)"                                        # "1/2" with no leading whole
+    r")?"
+    r"(?P<ufrac>[¼½¾⅐-⅞])?"
+    r"(?P<rest>.*)$",
+    re.DOTALL,
+)
+
+# Measure words: a fraction of one of these ("1/2 cup") is fine as printed.
+# Anything else right after the number is a discrete count of the food or
+# its container itself ("6 eggs", "2 cans tomatoes", "2 red onions") — those
+# round UP instead, since 2.3 eggs or 1.4 cans isn't cookable.
+_CONTINUOUS_UNITS = {
+    "cup", "tablespoon", "tbsp", "teaspoon", "tsp", "ounce", "oz", "pound",
+    "lb", "gram", "g", "kg", "ml", "milliliter", "millilitre", "liter",
+    "litre", "pint", "quart", "gallon", "pinch", "dash", "handful", "stick",
+    "bunch",
+}
+
+
+def _leading_qty_value(
+    num: str | None, mfrac: str | None, frac: str | None, ufrac: str | None
+) -> float | None:
+    if num is None and frac is None and ufrac is None:
+        return None
+    value = float(num) if num else 0.0
+    for f in (mfrac, frac):
+        if f:
+            n, d = f.split("/")
+            value += float(n) / float(d) if float(d) else 0.0
+    if ufrac:
+        value += _UNICODE_FRACTIONS.get(ufrac, 0.0)
+    return value
+
+
+def _format_qty(value: float) -> str:
+    """A scaled continuous quantity as a kitchen-sane string: a clean
+    unicode fraction when it's close to one, else a short decimal."""
+    whole = int(value)
+    frac = value - whole
+    if frac < 0.04:
+        return str(whole)
+    for glyph, gval in _DISPLAY_FRACTIONS:
+        if abs(frac - gval) < 0.04:
+            return f"{whole} {glyph}" if whole else glyph
+    return f"{value:.2g}".rstrip("0").rstrip(".") or "0"
+
+
+def _round_continuous(value: float) -> float:
+    """Snap to a measurable kitchen fraction — eighths below 8 (cups/tbsp/
+    tsp resolution), halves above it (nobody measures 12⅛ cups)."""
+    step = 8.0 if value <= 8 else 2.0
+    return round(value * step) / step
+
+
+def scale_ingredient_line(line: str, multiplier: float) -> str:
+    """Scale one "## Ingredients" bullet's leading quantity by `multiplier`,
+    leaving the unit and food name untouched. A continuous measure (cup,
+    tablespoon, gram, ...) rounds to a clean kitchen fraction; a bare count
+    of the food itself (eggs, cloves, cans — no measure word between the
+    number and the noun) rounds UP with a note, since "2.3 eggs" isn't
+    something anyone can cook. A line with no leading number ("salt to
+    taste") is returned unchanged — there's nothing to scale."""
+    m = _LEADING_QTY_RE.match(line)
+    if not m:
+        return line
+    value = _leading_qty_value(m.group("num"), m.group("mfrac"), m.group("frac"), m.group("ufrac"))
+    if value is None or value <= 0:
+        return line
+    rest = m.group("rest")
+    unit_match = re.match(r"[ \t]*([A-Za-z]+)", rest)
+    unit_word = fold_plural(unit_match.group(1)) if unit_match else ""
+    scaled = value * multiplier
+
+    if unit_word in _CONTINUOUS_UNITS:
+        return _format_qty(_round_continuous(scaled)) + rest
+
+    rounded = math.ceil(scaled - 1e-9)
+    note = "" if abs(rounded - scaled) < 0.05 else " (rounded up)"
+    return f"{rounded}{rest}{note}"
+
+
+def scale_recipe_ingredients_markdown(markdown: str, multiplier: float) -> str:
+    """Rewrite the quantities in a recipe's "## Ingredients" section to
+    match `multiplier`, leaving every other section (instructions, notes)
+    byte-for-byte alone. A multiplier of ~1.0, or a recipe with no
+    Ingredients heading to find, returns the markdown unchanged."""
+    if abs(multiplier - 1.0) < 0.005:
+        return markdown
+    heading = _ING_HEADING_RE.search(markdown)
+    if not heading:
+        return markdown
+    start = heading.end()
+    rest = markdown[start:]
+    next_heading = _NEXT_HEADING_RE.search(rest)
+    end = start + (next_heading.start() if next_heading else len(rest))
+    section = markdown[start:end]
+
+    scaled_lines = []
+    for line in section.split("\n"):
+        bullet = _BULLET_RE.match(line)
+        if not bullet:
+            scaled_lines.append(line)
+            continue
+        scaled_lines.append(bullet.group(0) + scale_ingredient_line(line[bullet.end():], multiplier))
+    return markdown[:start] + "\n".join(scaled_lines) + markdown[end:]
 
 
 _md = MarkdownIt("commonmark").enable("table").enable("strikethrough")
@@ -282,10 +421,14 @@ def _macro_line(slot: dict) -> str:
 
 
 def _portion_note(slot: dict) -> str | None:
+    """Ingredients below are already re-scaled by scale_recipe_ingredients_
+    markdown — this states that plainly instead of quoting a bare
+    multiplier the reader would otherwise have to apply themselves
+    (feature-spec-2026-09-26.md #4)."""
     pm = slot.get("portion_multiplier") or 1.0
     if abs(pm - 1.0) < 0.005:
         return None
-    note = f"Portion: eat {pm:g} servings of this dish."
+    note = f"Ingredients below are scaled to {pm:g}x — eat {pm:g} servings of this dish."
     if slot.get("recipe_servings"):
         note += f" Recipe as written makes {slot['recipe_servings']} servings."
     return note
@@ -492,8 +635,11 @@ def _render_recipes(pdf: _MenuPDF, doc: dict) -> None:
             continue
         pdf.set_font(FONT_FAMILY, "", 10)
         pdf.set_text_color(*_INK)
+        scaled_markdown = scale_recipe_ingredients_markdown(
+            r["markdown"], s.get("portion_multiplier") or 1.0
+        )
         pdf.write_html(
-            markdown_to_html(_drop_title_heading(r["markdown"], s.get("title", ""))),
+            markdown_to_html(_drop_title_heading(scaled_markdown, s.get("title", ""))),
             font_family=FONT_FAMILY,
             tag_styles=_RECIPE_TAG_STYLES,
             li_prefix_color=_INK,

@@ -27,6 +27,24 @@ const SEXES = [
 const ALLERGEN_PRESETS = ['Peanut', 'Tree nut', 'Shellfish', 'Dairy', 'Egg', 'Gluten', 'Soy', 'Fish'];
 const CUISINE_PRESETS = ['Italian', 'Mexican', 'Indian', 'Chinese', 'Thai', 'Japanese', 'Mediterranean', 'French', 'American', 'Korean'];
 const DIET_PRESETS = ['Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 'Gluten-free', 'Dairy-free', 'Low-carb'];
+// Matches aboyeur/tools/profile.py DEFAULT_TOOLS_AVAILABLE + the tag
+// vocabulary aboyeur/classify_equipment.py scans recipes for.
+const TOOL_PRESETS: { key: string; label: string }[] = [
+  { key: 'oven', label: 'Oven' },
+  { key: 'stovetop', label: 'Stovetop' },
+  { key: 'pots_and_pans', label: 'Pots & pans' },
+  { key: 'mixing_bowls', label: 'Mixing bowls' },
+  { key: 'blender', label: 'Blender' },
+  { key: 'food_processor', label: 'Food processor' },
+  { key: 'slow_cooker', label: 'Slow cooker' },
+  { key: 'instant_pot', label: 'Instant Pot / pressure cooker' },
+  { key: 'air_fryer', label: 'Air fryer' },
+  { key: 'wok', label: 'Wok' },
+  { key: 'grill', label: 'Grill' },
+  { key: 'stand_mixer', label: 'Stand / hand mixer' },
+  { key: 'dutch_oven', label: 'Dutch oven' },
+  { key: 'sous_vide', label: 'Sous vide' },
+];
 
 /** One member as the form holds it: every numeric is a string while editing so
  * a half-typed value never becomes NaN, and blank means "unset" on save. */
@@ -143,6 +161,124 @@ function Anthro({ m, imperial, patch }: { m: MemberForm; imperial: boolean; patc
   );
 }
 
+/** Manually correct one member's computed daily kcal/macro target — the
+ * BMR/TDEE number was wrong for them (medical condition, a number the
+ * client states directly, etc). Same "override wins, calc stays
+ * underneath" shape as a recipe's manual macro correction in Library.tsx. */
+function MemberTargetOverride({
+  clientId,
+  memberId,
+  target,
+  onChanged,
+}: {
+  clientId: number;
+  memberId: string;
+  target: api.MemberTarget;
+  onChanged: (p: api.Profile) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ kcal: '', protein_g: '', carb_g: '', fat_g: '', fiber_g: '' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setError(null);
+    setDraft({
+      kcal: String(target.daily_kcal ?? ''),
+      protein_g: String(target.daily_macros?.protein_g ?? ''),
+      carb_g: String(target.daily_macros?.carb_g ?? ''),
+      fat_g: String(target.daily_macros?.fat_g ?? ''),
+      fiber_g: String(target.daily_macros?.fiber_g ?? ''),
+    });
+    setEditing(true);
+  }
+
+  async function save() {
+    const n = (v: string) => Number(v);
+    const kcal = n(draft.kcal);
+    const protein_g = n(draft.protein_g);
+    const carb_g = n(draft.carb_g);
+    const fat_g = n(draft.fat_g);
+    const fiber_g = draft.fiber_g.trim() === '' ? undefined : n(draft.fiber_g);
+    if ([kcal, protein_g, carb_g, fat_g].some((v) => Number.isNaN(v))) {
+      setError('Every field needs a number.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await api.setMemberTargetOverride(clientId, memberId, { kcal, protein_g, carb_g, fat_g, fiber_g });
+      onChanged(saved);
+      setEditing(false);
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.status === 400
+          ? "That doesn't add up — kcal should roughly match 4×protein + 4×carb + 9×fat."
+          : "Couldn't save the override.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reset() {
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await api.clearMemberTargetOverride(clientId, memberId);
+      onChanged(saved);
+      setEditing(false);
+    } catch {
+      setError("Couldn't reset to the computed target.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="pf-override-actions">
+        <button type="button" className="pf-override-btn" onClick={startEditing}>
+          {target.source === 'override' ? 'Edit override' : 'Correct target'}
+        </button>
+        {target.source === 'override' && (
+          <button type="button" className="pf-override-btn" disabled={busy} onClick={() => void reset()}>
+            Reset to computed
+          </button>
+        )}
+        {error && <p className="pf-override-error">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pf-override-form">
+      <div className="pf-override-grid">
+        {(['kcal', 'protein_g', 'carb_g', 'fat_g', 'fiber_g'] as const).map((key) => (
+          <div key={key} className="pf-override-field">
+            <label>{key === 'kcal' ? 'kcal' : key.replace('_g', ' g')}</label>
+            <input
+              className="text-input"
+              inputMode="decimal"
+              value={draft[key]}
+              onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+            />
+          </div>
+        ))}
+      </div>
+      {error && <p className="pf-override-error">{error}</p>}
+      <div className="pf-override-actions">
+        <button type="button" className="pf-override-btn pf-override-btn-primary" disabled={busy} onClick={() => void save()}>
+          {busy ? 'Saving…' : 'Save override'}
+        </button>
+        <button type="button" className="pf-override-btn" disabled={busy} onClick={() => setEditing(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   /** Whose profile this is. Every read and write on this screen is scoped to
    * this one client — there is no "current profile" independent of them. */
@@ -179,9 +315,11 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
   const [mealsPerDay, setMealsPerDay] = useState(3);
   const [variety, setVariety] = useState(50);
   const [units, setUnits] = useState<'metric' | 'imperial'>('imperial');
+  const [toolsAvailable, setToolsAvailable] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
   const [targets, setTargets] = useState<Record<string, api.MemberTarget>>({});
 
-  const [drafts, setDrafts] = useState({ member: '', allergy: '', dislike: '', like: '' });
+  const [drafts, setDrafts] = useState({ member: '', allergy: '', dislike: '', like: '', tool: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -199,6 +337,8 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
     setMealsPerDay(profile.meals_per_day ?? 3);
     setVariety(profile.variety ?? 50);
     setUnits(profile.units === 'metric' ? 'metric' : 'imperial');
+    setToolsAvailable(profile.tools_available ?? ['stovetop', 'oven', 'pots_and_pans', 'mixing_bowls']);
+    setNotes(profile.notes ?? '');
     setTargets(profile.targets ?? {});
   }, []);
 
@@ -245,7 +385,7 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
     setStatus(null);
   }
 
-  function addTo(list: string[], setList: (v: string[]) => void, key: 'allergy' | 'dislike' | 'like') {
+  function addTo(list: string[], setList: (v: string[]) => void, key: 'allergy' | 'dislike' | 'like' | 'tool') {
     const v = drafts[key].trim();
     if (!v || list.some((x) => x.toLowerCase() === v.toLowerCase())) return;
     touch(setList)([...list, v]);
@@ -271,6 +411,8 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
         meals_per_day: mealsPerDay,
         units,
         variety,
+        tools_available: toolsAvailable,
+        notes,
       });
       // Re-render from what the server stored: ids get slugged and targets are
       // recomputed there, so echoing the local state back would drift.
@@ -395,21 +537,33 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
 
                     {t && (
                       <div className="pf-target">
-                        <span className={`pf-badge ${t.source === 'bmr' ? 'pf-badge-ok' : ''}`}>
-                          {t.source === 'bmr' ? 'computed' : 'estimate'}
+                        <span className={`pf-badge ${t.source === 'bmr' ? 'pf-badge-ok' : t.source === 'override' ? 'pf-badge-override' : ''}`}>
+                          {t.source === 'bmr' ? 'computed' : t.source === 'override' ? 'manually corrected' : 'estimate'}
                         </span>
                         <span>
                           <b>{t.daily_kcal}</b> kcal/day
                         </span>
-                        <span className="pf-target-macros">
-                          maintenance {t.maintenance_kcal} · goal {t.goal_adjust_kcal >= 0 ? '+' : ''}
-                          {t.goal_adjust_kcal}
-                        </span>
+                        {t.source !== 'override' && (
+                          <span className="pf-target-macros">
+                            maintenance {t.maintenance_kcal} · goal {t.goal_adjust_kcal >= 0 ? '+' : ''}
+                            {t.goal_adjust_kcal}
+                          </span>
+                        )}
                         <span className="pf-target-macros">
                           per meal {Math.round(t.per_meal.kcal)} kcal · {Math.round(t.per_meal.protein_g)}p /{' '}
                           {Math.round(t.per_meal.carb_g)}c / {Math.round(t.per_meal.fat_g)}f
                         </span>
                         {t.source === 'fallback' && <span className="pf-target-macros">Fill in sex, age, height and weight for a real BMR number.</span>}
+                        <MemberTargetOverride
+                          clientId={clientId}
+                          memberId={m.id}
+                          target={t}
+                          // Only refresh the computed-targets strip — a full
+                          // apply() would rebuild `members` from the server
+                          // response and collapse every open card (toForm
+                          // always resets open: false).
+                          onChanged={(p) => setTargets(p.targets ?? {})}
+                        />
                       </div>
                     )}
                   </div>
@@ -547,6 +701,68 @@ export default function Profile({ clientId, clientName, onSaved }: Props) {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* --- kitchen equipment ------------------------------------------ */}
+        <section className="pf-section">
+          <div>
+            <h2 className="pf-section-title">Kitchen equipment</h2>
+            <p className="pf-section-sub">
+              Recipes that need something not checked here are excluded from this client&apos;s menus.
+              Starts with a common-kitchen set — uncheck what they don&apos;t have.
+            </p>
+          </div>
+          <div className="pf-chips">
+            {TOOL_PRESETS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`pf-chip ${toolsAvailable.some((x) => x.toLowerCase() === t.key) ? 'pf-chip-on' : ''}`}
+                onClick={() => toggle(toolsAvailable, setToolsAvailable, t.key)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {toolsAvailable.filter((x) => !TOOL_PRESETS.some((t) => t.key === x.toLowerCase())).length > 0 && (
+            <div className="pf-chips">
+              {toolsAvailable
+                .filter((x) => !TOOL_PRESETS.some((t) => t.key === x.toLowerCase()))
+                .map((x) => (
+                  <RemovableChip key={x} label={x} tone="accent" onRemove={() => toggle(toolsAvailable, setToolsAvailable, x)} />
+                ))}
+            </div>
+          )}
+          <div className="pf-add-row">
+            <input
+              className="text-input"
+              placeholder="Add another tool, e.g. rice cooker"
+              value={drafts.tool}
+              onChange={(e) => setDrafts((d) => ({ ...d, tool: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTo(toolsAvailable, setToolsAvailable, 'tool'))}
+            />
+            <button type="button" className="pf-add-btn" onClick={() => addTo(toolsAvailable, setToolsAvailable, 'tool')}>
+              Add
+            </button>
+          </div>
+        </section>
+
+        {/* --- notes ------------------------------------------------------ */}
+        <section className="pf-section">
+          <div>
+            <h2 className="pf-section-title">Notes</h2>
+            <p className="pf-section-sub">
+              Free-text diet logic — e.g. &ldquo;steak is breakfast for me&rdquo; or &ldquo;wants meal-prep-friendly
+              dinners&rdquo;. Read automatically the next time a menu is planned; separate from the practitioner
+              notes on the client card.
+            </p>
+          </div>
+          <textarea
+            className="text-input pf-textarea"
+            placeholder="e.g. eggs are breakfast only, prefers batch-cookable dinners"
+            value={notes}
+            onChange={(e) => touch(setNotes)(e.target.value)}
+          />
         </section>
 
         {/* --- household defaults ---------------------------------------- */}

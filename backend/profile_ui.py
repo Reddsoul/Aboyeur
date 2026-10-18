@@ -83,15 +83,33 @@ def save_profile(conn: sqlite3.Connection, client_id: int, desired: dict) -> dic
         patch["set_variety"] = int(desired["variety"])
     if desired.get("units") in ("metric", "imperial"):
         patch["set_units"] = desired["units"]
+    if "tools_available" in desired:
+        patch["set_tools_available"] = [
+            str(t).strip() for t in (desired.get("tools_available") or []) if str(t).strip()
+        ]
+    if "notes" in desired:
+        patch["set_notes"] = str(desired.get("notes") or "")
     update_profile(conn, client_id, patch)
 
     members = [m for m in (_clean_member(r) for r in desired.get("household") or []) if m]
+    # target_override isn't a form field (it's set/cleared through its own
+    # dedicated action, not this wholesale save) — carry each member's
+    # existing override across the replace below so saving the rest of the
+    # form never silently drops it.
+    overrides = {
+        m["id"]: m["target_override"]
+        for m in get_profile(conn, client_id).get("household", [])
+        if m.get("target_override")
+    }
     # Wholesale replace: remove everyone, re-add the form's rows. add_member's
     # merge semantics would resurrect fields the user deliberately blanked.
     for m in get_profile(conn, client_id).get("household", []):
         update_profile(conn, client_id, {"remove_member": m["id"]})
     if members:
         update_profile(conn, client_id, {"add_member": members})
+    for member_id, override in overrides.items():
+        if any(m["id"] == member_id for m in members):
+            update_profile(conn, client_id, {"set_member_target_override": {"id": member_id, **override}})
 
     return get_profile(conn, client_id)
 

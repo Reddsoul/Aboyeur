@@ -206,7 +206,7 @@ docker compose run --rm litestream restore -config /etc/litestream.yml -o /data/
 |---|---|
 | Deploy a change | `git pull && docker compose up -d --build` (backend restart drops in-flight chat turns — do it at a quiet hour) |
 | Logs | `docker compose logs -f backend` (JSON lines; no chat content, PII masked) |
-| Health | `GET /health` → `{ok, db, litestream_lag_s, version}`; alert if `litestream_lag_s` > 60 |
+| Health | `GET /health` → `{ok, db, version}` — 200 when the database answers, 503 when it does not. **`ok` is a database check only; it says nothing about backups.** `litestream_lag_s` (seconds since the last successful replica sync, or `null` if the metrics endpoint cannot be read) is added only when `LITESTREAM_METRICS_URL` is set — compose sets it, the Mac mini beta does not, so on that box the field is simply absent and `ok: true` on a box with no replication is expected output, not an all-clear. There is no backup alarm yet; see `docs/beta-baseline-2026-09-24.md` D4 |
 | Grant admin | `docker compose exec backend aboyeur set-admin <email>` |
 | Invite codes | admin → Invites, or `aboyeur invite --uses 1 --expires-days 30` |
 | Comp a user / add credit / override provider | admin → Users → account |

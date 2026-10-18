@@ -172,15 +172,50 @@ def household_targets(profile: dict) -> dict:
     """Per-person per-meal targets for the whole household.
 
     Returns {member_id: {label, bmr_kcal, maintenance_kcal, daily_kcal,
-    source, per_meal:{...}}}. bmr_kcal is None when source == "fallback".
+    source, per_meal:{...}, daily_macros:{...}}}. bmr_kcal is None when
+    source == "fallback"; it's still populated (for reference) when
+    source == "override" and full anthropometrics exist.
+
+    A member with a manually-set target_override (tools/profile.py
+    set_member_target_override — the practitioner saying the computed BMR/
+    TDEE number is wrong for this person) skips the BMR/goal math entirely:
+    daily_kcal and daily_macros/per_meal come straight from the override,
+    not the fixed 30/40/30 split of it. This is the same override-wins
+    shape as a recipe's manual macro correction (engines/nutrition.
+    get_effective_macros) — the calculated numbers underneath are never
+    touched, so clearing the override just goes back to computing them.
     """
     household_meals = profile.get("meals_per_day", 3)
     out = {}
     for m in profile.get("household", []):
         bmr = bmr_for_member(m)
+        meals = m.get("meals_per_day", household_meals)
+        override = m.get("target_override")
+        if override:
+            daily = float(override["kcal"])
+            daily_macros = {
+                "kcal": round(daily, 1),
+                "protein_g": round(float(override["protein_g"]), 1),
+                "carb_g": round(float(override["carb_g"]), 1),
+                "fat_g": round(float(override["fat_g"]), 1),
+                "fiber_g": round(float(override.get("fiber_g") or fiber_target_g(daily)), 1),
+            }
+            n_meals = max(1, int(meals or 1))
+            out[m["id"]] = {
+                "label": m.get("label", m["id"]),
+                "goal": (m.get("goal") or "maintain").strip().lower(),
+                "goal_weight_kg": m.get("goal_weight_kg"),
+                "goal_adjust_kcal": round(goal_adjust_kcal(m)),
+                "bmr_kcal": round(bmr) if bmr is not None else None,
+                "maintenance_kcal": round(maintenance_kcal_for_member(m)),
+                "daily_kcal": round(daily),
+                "source": "override",
+                "per_meal": {k: round(v / n_meals, 1) for k, v in daily_macros.items()},
+                "daily_macros": daily_macros,
+            }
+            continue
         maintenance = maintenance_kcal_for_member(m)
         daily = daily_kcal_for_member(m)
-        meals = m.get("meals_per_day", household_meals)
         out[m["id"]] = {
             "label": m.get("label", m["id"]),
             "goal": (m.get("goal") or "maintain").strip().lower(),
@@ -561,6 +596,65 @@ def validated_per_100g(macros: dict) -> dict | None:
     ]})
 
 
+def validated_recipe_macros(macros: dict) -> dict | None:
+    """Sanity-gate a manual per-serving macro override (feature-spec-2026-09-26.md
+    #1) the same physical way validated_per_100g gates a curated per-100g row:
+    non-negative, and stated kcal must agree with its own Atwater energy. No
+    105g-per-100g cap here — that check is specific to per-100g rows and a
+    real serving's protein+carb+fat can exceed 100g. Returns None (caller
+    rejects the override) on a row that fails, so a typo fails loudly rather
+    than poisoning every menu that uses this recipe."""
+    protein = float(macros.get("protein_g") or 0)
+    carb = float(macros.get("carb_g") or 0)
+    fat = float(macros.get("fat_g") or 0)
+    fiber = float(macros.get("fiber_g") or 0)
+    kcal = float(macros.get("kcal") or 0)
+    if min(kcal, protein, carb, fat, fiber) < 0:
+        return None
+    if fiber > carb + 5:
+        fiber = 0.0
+    atwater = 4.0 * protein + 4.0 * carb + 9.0 * fat
+    if kcal <= 0:
+        if atwater <= 0:
+            return None
+        kcal = atwater
+    elif kcal >= 20 and abs(kcal - atwater) / kcal > _ATWATER_TOLERANCE:
+        return None
+    return {"kcal": kcal, "protein_g": protein, "carb_g": carb, "fat_g": fat, "fiber_g": fiber}
+
+
+def get_effective_macros(conn: sqlite3.Connection, recipe_id: int) -> dict | None:
+    """The macros every caller should plan/score/print against: the manual
+    override when one is set, else the calculated estimate. Single choke
+    point per feature-spec-2026-09-26.md #1 — scoring, the day solver, and
+    the PDF all read macros by going through estimate_nutrition (tools/
+    nutrition.py), which calls this before ever touching the calculated
+    columns, so a set override can't be seen by one consumer and missed by
+    another. Returns None when no nutrition row exists yet at all (caller's
+    cue to run the normal estimate)."""
+    row = conn.execute(
+        "SELECT kcal, protein_g, carbs_g, fat_g, fiber_g, confidence, servings_est, "
+        "override_json, is_override FROM nutrition WHERE recipe_id = ?",
+        (recipe_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    if row["is_override"] and row["override_json"]:
+        override = json.loads(row["override_json"])
+        return {
+            "kcal": override["kcal"], "protein_g": override["protein_g"],
+            "carb_g": override["carb_g"], "fat_g": override["fat_g"],
+            "fiber_g": override.get("fiber_g", 0), "confidence": "override",
+            "servings_est": row["servings_est"],
+        }
+    return {
+        "kcal": row["kcal"], "protein_g": row["protein_g"],
+        "carb_g": row["carbs_g"], "fat_g": row["fat_g"],
+        "fiber_g": row["fiber_g"], "confidence": row["confidence"],
+        "servings_est": row["servings_est"],
+    }
+
+
 def _retry_after_seconds(resp) -> float:
     try:
         return max(1.0, float(resp.headers.get("Retry-After", "60")))
@@ -756,7 +850,14 @@ def estimate_recipe_macros(
             scale = total_grams / matched_grams
             totals = {k: v * scale for k, v in totals.items()}
     elif matched:
-        status = "partial"  # under half resolved — too thin to trust
+        status = "partial"  # under half resolved — too thin to trust as-is
+        # Extrapolate the same way a "success" estimate does: the resolved
+        # ingredients' per-gram density is the best available raw per-100g
+        # fallback for the ones that failed, rather than silently counting
+        # them as 0 kcal (feature-spec-2026-09-26.md #3).
+        if matched_grams > 0:
+            scale = total_grams / matched_grams
+            totals = {k: v * scale for k, v in totals.items()}
     elif all(s == "skipped" for s in statuses):
         status = "skipped"
     else:

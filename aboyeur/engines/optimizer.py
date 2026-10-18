@@ -39,6 +39,14 @@ W_MACRO_FIT = 3.0
 # adequacy).
 W_SAME_BOOK_PENALTY = 0.4
 W_PROTEIN_REPEAT_PENALTY = 0.4
+# Slot 1 of a multi-meal day wants a breakfast-course dish; every later slot
+# in that day deprioritizes one (a classified breakfast dish CAN still fill
+# a dinner slot if nothing better exists — this is a scoring nudge, not a
+# hard filter, same reasoning as the missing-protein penalty above). Only
+# applies when meals_per_day > 1: a single-meal (OMAD) plan has no "slot 1"
+# to distinguish. See feature-spec-2026-09-26.md #2.
+BREAKFAST_SLOT_BONUS = 1.5
+BREAKFAST_OFFSLOT_PENALTY = 1.5
 PROTEIN_MISSING_PENALTY = 2.5
 # A dish with no nutrition data (kcal 0) can't be graded or portion-solved;
 # when the pool has dishes WITH data, prefer those. Uniform across an
@@ -100,6 +108,15 @@ DAILY_KCAL_TOLERANCE = 0.15
 # this, not just calories. A 2400 kcal day that is 380 g carb / 25 g protein
 # is not on target however close its calorie count lands.
 DAILY_MACRO_TOLERANCE = 0.25
+# Absolute-gram backstop on top of the percentage tolerance above (feature-
+# spec-2026-09-26.md #3): 25% of a small target (20g fat) is unreasonably
+# tight, but 25% of a large one (160g protein = 40g slop) is too loose to
+# call "on target". A day fails a macro when it misses by MORE than both —
+# the percentage tolerance stays the backstop for small targets, this one
+# catches the high-target case the percentage alone lets through. Per DAY
+# (summed across meals), matching where day_macro_status already operates —
+# per-meal would force the raw-ingredient fallback into constant use.
+DAILY_MACRO_TOLERANCE_G = 10.0
 MAX_DISHES_PER_MEAL = 2
 
 # A whole meal (every dish in one day+meal slot, after portion scaling) is
@@ -325,6 +342,40 @@ def has_protein(ingredients: list[str]) -> bool:
 _ACCOMPANIMENT_COURSES = {"side"}
 
 
+def equipment_blocked(equipment: list[str] | None, tools_available: list[str] | None) -> bool:
+    """True if this recipe needs a piece of equipment the client doesn't
+    have (feature-spec-2026-09-26.md #5). Opt-out by design, matching how
+    diet_modes/allergies treat an empty list: an unclassified recipe
+    (equipment is None/empty — aboyeur/classify_equipment.py hasn't run on
+    it yet) is never blocked, and a client with no tools_available set at
+    all (None) is never filtered either — profile.DEFAULT_PROFILE seeds a
+    common-kitchen default rather than leaving new clients at zero tools."""
+    if not equipment or tools_available is None:
+        return False
+    available = {t.strip().lower() for t in tools_available}
+    return any((t or "").strip().lower() not in available for t in equipment)
+
+
+def hinted_meal_types(c: dict, hints: dict[str, list[str]] | None) -> set[str] | None:
+    """Per-client meal-type hint override (feature-spec-2026-09-26.md #2) —
+    "steak is breakfast for me" overrides the classified course for THIS
+    client's slot-fit scoring only; it never mutates recipes.course, so it
+    can't leak into another client's plan. Matches a hint key against the
+    recipe's title or ingredients on word boundaries; returns the hinted
+    meal types (lowercased) on the first hint that fires, else None so the
+    caller falls back to the classified course."""
+    if not hints:
+        return None
+    ing_text = " ".join(c.get("ingredients") or [])
+    for key, meal_types in hints.items():
+        key = (key or "").strip().lower()
+        if not key or not meal_types:
+            continue
+        if _phrase_hit(c.get("title", ""), {key}) or _phrase_hit(ing_text, {key}):
+            return {str(m).strip().lower() for m in meal_types}
+    return None
+
+
 def is_meal_main_eligible(candidate: dict) -> bool:
     """True if this candidate can anchor a meal (be the role="main" pick),
     not just accompany one.
@@ -420,6 +471,12 @@ def day_macro_status(
     macro_status: unknown | ok | off  — "ok" only when kcal AND every one of
     protein/carb/fat is within tolerance. Calorie-close but protein-short is
     "off", and that is what decides whether a plan is deliverable.
+
+    A macro fails when it's outside BOTH DAILY_MACRO_TOLERANCE (percentage)
+    AND DAILY_MACRO_TOLERANCE_G (absolute grams) — the percentage alone is
+    too loose at a high target (25% of 160g protein is 40g slop) and the
+    absolute figure alone is too tight at a low one (10g on a 20g fat
+    target), so a day only fails when it's genuinely off by both measures.
     """
     kcal = float(totals.get("kcal") or totals.get("calories") or 0)
     if kcal <= 0 or not target_kcal:
@@ -440,7 +497,12 @@ def day_macro_status(
             if t <= 0:
                 continue
             v = float(totals.get(key) or 0)
-            if abs(v - t) / t > DAILY_MACRO_TOLERANCE:
+            # Pass only within the TIGHTER of the two bands: percentage governs
+            # a small target (20g fat -> a 5g band, well under 10g), the flat
+            # 10g figure governs a large one (160g protein -> a 40g percentage
+            # band would let a 15g miss through; 10g catches it).
+            tolerance_g = min(DAILY_MACRO_TOLERANCE_G, DAILY_MACRO_TOLERANCE * t)
+            if abs(v - t) > tolerance_g:
                 notes.append(f"{label} {round(v)} g vs {round(t)} g target")
     macro_status = "ok" if (kcal_status == "ok" and not notes) else "off"
 
@@ -490,6 +552,9 @@ def select_menu(
     day_numbers: list[int] | None = None,
     seed_ingredients: set[str] | None = None,
     variety: int = DEFAULT_VARIETY,
+    tools_available: list[str] | None = None,
+    meal_type_hints: dict[str, list[str]] | None = None,
+    meal_prep_requested: bool = False,
 ) -> dict:
     """Greedy selection: `days * meals_per_day` picks, each maximizing
     overlap+pantry+macro fit against what's already chosen, minus same-book
@@ -590,6 +655,31 @@ def select_menu(
         if len(cuisine_pool) >= needed_distinct:
             base_pool = cuisine_pool
 
+    # Hard-exclude recipes needing equipment the client doesn't have — a
+    # recipe you can't cook shouldn't appear regardless of how well it
+    # scores otherwise (feature-spec-2026-09-26.md #5). Unclassified/no-
+    # equipment recipes are never touched by this (equipment_blocked
+    # returns False for them), so it never thins the pool just because the
+    # keyword classifier hasn't reached a recipe yet.
+    base_pool = [
+        c for c in base_pool
+        if not equipment_blocked(c.get("equipment"), tools_available)
+    ]
+    if len(base_pool) < needed_distinct:
+        infeasible_reasons.append(
+            f"only {len(base_pool)} dishes usable with the client's available "
+            f"equipment for {total_picks} meal slots — search more recipes "
+            f"or add tools to tools_available"
+        )
+
+    # Meal-prep: same never-starve shape as cuisine_affinity — filter to
+    # batch-cook-friendly dishes only when enough remain to fill the plan
+    # (feature-spec-2026-09-26.md #2).
+    if meal_prep_requested:
+        meal_prep_pool = [c for c in base_pool if c.get("meal_prep")]
+        if len(meal_prep_pool) >= needed_distinct:
+            base_pool = meal_prep_pool
+
     # A meal's primary (role="main") pick must be able to anchor a meal — a
     # side dish is menu-eligible but is an accompaniment, not a dinner on its
     # own (this is what let "Curried Rice"/"Deviled Eggs" become a day's only
@@ -652,13 +742,27 @@ def select_menu(
             missing_protein_pen = 0.0 if vegetarian or has_protein(ings) else PROTEIN_MISSING_PENALTY
             unknown_pen = 0.0 if float(c.get("macros", {}).get("calories") or 0) > 0 else UNKNOWN_NUTRITION_PENALTY
 
+            # Course vs slot position: slot 1 of a multi-meal day wants
+            # breakfast, later slots don't. A per-client meal_type_hints
+            # entry overrides the classified course for this check only.
+            slot_adj = 0.0
+            if meals_per_day > 1:
+                hinted = hinted_meal_types(c, meal_type_hints)
+                is_breakfast = ("breakfast" in hinted) if hinted is not None else (
+                    (c.get("course") or "").strip().lower() == "breakfast"
+                )
+                meal_number = slot % meals_per_day + 1
+                if is_breakfast:
+                    slot_adj = BREAKFAST_SLOT_BONUS if meal_number == 1 else -BREAKFAST_OFFSLOT_PENALTY
+
             s = (overlap_weight * overlap
                  + W_PANTRY_OVERLAP * pantry_s
                  + W_MACRO_FIT * macro_s
                  - W_SAME_BOOK_PENALTY * spread_mult * book_pen
                  - W_PROTEIN_REPEAT_PENALTY * spread_mult * protein_pen
                  - missing_protein_pen
-                 - unknown_pen)
+                 - unknown_pen
+                 + slot_adj)
 
             joined = " ".join(ings).lower() + " " + c["title"].lower()
             for kw, target_n in constraints.items():

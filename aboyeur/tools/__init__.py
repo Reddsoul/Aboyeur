@@ -4,7 +4,7 @@ native tool-calling live in tools/schemas.py.
 
 from aboyeur.tools.kit import build_macro_kit
 from aboyeur.tools.menu import get_menu_recipes, plan_menu, swap_menu_item
-from aboyeur.tools.nutrition import estimate_nutrition
+from aboyeur.tools.nutrition import estimate_nutrition, set_recipe_macro_override
 from aboyeur.tools.nutrition_reference import search_nutrition_reference
 from aboyeur.tools.pantry import manage_pantry
 from aboyeur.tools.profile import get_profile, update_profile
@@ -19,6 +19,7 @@ __all__ = [
     "update_profile",
     "manage_pantry",
     "estimate_nutrition",
+    "set_recipe_macro_override",
     "plan_menu",
     "build_macro_kit",
     "swap_menu_item",

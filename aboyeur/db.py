@@ -31,7 +31,21 @@ CREATE TABLE IF NOT EXISTS recipes (
     course          TEXT NOT NULL DEFAULT 'unknown',
     serving_est_g   REAL,
     meal_complete   INTEGER NOT NULL DEFAULT 0,
-    classified_at   TEXT
+    classified_at   TEXT,
+    -- Populated by aboyeur/classify_equipment.py (keyword-scan MVP over the
+    -- recipe's instructions text, see feature-spec-2026-09-26.md #5) — JSON
+    -- list of tags from the same vocabulary as profile.tools_available, e.g.
+    -- ["oven","stovetop"]. NULL = not yet classified (never treated as "no
+    -- equipment needed" — the planner only hard-excludes recipes that HAVE
+    -- been classified with a tool the client lacks).
+    equipment_json  TEXT,
+    equipment_classified_at TEXT,
+    -- Populated by aboyeur/classify_meal_prep.py (batch-cook / leftover-
+    -- friendly heuristic). 0 default reads as "not batch-cook-friendly" until
+    -- classified; meal_prep_at distinguishes "never checked" from "checked,
+    -- no" the same way classified_at does for course.
+    meal_prep       INTEGER NOT NULL DEFAULT 0,
+    meal_prep_at    TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_recipes_book ON recipes(book);
@@ -130,7 +144,16 @@ CREATE TABLE IF NOT EXISTS nutrition (
     -- Servings the per-serving figures were divided by when the recipe
     -- itself doesn't say (derived from total parsed grams / the course's
     -- serving_est_g). NULL when the recipe stated its servings.
-    servings_est  INTEGER
+    servings_est  INTEGER,
+    -- Manual correction (aboyeur/tools/nutrition.py set_recipe_macro_override).
+    -- Global to the recipe, not per-client — see feature-spec-2026-09-26.md #1.
+    -- Same shape as the calculated fields above (kcal/protein_g/carb_g/fat_g/
+    -- fiber_g). get_effective_macros / estimate_nutrition return this instead
+    -- of the calculated row whenever is_override is set; the calculated
+    -- columns are left in place underneath so clearing the override restores
+    -- them without a recompute.
+    override_json TEXT,
+    is_override   INTEGER NOT NULL DEFAULT 0
 );
 
 -- Parsed ingredient lines ("6 eggs" -> food "eggs", ~300 g), LLM-produced.

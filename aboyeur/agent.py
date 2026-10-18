@@ -28,6 +28,7 @@ from aboyeur.tools import (
     plan_menu,
     search_nutrition_reference,
     search_recipes,
+    set_recipe_macro_override,
     swap_menu_item,
     update_profile,
 )
@@ -174,6 +175,12 @@ def _dispatch(
 
     if name == "estimate_nutrition":
         return estimate_nutrition(conn, config, args["recipe_ids"])
+
+    if name == "set_recipe_macro_override":
+        macros = {k: args[k] for k in ("kcal", "protein_g", "carb_g", "fat_g", "fiber_g") if k in args}
+        return set_recipe_macro_override(
+            conn, args["recipe_id"], macros, clear=bool(args.get("clear"))
+        )
 
     if name == "plan_menu":
         return plan_menu(

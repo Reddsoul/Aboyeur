@@ -26,18 +26,9 @@ def estimate_nutrition(
     """
     out: dict[int, dict] = {}
     for rid in recipe_ids:
-        row = conn.execute(
-            "SELECT kcal, protein_g, carbs_g, fat_g, fiber_g, confidence, servings_est "
-            "FROM nutrition WHERE recipe_id = ?",
-            (rid,),
-        ).fetchone()
-        if row is not None:
-            out[rid] = {
-                "kcal": row["kcal"], "protein_g": row["protein_g"],
-                "carb_g": row["carbs_g"], "fat_g": row["fat_g"],
-                "fiber_g": row["fiber_g"], "confidence": row["confidence"],
-                "servings_est": row["servings_est"],
-            }
+        effective = nutrition_engine.get_effective_macros(conn, rid)
+        if effective is not None:
+            out[rid] = effective
             continue
 
         rrow = conn.execute(
@@ -90,3 +81,52 @@ def estimate_nutrition(
             "servings_est": servings_est,
         }
     return out
+
+
+def set_recipe_macro_override(
+    conn: sqlite3.Connection, recipe_id: int, macros: dict | None, clear: bool = False,
+) -> dict:
+    """Manually correct one recipe's per-serving macros (feature-spec-2026-09-26.md
+    #1) — global to the recipe, seen by every client that plans with it, the
+    same "the calc was just wrong" scope as kit.py's component-level
+    macros_override. `macros`: {kcal, protein_g, carb_g, fat_g, fiber_g?} —
+    fields you omit are treated as 0, not "leave the calculated value". Set
+    `clear=True` to drop the override and go back to the calculated estimate
+    (the calculated row underneath was never touched, so nothing recomputes).
+
+    Every call site that reads macros (menu scoring, the day solver, the PDF)
+    goes through estimate_nutrition -> engines.nutrition.get_effective_macros,
+    so this is the one place that needs to know an override exists.
+    """
+    row = conn.execute("SELECT id FROM recipes WHERE id = ?", (recipe_id,)).fetchone()
+    if row is None:
+        return {"error": f"no recipe with id {recipe_id}"}
+
+    if clear:
+        conn.execute(
+            "UPDATE nutrition SET override_json = NULL, is_override = 0 WHERE recipe_id = ?",
+            (recipe_id,),
+        )
+        conn.commit()
+        return {"recipe_id": recipe_id, "is_override": False}
+
+    validated = nutrition_engine.validated_recipe_macros(macros or {})
+    if validated is None:
+        return {
+            "error": (
+                "macro override rejected — kcal must roughly agree with "
+                "4*protein + 4*carb + 9*fat, and every value must be >= 0"
+            )
+        }
+
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    override_json = json.dumps(validated)
+    conn.execute(
+        """INSERT INTO nutrition (recipe_id, per_serving, confidence, override_json, is_override)
+           VALUES (?, 1, 'override', ?, 1)
+           ON CONFLICT(recipe_id) DO UPDATE SET override_json = excluded.override_json,
+           is_override = 1""",
+        (recipe_id, override_json),
+    )
+    conn.commit()
+    return {"recipe_id": recipe_id, "is_override": True, "macros": validated}
